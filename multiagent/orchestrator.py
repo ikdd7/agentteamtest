@@ -8,7 +8,6 @@ Claude 호출로 실행하고, 결과를 코디네이터에게 돌려준다. 코
 
 from __future__ import annotations
 
-import json
 from collections.abc import Callable
 from typing import Any
 

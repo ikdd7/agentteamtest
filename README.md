@@ -5,6 +5,8 @@
 1. **Claude Code 서브에이전트** (`.claude/agents/`) — Claude Code에서 바로 호출
 2. **멀티에이전트 앱** (`multiagent/`) — Claude API로 동작하는 코디네이터 기반 팀
 
+> **API 키 없이 바로 쓰려면** → 아래 [3. 로컬 모드(LLM 미사용)](#3-로컬-모드-llm-미사용)로.
+
 두 형태 모두 같은 역할 구성을 공유합니다.
 
 | 역할 | 하는 일 |
@@ -97,5 +99,34 @@ multiagent/
 ├── __init__.py        # 공개 API (Orchestrator, TEAM, Agent)
 ├── agents.py          # 전문 에이전트 페르소나 정의
 ├── orchestrator.py    # 코디네이터 + delegate 도구 + 위임 실행 루프
+├── local.py           # LLM 미사용 로컬 도구 기반 에이전트 (아래 3번)
 └── __main__.py        # CLI 진입점
 ```
+
+---
+
+## 3. 로컬 모드 (LLM 미사용)
+
+API 키도, 네트워크도 필요 없습니다. 각 에이전트가 LLM 대신 **결정론적 로컬
+도구**로 실제 작업을 수행합니다. (`multiagent/local.py`, stdlib만 사용. ruff·
+pytest가 설치돼 있으면 자동 활용)
+
+```bash
+python -m multiagent.local analyst .          # 파일/언어 통계, 라인 수, TODO 스캔
+python -m multiagent.local reviewer multiagent/   # ruff(없으면 내장 규칙)로 정적 점검
+python -m multiagent.local tester .           # 테스트 탐지 후 pytest 실행
+python -m multiagent.local planner "URL 단축 서비스"   # 표준 개발 체크리스트 생성
+python -m multiagent.local implementer src/new_module.py   # 모듈 스캐폴드 생성
+python -m multiagent.local all .              # analyst+reviewer+tester 종합
+```
+
+| 에이전트 | 입력 | 하는 일 (LLM 없이) |
+|----------|------|--------------------|
+| `analyst` | 경로 | 파일 수·언어별 분포·총 라인·큰 파일 Top5·TODO 스캔 |
+| `reviewer` | 경로 | `ruff check` 실행, 없으면 내장 규칙(bare except, 가변 기본 인자, `== None`, 긴 라인 등) |
+| `tester` | 경로 | `test_*.py` 탐지 → `pytest -q` 실행·결과 보고 |
+| `planner` | 작업 설명 | 표준 개발 단계 체크리스트 템플릿 |
+| `implementer` | 새 파일 경로 | `.py` 모듈 스캐폴드 생성(기존 파일은 덮어쓰지 않음) |
+
+LLM 기반 팀(2번)과 로컬 팀(3번)은 같은 역할 이름을 공유하므로, 키가 없을 땐
+3번으로 동작을 확인하고 키가 있을 땐 2번으로 추론까지 맡길 수 있습니다.
