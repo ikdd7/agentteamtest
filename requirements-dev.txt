@@ -1,0 +1,6 @@
+anthropic>=0.69
+
+# 로컬 모드(multiagent.local)는 추가 의존성이 없습니다.
+# 테스트 실행용:
+pytest>=7
+ruff>=0.1
