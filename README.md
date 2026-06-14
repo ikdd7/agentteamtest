@@ -257,12 +257,15 @@ Phase 1 산출물인 **공개 "Agent-Readiness 리더보드"**(`validation/leade
 
 ```
 validation/
-├── funnel.py     # 퍼널(로드→상품→장바구니→체크아웃→결제폼) + 결과 모델
-├── driver.py     # MockDriver(데모) / PlaywrightDriver(실측, 결제 미실행)
-├── scoring.py    # 멀티에이전트 집계: 도달률 중앙값 + 차단율 분리
-├── report.py     # 리더보드(md/csv) + 핵심 전제 합격 판정
-├── runner.py     # 사이트 × 에이전트 주행 오케스트레이션
-└── __main__.py   # CLI
+├── funnel.py      # 퍼널(로드→상품→장바구니→체크아웃→결제폼) + 결과 모델
+├── driver.py      # MockDriver(데모) · CheckoutEngine · PlaywrightDriver(실측, 결제 미실행)
+├── playbooks.py   # 플랫폼(Shopify/Woo/일반) 감지 + 단계별 셀렉터 + 차단 신호
+├── scoring.py     # 멀티에이전트 집계: 도달률 중앙값 + 차단율 분리
+├── report.py      # 리더보드(md/csv) + 핵심 전제 합격 판정
+├── leaderboard.py # 공개 리더보드(공유용 단독 HTML)
+├── diagnostic.py  # 머천트 진단 리포트(손실 추정 + 수정 가이드)
+├── runner.py      # 사이트 × 에이전트 주행 오케스트레이션
+└── __main__.py    # CLI (--out / --html / --diagnose)
 ```
 
 - **멀티에이전트 중립성**(여러 에이전트 프로파일로 측정)이 해자라, 기본으로 여러

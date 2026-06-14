@@ -130,6 +130,104 @@ def test_run_validation_multi_agent() -> None:
 
 # --- leaderboard HTML ------------------------------------------------------
 
+# --- CheckoutEngine (가짜 Page, 브라우저 없음) + 플레이북 ------------------
+
+_BLOCK_INDEX = {  # blocked() 호출 순서 → 단계
+    "find_product": 1, "add_to_cart": 2, "open_cart": 3,
+    "enter_checkout": 4, "reach_payment_form": 5,
+}
+
+
+class FakePage:
+    """CheckoutEngine 을 브라우저 없이 검증하는 스크립트형 Page."""
+
+    def __init__(self, *, load_blocked=False, block_before=None, fail_at=None, payment=True):
+        self.load_blocked = load_blocked
+        self.block_before = block_before
+        self.fail_at = fail_at
+        self.payment = payment
+        self._blk_calls = 0
+
+    def load(self, url):
+        return "blocked" if self.load_blocked else "ok"
+
+    def blocked(self):
+        self._blk_calls += 1
+        return bool(self.block_before) and self._blk_calls == _BLOCK_INDEX[self.block_before]
+
+    def find_product(self, query):
+        return self.fail_at != "find_product"
+
+    def add_to_cart(self):
+        return self.fail_at != "add_to_cart"
+
+    def open_cart(self):
+        return self.fail_at != "open_cart"
+
+    def enter_checkout(self):
+        return self.fail_at != "enter_checkout"
+
+    def payment_form_present(self):
+        return self.payment
+
+
+def _engine_run(page):
+    from validation.driver import CheckoutEngine
+    return SiteRun("x", "a", CheckoutEngine().run(page, {"url": "u", "query": "q"}))
+
+
+def test_engine_reaches_payment() -> None:
+    run = _engine_run(FakePage())
+    assert run.outcome == "reached_payment"
+    assert run.reachability == 100
+
+
+def test_engine_blocked_at_load() -> None:
+    run = _engine_run(FakePage(load_blocked=True))
+    assert run.outcome == "blocked"
+    assert run.steps[0].step == "load"
+
+
+def test_engine_fail_at_add_to_cart() -> None:
+    run = _engine_run(FakePage(fail_at="add_to_cart"))
+    assert run.outcome == "failed"
+    assert run.terminal.step == "add_to_cart"
+    assert run.terminal.reason == "element_not_found"
+
+
+def test_engine_blocked_before_checkout() -> None:
+    run = _engine_run(FakePage(block_before="enter_checkout"))
+    assert run.outcome == "blocked"
+    assert run.terminal.step == "enter_checkout"
+
+
+def test_engine_no_payment_form() -> None:
+    run = _engine_run(FakePage(payment=False))
+    assert run.outcome == "failed"
+    assert run.terminal.step == "reach_payment_form"
+
+
+def test_detect_platform() -> None:
+    from validation.playbooks import detect_platform
+    assert detect_platform("<script src='cdn.shopify.com/x'>") == "shopify"
+    assert detect_platform("<body class='woocommerce'>") == "woocommerce"
+    assert detect_platform("<html>plain</html>") == "generic"
+
+
+def test_is_blocked() -> None:
+    from validation.playbooks import is_blocked
+    assert is_blocked("Please complete the CAPTCHA") is True
+    assert is_blocked("normal shop page") is False
+
+
+def test_selectors_for_fallback_and_dedup() -> None:
+    from validation.playbooks import selectors_for
+    sels = selectors_for("shopify", "search")
+    assert sels[0] == 'input[name="q"]'              # 플랫폼 우선
+    assert 'input[type="search"]' in sels            # generic 폴백 포함
+    assert len(sels) == len(set(sels))               # 중복 없음
+
+
 # --- merchant diagnostic ---------------------------------------------------
 
 def test_estimate_monthly_loss() -> None:
