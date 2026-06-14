@@ -138,6 +138,31 @@ def test_render_page_has_loop_and_form() -> None:
     assert "http" not in html.split("<body>")[0].replace("lang", "")  # 외부 의존 없음
 
 
+# --- eval (objective grader) -----------------------------------------------
+
+def test_grade_flags_emoji_and_first_person() -> None:
+    from frontdoor.eval import Case, grade
+    r = grade(Case("당신은 누구죠?"), "저는 박개발입니다 😊", "박개발")
+    assert r.checks["이모지 없음"] is False
+    assert r.checks["본인사칭 안함"] is False
+
+
+def test_grade_decline_case_requires_guide() -> None:
+    from frontdoor.eval import Case, grade
+    good = grade(Case("나이?", must_decline=True),
+                 "나이 정보는 없습니다. 용건을 남겨 주세요.", "박개발")
+    assert good.checks["모름 거절"] and good.checks["용건 유도"]
+    bad = grade(Case("나이?", must_decline=True), "박개발님은 30세입니다.", "박개발")
+    assert bad.checks["모름 거절"] is False
+
+
+def test_grade_korean_only_flags_english() -> None:
+    from frontdoor.eval import Case, grade
+    r = grade(Case("en?", must_korean=True),
+              "Sure, here is the answer in full English text okay", "박개발")
+    assert r.checks["한국어 유지"] is False
+
+
 # --- inbox -----------------------------------------------------------------
 
 def test_inbox_summary_empty() -> None:
