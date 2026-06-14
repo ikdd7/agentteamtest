@@ -126,3 +126,20 @@ def test_run_validation_multi_agent() -> None:
     assert len(scores) == 1
     assert len(scores[0].runs) == 2  # 2 에이전트
     assert scores[0].reachability == 100
+
+
+# --- leaderboard HTML ------------------------------------------------------
+
+def test_leaderboard_html_self_contained() -> None:
+    from validation.leaderboard import to_html
+    scores = score_sites([
+        SiteRun("good", "a", MockDriver().run({"name": "g", "url": "u", "mock": None}, "a")),
+        SiteRun("blocked", "a", _steps(("load", BLOCKED, "blocked_bot"))),
+    ])
+    page = to_html(scores, demo=True, generated_at="2026-06-14 00:00 UTC")
+    assert page.startswith("<!doctype html>")
+    assert "Agent-Readiness Leaderboard" in page
+    assert "<style>" in page and "http" not in page.split("<body>")[0].replace("lang", "")  # 외부 의존 없음
+    assert "차단(측정 불가)" in page  # 차단 분리 표기
+    assert "결제는 실행하지 않습니다" in page  # 법적 안전 고지
+    assert "DEMO" in page

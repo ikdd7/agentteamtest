@@ -246,8 +246,12 @@ team-lead: FINAL 종합
 ```bash
 python -m validation                    # mock 데모 (네트워크 0, 로직 검증용)
 python -m validation --out report.md    # 리더보드 → report.md + report.csv
+python -m validation --html board.html  # 공개 리더보드(공유용 단독 HTML)
 python -m validation --driver playwright --sites my_sites.json   # 실측(본인 PC)
 ```
+
+Phase 1 산출물인 **공개 "Agent-Readiness 리더보드"**(`validation/leaderboard.py`)는
+외부 의존 없는 자체완결 HTML 한 페이지로, GTM·PR 인바운드 엔진이다.
 
 구조:
 

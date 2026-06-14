@@ -26,6 +26,7 @@ def main(argv: list[str] | None = None) -> int:
     driver_name = "mock"
     sites_path: str | None = None
     out_path: str | None = None
+    html_path: str | None = None
 
     i = 0
     while i < len(argv):
@@ -35,6 +36,8 @@ def main(argv: list[str] | None = None) -> int:
             sites_path, i = argv[i + 1], i + 2
         elif argv[i] == "--out" and i + 1 < len(argv):
             out_path, i = argv[i + 1], i + 2
+        elif argv[i] == "--html" and i + 1 < len(argv):
+            html_path, i = argv[i + 1], i + 2
         elif argv[i] in ("-h", "--help"):
             print(__doc__)
             return 0
@@ -71,6 +74,12 @@ def main(argv: list[str] | None = None) -> int:
         with open(csv_path, "w", encoding="utf-8") as f:
             f.write(to_csv(scores))
         print(f"\n저장: {out_path}, {csv_path}", file=sys.stderr)
+
+    if html_path:
+        from .leaderboard import to_html
+        with open(html_path, "w", encoding="utf-8") as f:
+            f.write(to_html(scores, demo=demo))
+        print(f"리더보드 HTML 저장: {html_path}", file=sys.stderr)
     return 0
 
 
