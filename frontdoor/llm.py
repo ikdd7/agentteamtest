@@ -72,6 +72,7 @@ class OllamaLLM:
             return json.loads(r.read().decode())
 
     def answer(self, question: str, context: list[str], name: str) -> str:
+        from urllib.error import HTTPError, URLError
         try:
             data = self._post({
                 "model": self.model,
@@ -79,9 +80,17 @@ class OllamaLLM:
                 "stream": False,
                 "options": {"temperature": 0.6, "num_predict": 512},
             })
-        except OSError:
+        except HTTPError as e:
+            body = e.read().decode(errors="replace")[:200]
             raise RuntimeError(
-                "Ollama 연결 실패. 설치·실행: https://ollama.com → `ollama run llama3.1`"
+                f"Ollama 오류 {e.code}: {body}\n"
+                f"→ 모델 '{self.model}'이 설치됐나요? `ollama list` 확인, 없으면 "
+                f"`ollama pull {self.model}`."
+            ) from None
+        except (URLError, OSError):
+            raise RuntimeError(
+                "Ollama 서버에 연결 실패(localhost:11434). Ollama 앱이 실행 중인지 "
+                "확인하세요(트레이 🦙) 또는 `ollama serve`."
             ) from None
         return data.get("message", {}).get("content", "").strip()
 
