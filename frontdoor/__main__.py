@@ -37,6 +37,7 @@ def main(argv: list[str] | None = None) -> int:
     llm = "mock"
     model = None
     html_path = None
+    chat = False
     i = 0
     while i < len(argv):
         if argv[i] == "--profile" and i + 1 < len(argv):
@@ -47,6 +48,8 @@ def main(argv: list[str] | None = None) -> int:
             model, i = argv[i + 1], i + 2
         elif argv[i] == "--html" and i + 1 < len(argv):
             html_path, i = argv[i + 1], i + 2
+        elif argv[i] == "--chat":
+            chat, i = True, i + 1
         elif argv[i] in ("-h", "--help"):
             print(__doc__)
             return 0
@@ -63,18 +66,33 @@ def main(argv: list[str] | None = None) -> int:
 
     door = FrontDoor.create(name, text, llm=llm, model=model)
     if llm == "mock":
-        print("※ mock LLM 데모(키 0). 실제 답변은 --llm anthropic.\n", file=sys.stderr)
+        print("※ mock LLM 데모(키 0). 실제 답변은 --llm ollama (로컬, 키 0).\n",
+              file=sys.stderr)
 
     sample_qa: list[tuple[str, str]] = []
-    for q in _QUESTIONS:
-        r = door.ask(q)
-        print(f"방문자> {q}")
-        print(f"{name} AI> {r['text']}")
-        print(f"          {r['attribution']}\n")
-        sample_qa.append((q, r["text"]))
+    if chat:
+        print("내 프로필에 대해 질문해 보세요. 빈 줄/quit 으로 종료.\n", file=sys.stderr)
+        while True:
+            try:
+                q = input("방문자> ").strip()
+            except EOFError:
+                break
+            if not q or q.lower() in ("quit", "exit", "q"):
+                break
+            r = door.ask(q)
+            print(f"{name} AI> {r['text']}")
+            print(f"          {r['attribution']}\n")
+            sample_qa.append((q, r["text"]))
+    else:
+        for q in _QUESTIONS:
+            r = door.ask(q)
+            print(f"방문자> {q}")
+            print(f"{name} AI> {r['text']}")
+            print(f"          {r['attribution']}\n")
+            sample_qa.append((q, r["text"]))
+        door.leave_message("이채용", "recruiter@corp.com",
+                           "백엔드 시니어 포지션 제안드립니다. 면접 가능하신가요?")
 
-    door.leave_message("이채용", "recruiter@corp.com",
-                       "백엔드 시니어 포지션 제안드립니다. 면접 가능하신가요?")
     print("=" * 50)
     print(door.owner_digest())
 

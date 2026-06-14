@@ -30,9 +30,18 @@ def test_retrieve_keyword_match() -> None:
     assert hits and "결제" in hits[0]
 
 
-def test_retrieve_no_match_returns_empty() -> None:
+def test_retrieve_small_profile_returns_all() -> None:
+    # 짧은 프로필은 키워드와 무관하게 전체를 근거로 넘긴다(한국어 합성어 회피).
     p = ingest("박개발", _PROFILE)
-    assert retrieve(p, "좋아하는 음식은?") == []
+    assert retrieve(p, "좋아하는 음식은?") == p.chunks
+
+
+def test_retrieve_large_profile_uses_keywords() -> None:
+    big = "\n\n".join(f"문단{i}: 토픽{i} 관련 내용입니다." for i in range(20))
+    p = ingest("박개발", big)
+    hits = retrieve(p, "토픽7 알려줘")
+    assert any("토픽7" in c for c in hits)
+    assert hits  # 못 찾아도 앞부분 제공 → 빈 적 없음
 
 
 # --- llm -------------------------------------------------------------------
