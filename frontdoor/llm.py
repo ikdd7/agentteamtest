@@ -7,6 +7,8 @@
 
 from __future__ import annotations
 
+import json
+import urllib.request
 from typing import Protocol
 
 _SYSTEM = (
@@ -36,8 +38,48 @@ class MockLLM:
         return f"{body}"
 
 
+class OllamaLLM:
+    """로컬 Ollama 백엔드 — **API 키·외부 호출 없음**(localhost). 무료·비공개·토큰비용 0.
+
+    설치: https://ollama.com → `ollama run llama3.1` (또는 qwen2.5 등).
+    """
+
+    def __init__(self, model: str = "llama3.1", host: str = "http://localhost:11434") -> None:
+        self.model = model
+        self.host = host
+
+    def _messages(self, question: str, context: list[str], name: str) -> list[dict]:
+        ctx = "\n- ".join(context) or "(근거 없음)"
+        return [
+            {"role": "system", "content": _SYSTEM.format(name=name)},
+            {"role": "user", "content": f"## 근거\n- {ctx}\n\n## 질문\n{question}"},
+        ]
+
+    def _post(self, payload: dict) -> dict:
+        req = urllib.request.Request(
+            f"{self.host}/api/chat",
+            data=json.dumps(payload).encode(),
+            headers={"Content-Type": "application/json"},
+        )
+        with urllib.request.urlopen(req, timeout=120) as r:  # noqa: S310 — localhost
+            return json.loads(r.read().decode())
+
+    def answer(self, question: str, context: list[str], name: str) -> str:
+        try:
+            data = self._post({
+                "model": self.model,
+                "messages": self._messages(question, context, name),
+                "stream": False,
+            })
+        except OSError:
+            raise RuntimeError(
+                "Ollama 연결 실패. 설치·실행: https://ollama.com → `ollama run llama3.1`"
+            ) from None
+        return data.get("message", {}).get("content", "").strip()
+
+
 class AnthropicLLM:
-    """실제 Claude 백엔드(본인 PC)."""
+    """실제 Claude 백엔드(클라우드 API — 키 필요). API 안 쓰려면 OllamaLLM 사용."""
 
     def __init__(self, model: str = "claude-opus-4-8") -> None:
         self.model = model
@@ -61,6 +103,8 @@ class AnthropicLLM:
 def get_llm(name: str = "mock") -> LLM:
     if name == "mock":
         return MockLLM()
+    if name == "ollama":
+        return OllamaLLM()
     if name == "anthropic":
         return AnthropicLLM()
-    raise ValueError(f"알 수 없는 LLM: {name} (mock | anthropic)")
+    raise ValueError(f"알 수 없는 LLM: {name} (mock | ollama | anthropic)")

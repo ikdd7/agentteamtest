@@ -53,6 +53,24 @@ def test_get_llm_unknown() -> None:
         get_llm("nope")
 
 
+def test_ollama_backend_builds_messages() -> None:
+    # 로컬 Ollama 백엔드 — 네트워크 없이 메시지 구성만 검증.
+    from frontdoor.llm import OllamaLLM
+    o = get_llm("ollama")
+    assert isinstance(o, OllamaLLM)
+    msgs = o._messages("결제?", ["결제 시스템 설계함"], "박개발")
+    assert msgs[0]["role"] == "system" and "박개발" in msgs[0]["content"]
+    assert "결제 시스템 설계함" in msgs[1]["content"]
+
+
+def test_ollama_answer_via_mocked_post(monkeypatch) -> None:
+    # _post 만 가짜로 — answer 파싱 로직 검증(실제 Ollama 불필요).
+    from frontdoor.llm import OllamaLLM
+    o = OllamaLLM()
+    monkeypatch.setattr(o, "_post", lambda payload: {"message": {"content": "  답변입니다  "}})
+    assert o.answer("q", ["c"], "박개발") == "답변입니다"
+
+
 # --- front door (core loop) ------------------------------------------------
 
 def test_ask_grounded_with_attribution() -> None:
