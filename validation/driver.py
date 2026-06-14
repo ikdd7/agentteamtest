@@ -126,7 +126,12 @@ class PlaywrightPage:
         return None
 
     def load(self, url: str) -> str:
-        self.page.goto(url, wait_until="domcontentloaded")  # type: ignore[attr-defined]
+        # SPA(Angular/Next 등)가 렌더되도록 'load' 까지 기다린다.
+        self.page.goto(url, wait_until="load")  # type: ignore[attr-defined]
+        try:
+            self.page.wait_for_load_state("networkidle", timeout=8000)  # type: ignore[attr-defined]
+        except Exception:  # noqa: BLE001 — networkidle 타임아웃은 무시
+            pass
         html = self.page.content()  # type: ignore[attr-defined]
         self.platform = detect_platform(html)
         return "blocked" if is_blocked(html) else "ok"
