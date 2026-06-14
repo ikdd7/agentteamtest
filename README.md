@@ -272,3 +272,5 @@ validation/
   에이전트로 같은 사이트를 주행해 집계한다.
 - mock 데모는 12개 샘플 사이트로 리더보드 + 전제 판정을 즉시 보여준다(실측 아님).
 - 실측 `PlaywrightDriver`는 결제 폼 도달까지만 수행하며 결제 제출 단계가 **없다**.
+- **본인 PC 실측 빠른 시작:** [`docs/QUICKSTART-실측.md`](docs/QUICKSTART-실측.md)
+  (`validation/sites_demo.json` = 자동화 테스트용 동의 데모 쇼핑몰).

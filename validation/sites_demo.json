@@ -1,0 +1,8 @@
+[
+  {"name": "automationexercise", "url": "https://automationexercise.com", "query": "dress"},
+  {"name": "practicesoftwaretesting", "url": "https://practicesoftwaretesting.com", "query": "hammer"},
+  {"name": "ecommerce-playground (OpenCart)", "url": "https://ecommerce-playground.lambdatest.io", "query": "iphone"},
+  {"name": "magento demo", "url": "https://magento.softwaretestingboard.com", "query": "bag"},
+  {"name": "vercel commerce demo", "url": "https://demo.vercel.store", "query": "shirt"},
+  {"name": "saucedemo (Sauce Labs)", "url": "https://www.saucedemo.com", "query": "backpack"}
+]
