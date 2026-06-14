@@ -216,7 +216,10 @@ def test_detect_platform() -> None:
 
 def test_is_blocked() -> None:
     from validation.playbooks import is_blocked
-    assert is_blocked("Please complete the CAPTCHA") is True
+    assert is_blocked("Just a moment...") is True            # Cloudflare 챌린지
+    assert is_blocked("Please verify you are a human") is True
+    # 광범위 단어는 더 이상 오탐하지 않는다(CDN/위젯).
+    assert is_blocked("<script src='cdn.cloudflare.com/x'>") is False
     assert is_blocked("normal shop page") is False
 
 

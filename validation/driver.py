@@ -135,12 +135,12 @@ class PlaywrightPage:
         return is_blocked(self.page.content())  # type: ignore[attr-defined]
 
     def find_product(self, query: str) -> bool:
+        # 검색창이 있으면 검색하고, 없으면(목록형 사이트) 바로 상품 링크를 시도한다.
         box = self._first("search")
-        if box is None:
-            return False
-        box.fill(query)
-        box.press("Enter")
-        self.page.wait_for_load_state("domcontentloaded")  # type: ignore[attr-defined]
+        if box is not None:
+            box.fill(query)
+            box.press("Enter")
+            self.page.wait_for_load_state("domcontentloaded")  # type: ignore[attr-defined]
         link = self._first("product_link")
         if link is None:
             return False
