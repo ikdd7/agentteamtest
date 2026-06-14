@@ -55,6 +55,28 @@ class OllamaLLM:
         self.model = model
         self.host = host
 
+    def check(self) -> str:
+        """설치 상태 진단(트레이스백 대신 한 줄 안내). 실행 전 점검용."""
+        from urllib.error import URLError
+        try:
+            req = urllib.request.Request(f"{self.host}/api/tags")
+            with urllib.request.urlopen(req, timeout=5) as r:  # noqa: S310 — localhost
+                tags = json.loads(r.read().decode()).get("models", [])
+        except (URLError, OSError):
+            return (
+                "❌ Ollama 서버 꺼져 있음(localhost:11434). 트레이 🦙 확인 또는 "
+                "`ollama serve` 실행."
+            )
+        names = [m.get("name", "") for m in tags]
+        if any(n == self.model or n.startswith(self.model + ":") for n in names):
+            return f"✅ Ollama 정상 · 모델 '{self.model}' 설치됨."
+        installed = ", ".join(names) or "(없음)"
+        return (
+            f"⚠️ Ollama 서버는 살아 있는데 모델 '{self.model}'이 없음.\n"
+            f"   설치된 모델: {installed}\n"
+            f"   → `ollama pull {self.model}` 후 다시 실행."
+        )
+
     def _messages(self, question: str, context: list[str], name: str) -> list[dict]:
         ctx = "\n- ".join(context) or "(근거 없음)"
         return [
