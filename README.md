@@ -147,3 +147,54 @@ python -m multiagent.local all .              # analyst+reviewer+tester 종합
 
 LLM 기반 팀(2번)과 로컬 팀(3번)은 같은 역할 이름을 공유하므로, 키가 없을 땐
 3번으로 동작을 확인하고 키가 있을 땐 2번으로 전 직군 추론까지 맡길 수 있습니다.
+
+---
+
+## 4. 구독 기반 (CLI 백엔드, API 키 미사용)
+
+**API 키 없이도 전 직군이 실제로 동작합니다.** Anthropic SDK 대신 로컬에 설치된
+`claude` CLI 를 `-p`(비대화) 모드로 호출해, **로그인된 구독(Claude Max/Pro)**
+계정으로 추론합니다. (`multiagent/cli_team.py`)
+
+전제: `claude` CLI 설치 + 로그인(`claude` 한 번 실행해 로그인) 되어 있을 것.
+`ANTHROPIC_API_KEY` 는 필요 없습니다.
+
+### 실행
+
+```bash
+# 코디네이터가 팀을 자동 구성 → 각 직군 claude -p 실행 → 종합
+python -m multiagent.cli_team "할 일 앱을 전 직군이 협업해 기획·구현해줘"
+
+# 직군을 직접 지정 (코디네이터의 팀 구성 단계를 건너뜀)
+python -m multiagent.cli_team --agents product,ux,marketer "랜딩페이지 만들기"
+
+# 모델 지정 (기본 sonnet — 구독 플랜에 맞춰)
+python -m multiagent.cli_team --model opus "..."
+```
+
+### 동작 방식
+
+```
+사용자 작업
+   │
+   ▼
+팀 리드(claude -p) ── plan ──▶ 어느 직군에 무엇을 맡길지 JSON 계획
+   │
+   ├─ claude -p (product)   ┐
+   ├─ claude -p (ux)        │ 스레드 병렬 실행
+   ├─ claude -p (marketer)  ┘  (각자 agents.py 페르소나를 --append-system-prompt)
+   ▼
+팀 리드(claude -p) ── 종합 ──▶ 최종 결과
+```
+
+- 2번(SDK)과 **동일한 12직군 페르소나**(`agents.py`의 `TEAM`)를 그대로 사용합니다.
+- 키 대신 구독으로 인증하므로, 위 스크린샷처럼 여러 에이전트를 구독으로 돌리는
+  구조와 같은 맥락입니다(여기선 tmux 패널 대신 `claude -p` 프로세스로 병렬화).
+
+### 세 가지 백엔드 비교
+
+| 백엔드 | 진입점 | 인증 | 전 직군 추론 |
+|--------|--------|------|--------------|
+| SDK | `multiagent` | `ANTHROPIC_API_KEY` | ✅ |
+| 구독 CLI | `multiagent.cli_team` | `claude` 로그인(구독) | ✅ |
+| 로컬 도구 | `multiagent.local` | 불필요 | ❌ (도구형 5직군만) |
