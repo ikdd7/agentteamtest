@@ -3,7 +3,8 @@
 사용법:
     python -m frontdoor                       # mock 데모(키 0) — 샘플 페르소나로 대화+인박스
     python -m frontdoor --profile me.txt      # 내 프로필 텍스트로
-    python -m frontdoor --llm anthropic       # 실제 Claude(본인 PC, ANTHROPIC_API_KEY)
+    python -m frontdoor --llm ollama          # 로컬 모델(Ollama, API 키 없음) ← 권장
+    python -m frontdoor --llm anthropic       # 클라우드 Claude(키 필요)
     python -m frontdoor --html door.html      # 방문자 관문 페이지(공유 링크 목업) 저장
 """
 
