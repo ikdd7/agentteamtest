@@ -110,10 +110,11 @@ class P2PTeam:
         self._history = {name: [] for name in [*roster, LEAD]}
 
         queue: deque[Message] = deque([Message(to=LEAD, frm="user", content=task)])
+        reports: dict[str, str] = {}  # 직군 -> 최신 산출물
         budget = self.max_calls
-        final = ""
 
-        while queue and budget > 0:
+        # 마지막 1회는 리드 종합에 예약한다.
+        while queue and budget > 1:
             msg = queue.popleft()
             if msg.to not in self._history:
                 continue
@@ -132,28 +133,39 @@ class P2PTeam:
             hist.append(f"[내 응답] {response}")
             self._emit("respond", {"frm": msg.to, "text": response})
 
-            # team-lead 의 FINAL 종료.
             if msg.to == LEAD:
-                fmatch = re.search(r"FINAL:\s*(.*)", response, re.DOTALL)
-                if fmatch:
-                    final = fmatch.group(1).strip()
-                    self._emit("final", {})
-                    break
+                # 리드는 산출물을 직접 쓰지 못한다. 응답에서 담당자를 뽑아
+                # 위임하고, 지목이 없으면 전 직군에 강제 팬아웃한다.
+                spec = [t for t in self._route(response, LEAD) if t in roster]
+                if not spec:
+                    spec = list(roster)
+                for t in spec:
+                    queue.append(Message(to=t, frm=LEAD, content=task))
+                continue
 
-            # @멘션 라우팅.
-            targets = self._route(response, sender=msg.to)
-            if targets:
-                for t in targets:
+            # 전문 에이전트: 산출물을 보고로 기록하고, @멘션한 동료에게 전달.
+            reports[msg.to] = response
+            for t in self._route(response, sender=msg.to):
+                if t in roster:
                     queue.append(Message(to=t, frm=msg.to, content=response))
-            elif msg.to != LEAD:
-                # 멘션이 없으면 리드에게 보고가 올라간다.
-                queue.append(Message(to=LEAD, frm=msg.to, content=response))
 
-        if final:
-            return final
-        # 예산 소진 등으로 FINAL 없이 끝났으면 리드의 마지막 발화를 반환.
-        lead_hist = self._history.get(LEAD, [])
-        return lead_hist[-1].replace("[내 응답] ", "") if lead_hist else "[종료] 산출물 없음."
+        if not reports:
+            return "[종료] 산출물 없음."
+
+        # 리드 종합 (보고를 통합해 최종 결과 작성).
+        self._emit("synth_start", {"count": len(reports)})
+        digest = "\n\n".join(f"### [{n}]\n{t}" for n, t in reports.items())
+        synth_system = (
+            f"당신은 @{LEAD} 입니다. 팀원들의 보고를 통합해 사용자에게 줄 최종 "
+            "결과를 간결하고 구조적으로 작성합니다."
+        )
+        final = self._call(
+            synth_system,
+            f"## 원 작업\n{task}\n\n## 각 직군 보고\n{digest}\n\n"
+            "위 보고를 통합해 최종 결과를 작성하세요.",
+        )
+        self._emit("synth_done", {})
+        return final
 
 
 def main(argv: list[str] | None = None) -> int:
