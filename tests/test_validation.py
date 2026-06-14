@@ -130,6 +130,40 @@ def test_run_validation_multi_agent() -> None:
 
 # --- leaderboard HTML ------------------------------------------------------
 
+# --- merchant diagnostic ---------------------------------------------------
+
+def test_estimate_monthly_loss() -> None:
+    from validation.diagnostic import MerchantInputs, estimate_monthly_loss
+    # 모든 주행이 체크아웃 진입에서 실패 -> 도달 0 -> 손실 = sessions*1*cr*aov
+    score = score_sites([
+        SiteRun("x", "a", _steps(("load", PASS, "ok"), ("find_product", PASS, "ok"),
+                                 ("add_to_cart", FAIL, "element_not_found")))])[0]
+    loss = estimate_monthly_loss(score, MerchantInputs(10_000, 70.0, 0.02))
+    assert round(loss) == 14_000  # 10000 * 1.0 * 0.02 * 70
+
+
+def test_diagnostic_markdown_has_hook_and_fix() -> None:
+    from validation.diagnostic import to_markdown as diag
+    score = score_sites([
+        SiteRun("shop", "ChatGPT", _steps(
+            ("load", PASS, "ok"), ("find_product", PASS, "ok"),
+            ("add_to_cart", PASS, "ok"), ("open_cart", PASS, "ok"),
+            ("enter_checkout", FAIL, "login_required")))])[0]
+    md = diag(score, index_reachabilities=[80, 50], demo=True)
+    assert "에이전트 결제 진단" in md
+    assert "월 추정 손실" in md          # 영업 후크
+    assert "게스트 체크아웃" in md        # login_required 수정 가이드
+    assert "체크아웃 진입" in md          # 깨진 단계
+    assert "❌" in md                    # 퍼널 분해
+
+
+def test_diagnostic_blocked_site() -> None:
+    from validation.diagnostic import to_markdown as diag
+    score = score_sites([SiteRun("b", "a", _steps(("load", BLOCKED, "blocked_bot")))])[0]
+    md = diag(score)
+    assert "봇 차단으로 측정 불가" in md
+
+
 def test_leaderboard_html_self_contained() -> None:
     from validation.leaderboard import to_html
     scores = score_sites([

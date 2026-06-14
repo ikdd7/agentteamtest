@@ -27,6 +27,7 @@ def main(argv: list[str] | None = None) -> int:
     sites_path: str | None = None
     out_path: str | None = None
     html_path: str | None = None
+    diagnose: str | None = None
 
     i = 0
     while i < len(argv):
@@ -38,6 +39,8 @@ def main(argv: list[str] | None = None) -> int:
             out_path, i = argv[i + 1], i + 2
         elif argv[i] == "--html" and i + 1 < len(argv):
             html_path, i = argv[i + 1], i + 2
+        elif argv[i] == "--diagnose" and i + 1 < len(argv):
+            diagnose, i = argv[i + 1], i + 2
         elif argv[i] in ("-h", "--help"):
             print(__doc__)
             return 0
@@ -63,6 +66,17 @@ def main(argv: list[str] | None = None) -> int:
 
     print(f"검증 주행 시작 (driver={driver_name}, 사이트 {len(sites)}곳)...\n", file=sys.stderr)
     scores = run_validation(sites, get_driver(driver_name), on_event=log)
+
+    # 단일 머천트 진단 리포트(유료 SaaS 산출물).
+    if diagnose:
+        from .diagnostic import to_markdown as diag_md
+        match = next((s for s in scores if diagnose.lower() in s.site.lower()), None)
+        if match is None:
+            print(f"진단 대상 사이트를 못 찾음: {diagnose}", file=sys.stderr)
+            return 2
+        index_reach = [s.reachability for s in scores if s.measured_runs]
+        print("\n" + diag_md(match, index_reachabilities=index_reach, demo=demo))
+        return 0
 
     md = to_markdown(scores, demo=demo)
     print("\n" + md)
