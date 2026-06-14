@@ -191,10 +191,42 @@ python -m multiagent.cli_team --model opus "..."
 - 키 대신 구독으로 인증하므로, 위 스크린샷처럼 여러 에이전트를 구독으로 돌리는
   구조와 같은 맥락입니다(여기선 tmux 패널 대신 `claude -p` 프로세스로 병렬화).
 
-### 세 가지 백엔드 비교
+---
 
-| 백엔드 | 진입점 | 인증 | 전 직군 추론 |
-|--------|--------|------|--------------|
-| SDK | `multiagent` | `ANTHROPIC_API_KEY` | ✅ |
-| 구독 CLI | `multiagent.cli_team` | `claude` 로그인(구독) | ✅ |
-| 로컬 도구 | `multiagent.local` | 불필요 | ❌ (도구형 5직군만) |
+## 5. Peer-to-peer (에이전트끼리 @멘션 대화, API 미사용)
+
+4번이 팀 리드 중심의 fan-out이라면, 5번은 **에이전트들이 서로 직접 메시지를
+주고받는** 구조입니다. 각 에이전트가 자기 대화 히스토리를 갖고, 응답에 `@이름`을
+적으면 그 팀원에게 메시지가 라우팅됩니다. (구독 `claude` CLI, 키 미사용 —
+`multiagent/p2p.py`)
+
+```bash
+python -m multiagent.p2p --agents implementer,reviewer "add(a,b) 구현하고 리뷰까지"
+python -m multiagent.p2p --agents product,ux,implementer --max-calls 8 "할 일 앱"
+```
+
+실제 실행 로그(메시지 흐름) 예시:
+
+```
+@user       → @team-lead
+@team-lead  → @implementer      # 리드가 분배
+@team-lead  → @reviewer
+@implementer → @reviewer        # 에이전트끼리 직접 대화(@멘션)
+@reviewer   → @team-lead        # 리드로 보고
+team-lead: FINAL 종합
+```
+
+- 상태 없는 `claude -p` 위에 액터 모델(메시지 큐 + 받은편지함)을 얹습니다.
+- 멘션이 없는 응답은 `@team-lead` 에게 보고가 올라갑니다.
+- `--max-calls` 로 총 `claude` 호출 수(=구독 사용량)를 제한합니다(기본 10).
+- 리드가 `FINAL:` 줄을 내면 종료합니다.
+
+### 다섯 가지 사용 방식 비교
+
+| 방식 | 진입점 | 인증 | 구조 | 전 직군 |
+|------|--------|------|------|---------|
+| SDK 팀 | `multiagent` | `ANTHROPIC_API_KEY` | 코디네이터 fan-out (tool_use) | ✅ |
+| 구독 CLI 팀 | `multiagent.cli_team` | `claude` 로그인 | 코디네이터 fan-out | ✅ |
+| **Peer-to-peer** | `multiagent.p2p` | `claude` 로그인 | **에이전트 간 @멘션 대화** | ✅ |
+| 로컬 도구 | `multiagent.local` | 불필요 | 단발 도구 실행 | ❌ (5직군) |
+| Claude Code 서브에이전트 | `.claude/agents/` | Claude Code | 메인 세션이 위임 | ✅ |
