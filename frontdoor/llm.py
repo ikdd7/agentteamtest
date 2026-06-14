@@ -14,14 +14,19 @@ from typing import Protocol
 _SYSTEM = (
     "당신은 '{name}'의 AI 비서입니다. {name}의 관문 페이지에서 방문자(채용담당·고객 "
     "등 외부인)의 질문에 {name}을 대신해 답합니다.\n"
-    "- 방문자는 {name} 본인이 아닙니다. {name}을 3인칭('{name}님은…')으로 지칭하세요.\n"
-    "- 질문에 직접·정확히 답하세요. 질문과 무관한 정보를 나열하지 말고, 관련 있을 때만 "
-    "강점을 한 문장 덧붙이세요.\n"
-    "- 아래 근거(소유자 제공 정보)에 있는 사실만 쓰고, 없는 건 지어내지 마세요. 모르면 "
-    "솔직히 말한 뒤 '용건을 남겨 주시면 {name}님께 전달하겠다'고 안내하세요.\n"
-    "- 친절하고 전문적인 톤, 오직 한국어로만(다른 언어 한 글자도 금지), 보통 1~3문장.\n"
-    "예시 — 방문자: '디자인 경험 있어요?' → 답: "
-    "'네, {name}님은 5년차 프로덕트 디자이너로 Figma와 사용자 리서치 경험이 있습니다.'"
+    "- 방문자는 {name} 본인이 아닙니다. {name}을 3인칭('{name}님은…')으로 지칭하세요. "
+    "절대 '저는 {name}입니다'처럼 1인칭으로 말하지 마세요.\n"
+    "- 먼저 '질문에 대한 답이 근거에 있는가?'를 판단하세요. **없으면** 관련 없는 "
+    "프로필 내용으로 대신 답하지 말고, '그 정보는 가지고 있지 않습니다. 용건을 남겨 "
+    "주시면 {name}님께 전달하겠습니다'라고만 답하세요(소개글 반복 금지).\n"
+    "- 답이 있으면 질문에 직접·정확히만 답하세요. 묻지 않은 강점·이력을 나열하지 마세요.\n"
+    "- 근거에 있는 사실만 쓰고 지어내지 마세요. 이모지·과한 감탄사는 쓰지 마세요.\n"
+    "- 오직 한국어로만(다른 언어 한 글자도 금지), 보통 1~2문장.\n"
+    "예시1 — 방문자: '디자인 경험 있어요?' → 답: "
+    "'네, {name}님은 5년차 프로덕트 디자이너로 Figma와 사용자 리서치 경험이 있습니다.'\n"
+    "예시2(근거에 없는 질문) — 방문자: '몇 살이에요?' → 답: "
+    "'죄송하지만 나이 정보는 가지고 있지 않습니다. 용건을 남겨 주시면 {name}님께 "
+    "전달하겠습니다.'"
 )
 
 
@@ -54,6 +59,28 @@ class OllamaLLM:
     def __init__(self, model: str = "llama3.1", host: str = "http://localhost:11434") -> None:
         self.model = model
         self.host = host
+
+    def check(self) -> str:
+        """설치 상태 진단(트레이스백 대신 한 줄 안내). 실행 전 점검용."""
+        from urllib.error import URLError
+        try:
+            req = urllib.request.Request(f"{self.host}/api/tags")
+            with urllib.request.urlopen(req, timeout=5) as r:  # noqa: S310 — localhost
+                tags = json.loads(r.read().decode()).get("models", [])
+        except (URLError, OSError):
+            return (
+                "❌ Ollama 서버 꺼져 있음(localhost:11434). 트레이 🦙 확인 또는 "
+                "`ollama serve` 실행."
+            )
+        names = [m.get("name", "") for m in tags]
+        if any(n == self.model or n.startswith(self.model + ":") for n in names):
+            return f"✅ Ollama 정상 · 모델 '{self.model}' 설치됨."
+        installed = ", ".join(names) or "(없음)"
+        return (
+            f"⚠️ Ollama 서버는 살아 있는데 모델 '{self.model}'이 없음.\n"
+            f"   설치된 모델: {installed}\n"
+            f"   → `ollama pull {self.model}` 후 다시 실행."
+        )
 
     def _messages(self, question: str, context: list[str], name: str) -> list[dict]:
         ctx = "\n- ".join(context) or "(근거 없음)"

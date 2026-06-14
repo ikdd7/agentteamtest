@@ -4,6 +4,7 @@
     python -m frontdoor                       # mock 데모(키 0) — 샘플 페르소나로 대화+인박스
     python -m frontdoor --profile me.txt      # 내 프로필 텍스트로
     python -m frontdoor --llm ollama          # 로컬 모델(Ollama, API 키 없음) ← 권장
+    python -m frontdoor --llm ollama --model gemma2:2b --check  # 설치 점검만(트레이스백 없이)
     python -m frontdoor --llm anthropic       # 클라우드 Claude(키 필요)
     python -m frontdoor --html door.html      # 방문자 관문 페이지(공유 링크 목업) 저장
 """
@@ -38,6 +39,7 @@ def main(argv: list[str] | None = None) -> int:
     model = None
     html_path = None
     chat = False
+    check = False
     i = 0
     while i < len(argv):
         if argv[i] == "--profile" and i + 1 < len(argv):
@@ -50,12 +52,19 @@ def main(argv: list[str] | None = None) -> int:
             html_path, i = argv[i + 1], i + 2
         elif argv[i] == "--chat":
             chat, i = True, i + 1
+        elif argv[i] == "--check":
+            check, i = True, i + 1
         elif argv[i] in ("-h", "--help"):
             print(__doc__)
             return 0
         else:
             print(f"알 수 없는 인자: {argv[i]}", file=sys.stderr)
             return 2
+
+    if check:
+        from .llm import OllamaLLM
+        print(OllamaLLM(model=model or "llama3.1").check())
+        return 0
 
     if profile_path:
         with open(profile_path, encoding="utf-8") as f:
@@ -68,6 +77,13 @@ def main(argv: list[str] | None = None) -> int:
     if llm == "mock":
         print("※ mock LLM 데모(키 0). 실제 답변은 --llm ollama (로컬, 키 0).\n",
               file=sys.stderr)
+    elif llm == "ollama":
+        used = model or "llama3.1"
+        print(f"🦙 Ollama 모델: {used}", file=sys.stderr)
+        if used.startswith("gemma2:2b"):
+            print("   ⚠️ 2B는 지시를 잘 못 따릅니다. 권장: --model exaone3.5",
+                  file=sys.stderr)
+        print(file=sys.stderr)
 
     sample_qa: list[tuple[str, str]] = []
     if chat:

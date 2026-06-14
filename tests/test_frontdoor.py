@@ -72,6 +72,33 @@ def test_ollama_backend_builds_messages() -> None:
     assert "결제 시스템 설계함" in msgs[1]["content"]
 
 
+def test_ollama_check_reports_missing_model(monkeypatch) -> None:
+    # 서버는 살아 있지만 모델이 없을 때 → pull 안내(트레이스백 없이).
+    import json as _json
+    from frontdoor.llm import OllamaLLM
+    o = OllamaLLM(model="gemma2:2b")
+
+    class _Resp:
+        def __enter__(self): return self
+        def __exit__(self, *a): return False
+        def read(self): return _json.dumps({"models": [{"name": "llama3.1:latest"}]}).encode()
+
+    monkeypatch.setattr("urllib.request.urlopen", lambda *a, **k: _Resp())
+    msg = o.check()
+    assert "gemma2:2b" in msg and "pull" in msg
+
+
+def test_ollama_check_server_down(monkeypatch) -> None:
+    from urllib.error import URLError
+    from frontdoor.llm import OllamaLLM
+
+    def _boom(*a, **k):
+        raise URLError("refused")
+
+    monkeypatch.setattr("urllib.request.urlopen", _boom)
+    assert "서버" in OllamaLLM().check()
+
+
 def test_ollama_answer_via_mocked_post(monkeypatch) -> None:
     # _post 만 가짜로 — answer 파싱 로직 검증(실제 Ollama 불필요).
     from frontdoor.llm import OllamaLLM
