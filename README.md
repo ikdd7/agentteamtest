@@ -230,3 +230,38 @@ team-lead: FINAL 종합
 | **Peer-to-peer** | `multiagent.p2p` | `claude` 로그인 | **에이전트 간 @멘션 대화** | ✅ |
 | 로컬 도구 | `multiagent.local` | 불필요 | 단발 도구 실행 | ❌ (5직군) |
 | Claude Code 서브에이전트 | `.claude/agents/` | Claude Code | 메인 세션이 위임 | ✅ |
+
+---
+
+## 6. 검증 하니스 (`validation/`) — "Agent Checkout Index" 14일 검증
+
+이 에이전트 팀으로 **시장 리서치 → 아이디어 발굴 → 전 직군 95점 검증**을 거쳐
+도출한 제품 아이디어("AI 쇼핑 에이전트가 실제로 결제를 완주하는지 측정하는 중립
+인덱스")의 **빌드 전 검증 실험**을 실제 코드로 구현한 것.
+
+핵심 전제 — *"에이전트 결제가 자주 깨진다"* — 를 데이터로 확인하고 첫 리더보드를
+만든다. **법적 안전 원칙: 결제 폼 도달까지만 측정(결제 미실행), "봇 차단"과
+"체크아웃 실패"를 분리, 실측은 동의 사이트 한정.**
+
+```bash
+python -m validation                    # mock 데모 (네트워크 0, 로직 검증용)
+python -m validation --out report.md    # 리더보드 → report.md + report.csv
+python -m validation --driver playwright --sites my_sites.json   # 실측(본인 PC)
+```
+
+구조:
+
+```
+validation/
+├── funnel.py     # 퍼널(로드→상품→장바구니→체크아웃→결제폼) + 결과 모델
+├── driver.py     # MockDriver(데모) / PlaywrightDriver(실측, 결제 미실행)
+├── scoring.py    # 멀티에이전트 집계: 도달률 중앙값 + 차단율 분리
+├── report.py     # 리더보드(md/csv) + 핵심 전제 합격 판정
+├── runner.py     # 사이트 × 에이전트 주행 오케스트레이션
+└── __main__.py   # CLI
+```
+
+- **멀티에이전트 중립성**(여러 에이전트 프로파일로 측정)이 해자라, 기본으로 여러
+  에이전트로 같은 사이트를 주행해 집계한다.
+- mock 데모는 12개 샘플 사이트로 리더보드 + 전제 판정을 즉시 보여준다(실측 아님).
+- 실측 `PlaywrightDriver`는 결제 폼 도달까지만 수행하며 결제 제출 단계가 **없다**.
