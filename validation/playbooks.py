@@ -13,17 +13,24 @@ PLATFORM_SIGNS: dict[str, tuple[str, ...]] = {
     "woocommerce": ("woocommerce", "wp-content", "/cart/?add-to-cart"),
 }
 
-# 봇 차단을 시사하는 신호(소문자 비교).
+# 봇 차단(챌린지)을 시사하는 *정밀* 신호(소문자 비교).
+# 광범위 단어("cloudflare"=CDN, 단독 "captcha")는 오탐이 많아 제외하고,
+# 실제 챌린지 페이지에만 나타나는 문구/마커만 사용한다.
 BLOCK_SIGNS: tuple[str, ...] = (
-    "captcha",
-    "cloudflare",
-    "are you a human",
-    "access denied",
-    "verify you are",
-    "datadome",
-    "px-captcha",
-    "잠시 후 다시",
+    "just a moment...",
+    "checking your browser before",
+    "checking if the site connection is secure",
+    "enable javascript and cookies to continue",
+    "please enable javascript and cookies",
+    "attention required! | cloudflare",
+    "/cdn-cgi/challenge-platform",
+    "access to this page has been denied",
+    "you have been blocked",
+    "please verify you are a human",
+    "captcha-delivery.com",  # DataDome
+    "px-captcha",            # PerimeterX
     "비정상적인 접근",
+    "잠시 후 다시 시도",
 )
 
 # 단계별 후보 셀렉터(위에서부터 시도). 'generic'은 모든 플랫폼의 폴백.
