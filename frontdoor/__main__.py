@@ -1,0 +1,86 @@
+"""AI Front Door 데모 CLI.
+
+사용법:
+    python -m frontdoor                       # mock 데모(키 0) — 샘플 페르소나로 대화+인박스
+    python -m frontdoor --profile me.txt      # 내 프로필 텍스트로
+    python -m frontdoor --llm anthropic       # 실제 Claude(본인 PC, ANTHROPIC_API_KEY)
+    python -m frontdoor --html door.html      # 방문자 관문 페이지(공유 링크 목업) 저장
+"""
+
+from __future__ import annotations
+
+import sys
+
+from .app import FrontDoor
+
+_SAMPLE = """\
+저는 김코딩, 5년차 백엔드 개발자입니다. Python·Go·Kubernetes 경험이 많습니다.
+
+핀테크 스타트업에서 결제 시스템을 설계했고, 일 200만 건 트랜잭션을 처리하는
+정산 파이프라인을 1인 주도로 만들었습니다.
+
+지금은 새 기회를 찾고 있습니다. 원격 또는 서울. 백엔드/플랫폼 역할 선호.
+연락은 이 관문에 용건을 남겨 주세요.
+"""
+
+_QUESTIONS = [
+    "결제 시스템 경험이 있나요?",
+    "어떤 언어를 쓰나요?",
+    "취미가 뭔가요?",  # 근거 없음 → 모른다고 답해야 정상
+]
+
+
+def main(argv: list[str] | None = None) -> int:
+    argv = argv if argv is not None else sys.argv[1:]
+    profile_path = None
+    llm = "mock"
+    html_path = None
+    i = 0
+    while i < len(argv):
+        if argv[i] == "--profile" and i + 1 < len(argv):
+            profile_path, i = argv[i + 1], i + 2
+        elif argv[i] == "--llm" and i + 1 < len(argv):
+            llm, i = argv[i + 1], i + 2
+        elif argv[i] == "--html" and i + 1 < len(argv):
+            html_path, i = argv[i + 1], i + 2
+        elif argv[i] in ("-h", "--help"):
+            print(__doc__)
+            return 0
+        else:
+            print(f"알 수 없는 인자: {argv[i]}", file=sys.stderr)
+            return 2
+
+    if profile_path:
+        with open(profile_path, encoding="utf-8") as f:
+            text = f.read()
+        name = text.strip().split(",")[0].split("\n")[0][:20] or "익명"
+    else:
+        text, name = _SAMPLE, "김코딩"
+
+    door = FrontDoor.create(name, text, llm=llm)
+    if llm == "mock":
+        print("※ mock LLM 데모(키 0). 실제 답변은 --llm anthropic.\n", file=sys.stderr)
+
+    sample_qa: list[tuple[str, str]] = []
+    for q in _QUESTIONS:
+        r = door.ask(q)
+        print(f"방문자> {q}")
+        print(f"{name} AI> {r['text']}")
+        print(f"          {r['attribution']}\n")
+        sample_qa.append((q, r["text"]))
+
+    door.leave_message("이채용", "recruiter@corp.com",
+                       "백엔드 시니어 포지션 제안드립니다. 면접 가능하신가요?")
+    print("=" * 50)
+    print(door.owner_digest())
+
+    if html_path:
+        from .page import render
+        with open(html_path, "w", encoding="utf-8") as f:
+            f.write(render(door.persona, sample_qa))
+        print(f"\n관문 페이지 저장: {html_path}", file=sys.stderr)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -1,0 +1,66 @@
+"""LLM 백엔드 — 방문자 질문에 페르소나 근거로 답한다.
+
+- MockLLM: 키·네트워크 없이 검색된 청크로 결정론적 답. 데모/CI/검증용.
+- AnthropicLLM: 실제 Claude 호출(본인 PC). ANTHROPIC_API_KEY 필요.
+인터페이스가 같아 교체만 하면 된다.
+"""
+
+from __future__ import annotations
+
+from typing import Protocol
+
+_SYSTEM = (
+    "당신은 '{name}'을 대신해 방문자 질문에 답하는 AI 비서입니다. "
+    "아래 근거(소유자가 제공한 정보)에 있는 내용만으로 1인칭으로 간결히 답하세요. "
+    "근거에 없으면 모른다고 말하고, 소유자에게 직접 메시지를 남기도록 안내하세요."
+)
+
+
+class LLM(Protocol):
+    def answer(self, question: str, context: list[str], name: str) -> str: ...
+
+
+class MockLLM:
+    """검색된 청크를 요약 흉내로 돌려주는 결정론적 백엔드(키 불필요)."""
+
+    def answer(self, question: str, context: list[str], name: str) -> str:
+        if not context:
+            return (
+                f"그 부분은 제 정보에 없네요. {name}에게 직접 메시지를 남겨 주시면 "
+                "전달해 드릴게요."
+            )
+        # 가장 관련 높은 1~2개 청크를 근거로 제시(요약 모델 대체).
+        body = " ".join(context[:2])
+        if len(body) > 400:
+            body = body[:400] + "…"
+        return f"{body}"
+
+
+class AnthropicLLM:
+    """실제 Claude 백엔드(본인 PC)."""
+
+    def __init__(self, model: str = "claude-opus-4-8") -> None:
+        self.model = model
+
+    def answer(self, question: str, context: list[str], name: str) -> str:
+        try:
+            import anthropic
+        except ImportError:
+            raise RuntimeError("anthropic 미설치: pip install anthropic") from None
+        client = anthropic.Anthropic()
+        ctx = "\n- ".join(context) or "(근거 없음)"
+        resp = client.messages.create(
+            model=self.model,
+            max_tokens=600,
+            system=_SYSTEM.format(name=name),
+            messages=[{"role": "user", "content": f"## 근거\n- {ctx}\n\n## 질문\n{question}"}],
+        )
+        return "".join(b.text for b in resp.content if b.type == "text").strip()
+
+
+def get_llm(name: str = "mock") -> LLM:
+    if name == "mock":
+        return MockLLM()
+    if name == "anthropic":
+        return AnthropicLLM()
+    raise ValueError(f"알 수 없는 LLM: {name} (mock | anthropic)")
