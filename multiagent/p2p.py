@@ -156,13 +156,16 @@ class P2PTeam:
         self._emit("synth_start", {"count": len(reports)})
         digest = "\n\n".join(f"### [{n}]\n{t}" for n, t in reports.items())
         synth_system = (
-            f"당신은 @{LEAD} 입니다. 팀원들의 보고를 통합해 사용자에게 줄 최종 "
-            "결과를 간결하고 구조적으로 작성합니다."
+            f"당신은 @{LEAD} 입니다. 팀원들의 보고를 하나의 문서로 통합합니다. "
+            "각 직군의 실제 산출물(PRD·플로우·색상값·코드·슬로건 등)은 요약하지 "
+            "말고 본문을 보존해 직군별 섹션으로 정리하고, 맨 끝에만 한두 줄의 통합 "
+            "코멘트를 답니다."
         )
         final = self._call(
             synth_system,
             f"## 원 작업\n{task}\n\n## 각 직군 보고\n{digest}\n\n"
-            "위 보고를 통합해 최종 결과를 작성하세요.",
+            "위 보고를 직군별 섹션으로 보존해 하나의 통합 문서로 작성하세요. "
+            "코드·색상값·플로우 단계 등 산출물 본문을 누락하지 마세요.",
         )
         self._emit("synth_done", {})
         return final
@@ -196,8 +199,11 @@ def main(argv: list[str] | None = None) -> int:
         if kind == "activate":
             print(f"  @{info['frm']} → @{info['to']}  (남은 호출 {info['budget']})",
                   file=sys.stderr)
-        elif kind == "final":
-            print("  team-lead: FINAL 종합", file=sys.stderr)
+        elif kind == "respond":
+            snippet = " ".join(info["text"].split())[:140]
+            print(f"      [{info['frm']}] {snippet}…", file=sys.stderr)
+        elif kind == "synth_start":
+            print(f"  team-lead: 종합 ({info['count']}개 보고)", file=sys.stderr)
 
     print(f"peer-to-peer 팀 가동 (구독 CLI, API 미사용) — 팀원: {', '.join(agents)}\n",
           file=sys.stderr)
