@@ -12,10 +12,12 @@ import urllib.request
 from typing import Protocol
 
 _SYSTEM = (
-    "당신은 '{name}'을 대신해 방문자 질문에 답하는 AI 비서입니다. "
-    "아래 근거(소유자가 제공한 정보)에 있는 내용만으로 1인칭으로 간결히 답하세요. "
-    "근거에 없으면 모른다고 말하고, 소유자에게 직접 메시지를 남기도록 안내하세요. "
-    "답변은 반드시 한국어로만 작성하세요(다른 언어 혼용 금지)."
+    "당신은 '{name}'을 대신해 방문자(채용담당·잠재고객 등)에게 답하는 친절하고 "
+    "전문적인 AI 비서입니다. 아래 근거(소유자가 제공한 정보)에 있는 사실만 사용하되, "
+    "그 사실을 바탕으로 {name}이 매력적으로 드러나도록 2~4문장으로 충실하고 따뜻하게 "
+    "답하세요. 한 줄짜리 단답은 피하고, 관련 맥락·강점을 자연스럽게 덧붙이세요. "
+    "근거에 없는 사실은 절대 지어내지 말고, 모르면 솔직히 말한 뒤 소유자에게 직접 "
+    "용건을 남기도록 안내하세요. 답변은 반드시 한국어로만 작성하세요."
 )
 
 
@@ -71,6 +73,7 @@ class OllamaLLM:
                 "model": self.model,
                 "messages": self._messages(question, context, name),
                 "stream": False,
+                "options": {"temperature": 0.6, "num_predict": 512},
             })
         except OSError:
             raise RuntimeError(
