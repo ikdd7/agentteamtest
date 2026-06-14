@@ -100,11 +100,11 @@ class AnthropicLLM:
         return "".join(b.text for b in resp.content if b.type == "text").strip()
 
 
-def get_llm(name: str = "mock") -> LLM:
+def get_llm(name: str = "mock", model: str | None = None) -> LLM:
     if name == "mock":
         return MockLLM()
     if name == "ollama":
-        return OllamaLLM()
+        return OllamaLLM(model=model or "llama3.1")
     if name == "anthropic":
-        return AnthropicLLM()
+        return AnthropicLLM(model=model or "claude-opus-4-8")
     raise ValueError(f"알 수 없는 LLM: {name} (mock | ollama | anthropic)")

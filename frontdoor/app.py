@@ -24,8 +24,10 @@ class FrontDoor:
     inbox: Inbox
 
     @classmethod
-    def create(cls, name: str, profile_text: str, llm: str = "mock") -> FrontDoor:
-        return cls(persona=ingest(name, profile_text), llm=get_llm(llm), inbox=Inbox())
+    def create(
+        cls, name: str, profile_text: str, llm: str = "mock", model: str | None = None
+    ) -> FrontDoor:
+        return cls(persona=ingest(name, profile_text), llm=get_llm(llm, model), inbox=Inbox())
 
     def ask(self, question: str) -> dict[str, str]:
         """방문자 질문에 답하고 관심사를 기록한다. attribution 포함."""

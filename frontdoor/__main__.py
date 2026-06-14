@@ -35,6 +35,7 @@ def main(argv: list[str] | None = None) -> int:
     argv = argv if argv is not None else sys.argv[1:]
     profile_path = None
     llm = "mock"
+    model = None
     html_path = None
     i = 0
     while i < len(argv):
@@ -42,6 +43,8 @@ def main(argv: list[str] | None = None) -> int:
             profile_path, i = argv[i + 1], i + 2
         elif argv[i] == "--llm" and i + 1 < len(argv):
             llm, i = argv[i + 1], i + 2
+        elif argv[i] == "--model" and i + 1 < len(argv):
+            model, i = argv[i + 1], i + 2
         elif argv[i] == "--html" and i + 1 < len(argv):
             html_path, i = argv[i + 1], i + 2
         elif argv[i] in ("-h", "--help"):
@@ -58,7 +61,7 @@ def main(argv: list[str] | None = None) -> int:
     else:
         text, name = _SAMPLE, "김코딩"
 
-    door = FrontDoor.create(name, text, llm=llm)
+    door = FrontDoor.create(name, text, llm=llm, model=model)
     if llm == "mock":
         print("※ mock LLM 데모(키 0). 실제 답변은 --llm anthropic.\n", file=sys.stderr)
 
