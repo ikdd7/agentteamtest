@@ -77,6 +77,13 @@ def main(argv: list[str] | None = None) -> int:
     if llm == "mock":
         print("※ mock LLM 데모(키 0). 실제 답변은 --llm ollama (로컬, 키 0).\n",
               file=sys.stderr)
+    elif llm == "ollama":
+        used = model or "llama3.1"
+        print(f"🦙 Ollama 모델: {used}", file=sys.stderr)
+        if used.startswith("gemma2:2b"):
+            print("   ⚠️ 2B는 지시를 잘 못 따릅니다. 권장: --model exaone3.5",
+                  file=sys.stderr)
+        print(file=sys.stderr)
 
     sample_qa: list[tuple[str, str]] = []
     if chat:
