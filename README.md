@@ -274,3 +274,33 @@ validation/
 - 실측 `PlaywrightDriver`는 결제 폼 도달까지만 수행하며 결제 제출 단계가 **없다**.
 - **본인 PC 실측 빠른 시작:** [`docs/QUICKSTART-실측.md`](docs/QUICKSTART-실측.md)
   (`validation/sites_demo.json` = 자동화 테스트용 동의 데모 쇼핑몰).
+
+---
+
+## community/ — 독립 커뮤니티 '빈 시장' 점수 스케줄러
+
+대한민국 커뮤니티 리서치로 도출한 '빈 시장' 후보를 10개 세부지표 × 가중치로
+채점해 100점 만점 리더보드를 만드는 **결정론적(LLM 미사용)** 엔진이다.
+점수 데이터는 `community/candidates.py`에 보관하며, 재조사 시 숫자만 갱신하면 된다.
+
+```
+community/
+├── metrics.py     # 10개 세부지표 + 가중치(합 100)
+├── candidates.py  # 후보별 0~10 점수 + 판단 근거 + 출처(리서치 데이터)
+├── scoring.py     # 가중 총점 집계
+├── report.py      # 리더보드(md/csv) + 실행시각별 history 누적
+└── __main__.py    # CLI (--out / --history / --json / --scores / --top)
+```
+
+```bash
+python -m community                       # 리더보드 출력
+python -m community --out research/korea-community-leaderboard.md \
+                    --history research/korea-community-history.csv
+```
+
+- `.github/workflows/community-scheduler.yml`가 **매시간**(cron) 리더보드를
+  재계산해 커밋한다. LLM/외부 API·시크릿이 필요 없고 실행 비용이 0이다.
+  예약 트리거는 GitHub 정책상 **기본 브랜치 병합 후** 활성화된다(그 전에는
+  Actions 탭의 "Run workflow"로 수동 실행). 주기는 워크플로의 cron 한 줄로 조정.
+- 리서치 근거 리포트: [`research/korea-community-gaps.md`](research/korea-community-gaps.md)(1차 조사),
+  [`research/korea-community-gaps-scored.md`](research/korea-community-gaps-scored.md)(가중 채점 + 근거 로그).

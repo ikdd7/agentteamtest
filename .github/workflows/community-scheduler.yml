@@ -1,0 +1,55 @@
+name: community-scheduler
+
+# 독립 커뮤니티 빈 시장 점수를 주기적으로 재계산해 리더보드를 갱신·커밋한다.
+# LLM/외부 API를 쓰지 않는 결정론적 작업이라 실행 비용이 0이며 시크릿이 필요 없다.
+#
+# ⚠️ 예약(cron) 트리거는 GitHub 정책상 '기본 브랜치'에서만 동작한다.
+#    이 워크플로가 main에 병합돼야 매시간 자동 실행이 켜진다.
+#    병합 전이라도 Actions 탭의 "Run workflow"(workflow_dispatch)로 수동 실행 가능.
+
+on:
+  schedule:
+    - cron: "0 * * * *"   # 매시간 정각(UTC). 주기 변경은 이 줄만 수정.
+  workflow_dispatch: {}
+
+permissions:
+  contents: write          # 갱신된 리포트를 커밋하기 위해 필요(GITHUB_TOKEN 사용, 별도 시크릿 불필요).
+
+concurrency:
+  group: community-scheduler
+  cancel-in-progress: false
+
+jobs:
+  score:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Recompute leaderboard
+        run: |
+          python -m community \
+            --out research/korea-community-leaderboard.md \
+            --history research/korea-community-history.csv
+
+      - name: Run tests
+        run: |
+          python -m pip install --quiet pytest
+          python -m pytest tests/test_community.py -q
+
+      - name: Commit updated leaderboard
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add research/korea-community-leaderboard.md \
+                  research/korea-community-leaderboard.csv \
+                  research/korea-community-history.csv
+          if git diff --cached --quiet; then
+            echo "변경 없음 — 커밋 생략."
+          else
+            git commit -m "chore(scheduler): refresh community gap leaderboard [skip ci]"
+            git push
+          fi
