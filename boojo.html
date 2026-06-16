@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>부조 · 호구지수 — 축의금 얼마 내야 정상?</title>
+<style>
+ *{box-sizing:border-box} body{font-family:-apple-system,system-ui,"Apple SD Gothic Neo",sans-serif;
+  margin:0;background:#f5f3ef;color:#1c1c1c}
+ .wrap{max-width:480px;margin:0 auto;padding:20px}
+ h1{font-size:24px;margin:8px 0 2px} .sub{color:#777;font-size:14px;margin:0 0 18px}
+ .card{background:#fff;border-radius:16px;padding:18px;box-shadow:0 2px 10px rgba(0,0,0,.06);margin-bottom:14px}
+ label{display:block;font-size:13px;color:#555;margin:14px 0 6px;font-weight:600}
+ select,input[type=number]{width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;font-size:16px;background:#fff}
+ .chips{display:flex;flex-wrap:wrap;gap:8px}
+ .chip{padding:9px 13px;border:1px solid #ddd;border-radius:999px;font-size:14px;cursor:pointer;background:#fff;user-select:none}
+ .chip.on{background:#1c1c1c;color:#fff;border-color:#1c1c1c}
+ .row{display:flex;gap:12px} .row>div{flex:1}
+ input[type=range]{width:100%}
+ button{width:100%;padding:15px;border:0;border-radius:12px;background:#ff5a3c;color:#fff;font-size:17px;font-weight:700;cursor:pointer;margin-top:16px}
+ button.ghost{background:#eee;color:#333} button:disabled{opacity:.6}
+ .result{text-align:center;padding:26px 16px}
+ .label{font-size:20px;font-weight:700} .score{font-size:56px;font-weight:800;margin:6px 0;letter-spacing:-1px}
+ .drip{color:#333;margin:14px 0;font-size:15px;line-height:1.55}
+ .fair{color:#666;font-size:15px;font-weight:600} .muted{color:#999;font-size:12px;margin-top:10px}
+ .hidden{display:none}
+</style></head>
+<body><div class="wrap">
+ <h1>부조 · 호구지수 🧧</h1>
+ <p class="sub">축의금·부의금, 나만 호구인가? 또래 데이터로 3초 판정.</p>
+
+ <div class="card" id="form">
+  <label>경조사</label><div class="chips" id="events"></div>
+  <label>관계</label><select id="relation"></select>
+  <label>친밀도 <span id="intimv">3</span> / 5</label>
+  <input type="range" id="intimacy" min="1" max="5" value="3">
+  <div class="row">
+   <div><label>식대</label><div class="chips" id="meals"></div></div>
+   <div><label>참석</label><div class="chips" id="attend"></div></div>
+  </div>
+  <label>낸(낼) 금액 (원)</label>
+  <input type="number" id="amount" inputmode="numeric" placeholder="예: 100000">
+  <button id="go">호구지수 판정 →</button>
+ </div>
+
+ <div class="card result hidden" id="out">
+  <div class="label"><span id="emoji"></span> <span id="rlabel"></span></div>
+  <div class="score" id="score"></div>
+  <div class="drip" id="drip"></div>
+  <div class="fair" id="fair"></div>
+  <div class="muted" id="sample"></div>
+  <button id="rec">내 금액도 데이터에 더하기 (익명)</button>
+  <button class="ghost" id="share">결과 공유하기</button>
+  <button class="ghost" id="again">다시 판정</button>
+ </div>
+ <p class="muted" style="text-align:center" id="total"></p>
+ <p class="muted" style="text-align:center">데이터는 이 브라우저에만 저장돼요(localStorage).</p>
+</div>
+
+<script>
+/* ===== 호구지수 코어 (파이썬 boojo 로직 포팅) ===== */
+const EVENTS={"결혼":1.0,"장례":1.0,"돌잔치":0.6,"환갑·칠순":0.8,"개업·집들이":0.6};
+const RELATIONS={"직장 동료":50000,"직장 상사·부하":50000,"지인·동창":50000,"친구":100000,
+ "친한 친구":200000,"사촌·친척":100000,"가까운 친척":300000,"가족":500000};
+const MEALS=["일반홀","호텔·고급"], ATTEND=["참석","미참석","식권만"];
+const ATTF={"참석":1.0,"미참석":0.6,"식권만":0.8};
+const SPREAD=[0.6,0.75,0.85,1.0,1.0,1.15,1.3,1.6];
+const won=n=>n.toLocaleString('ko-KR')+'원';
+const roundMan=x=>Math.round(x/10000)*10000;
+function baseline(e,r,im,meal,att){let b=RELATIONS[r]||50000,ev=EVENTS[e]||1,
+ f=0.6+0.2*(Math.max(1,Math.min(5,im))-1),a=ATTF[att]||1,amt=b*ev*f*a;
+ if(att!=="미참석"&&meal==="호텔·고급")amt+=50000;return roundMan(amt)}
+const ckey=(e,r,im,meal,att)=>[e,r,im,meal,att].join("|");
+const getReal=k=>{try{return JSON.parse(localStorage.getItem("boojo:"+k)||"[]")}catch(_){return[]}};
+function addReal(k,amt){let a=getReal(k);a.push(amt);localStorage.setItem("boojo:"+k,JSON.stringify(a));return a.length}
+function total(){let t=0;for(let i=0;i<localStorage.length;i++){let k=localStorage.key(i);
+ if(k.indexOf("boojo:")===0){try{t+=JSON.parse(localStorage.getItem(k)).length}catch(_){}}}return t}
+function distribution(model,real){let n=real.length,reps=n<5?3:(n<15?2:1),seed=[];
+ for(let i=0;i<reps;i++)for(const q of SPREAD)seed.push(roundMan(model*q));
+ return seed.concat(real).sort((a,b)=>a-b)}
+function percentile(amt,d){if(!d.length)return 50;
+ let below=d.filter(x=>x<amt).length,eq=d.filter(x=>x===amt).length;
+ return (below+0.5*eq)/d.length*100}
+function judge(e,r,im,meal,att,amt){let model=baseline(e,r,im,meal,att),
+ real=getReal(ckey(e,r,im,meal,att)),d=distribution(model,real),p=percentile(amt,d),
+ fl=d[Math.floor(0.25*(d.length-1))],fh=d[Math.floor(0.75*(d.length-1))],label,emoji,drip;
+ if(p<25){label="짠물";emoji="🥶";drip=`또래 하위 ${Math.round(p)}% — ${r}한테 이 금액이면 다음에 눈초리 각오...`}
+ else if(p>90){label="호구";emoji="🚨";drip=`호구지수 ${Math.round(p)}! ${r}한테 이렇게까지? 다음 밥은 걔가 사야 수지 맞음.`}
+ else if(p>75){label="통 큰";emoji="💸";drip=`또래 상위 ${Math.round(100-p)}% — 인심 좋단 소린 듣겠다.`}
+ else{label="적정";emoji="✅";drip="욕도 칭찬도 안 듣는 완벽한 무난함. 한국인의 정석."}
+ return{score:Math.round(p),label,emoji,fair_low:fl,fair_high:fh,model,drip,sample:real.length}}
+
+/* ===== UI ===== */
+const S={event:EVENTS&&Object.keys(EVENTS)[0],meal:MEALS[0],attend:ATTEND[0]};
+function chips(id,arr,key){const el=document.getElementById(id);el.innerHTML='';
+ arr.forEach(v=>{const c=document.createElement('div');c.className='chip'+(S[key]===v?' on':'');
+  c.textContent=v;c.onclick=()=>{S[key]=v;chips(id,arr,key)};el.appendChild(c)})}
+chips('events',Object.keys(EVENTS),'event');chips('meals',MEALS,'meal');chips('attend',ATTEND,'attend');
+const rel=document.getElementById('relation');
+Object.keys(RELATIONS).forEach(r=>{const o=document.createElement('option');o.value=r;o.textContent=r;rel.appendChild(o)});
+rel.value="친구";
+const im=document.getElementById('intimacy');
+im.oninput=()=>document.getElementById('intimv').textContent=im.value;
+let last=null;
+document.getElementById('go').onclick=()=>{const amt=+document.getElementById('amount').value;
+ if(!amt){alert('금액을 입력해줘');return}
+ last={e:S.event,r:rel.value,im:+im.value,meal:S.meal,att:S.attend,amt};
+ const v=judge(last.e,last.r,last.im,last.meal,last.att,last.amt);last.v=v;
+ document.getElementById('emoji').textContent=v.emoji;
+ document.getElementById('rlabel').textContent=v.label;
+ document.getElementById('score').textContent='호구지수 '+v.score;
+ document.getElementById('drip').textContent=v.drip;
+ document.getElementById('fair').textContent='또래 적정 구간: '+won(v.fair_low)+' ~ '+won(v.fair_high);
+ document.getElementById('sample').textContent=v.sample>0?('또래 실데이터 '+v.sample+'건 반영'):'(아직 실데이터 없음 — 통념 기준 판정)';
+ document.getElementById('form').classList.add('hidden');
+ document.getElementById('out').classList.remove('hidden')}
+document.getElementById('rec').onclick=()=>{const n=addReal(ckey(last.e,last.r,last.im,last.meal,last.att),last.amt);
+ const b=document.getElementById('rec');b.textContent='✓ 더해졌어! (이 조건 '+n+'건)';b.disabled=true;showTotal()}
+document.getElementById('share').onclick=()=>{const t='내 '+last.r+' '+last.e+' 호구지수: '+last.v.score+' '+last.v.emoji+'\n'+last.v.drip+'\n— 내 호구지수 판정받기 → 부조';
+ if(navigator.share){navigator.share({text:t}).catch(()=>{})}
+ else{navigator.clipboard&&navigator.clipboard.writeText(t);alert('결과를 복사했어!\n\n'+t)}}
+document.getElementById('again').onclick=()=>{document.getElementById('out').classList.add('hidden');
+ document.getElementById('form').classList.remove('hidden');
+ const b=document.getElementById('rec');b.disabled=false;b.textContent='내 금액도 데이터에 더하기 (익명)'}
+function showTotal(){document.getElementById('total').textContent='이 브라우저에 모인 익명 부조 데이터 '+total()+'건'}
+showTotal();
+</script></body></html>
