@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>사장님 리뷰 답글 자동 생성기</title>
+<style>
+  :root { --p:#2d6cdf; --bg:#f5f7fb; --line:#e2e6ef; --ok:#1a9d6a; --bad:#d9534f; }
+  * { box-sizing:border-box; }
+  body { font-family:-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif; margin:0; background:var(--bg); color:#1c2330; line-height:1.5; }
+  .wrap { max-width:820px; margin:0 auto; padding:20px 16px 80px; }
+  h1 { font-size:21px; margin:8px 0 4px; }
+  .sub { color:#5b6577; font-size:13px; margin-bottom:18px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:14px; padding:16px; margin-bottom:14px; }
+  label { display:block; font-weight:700; font-size:13px; margin:10px 0 6px; }
+  input, textarea, select { width:100%; padding:11px 12px; border:1px solid var(--line); border-radius:10px; font-size:15px; font-family:inherit; }
+  textarea { min-height:150px; resize:vertical; }
+  .row { display:flex; gap:10px; flex-wrap:wrap; }
+  .row > div { flex:1; min-width:140px; }
+  .hint { font-size:12px; color:#8a93a6; margin-top:4px; }
+  button { background:var(--p); color:#fff; border:0; border-radius:10px; padding:13px 18px; font-size:15px; font-weight:700; cursor:pointer; }
+  button.ghost { background:#eef2fb; color:var(--p); }
+  .btns { display:flex; gap:10px; margin-top:14px; }
+  .reply { border:1px solid var(--line); border-radius:12px; padding:13px; margin-bottom:12px; }
+  .reply .src { font-size:13px; color:#6b7687; background:#f7f9fc; border-radius:8px; padding:8px 10px; margin-bottom:8px; }
+  .reply .tag { display:inline-block; font-size:11px; font-weight:700; padding:2px 8px; border-radius:20px; margin-bottom:8px; }
+  .tag.pos { background:#e4f6ee; color:var(--ok); }
+  .tag.neg { background:#fbe7e6; color:var(--bad); }
+  .tag.neu { background:#eef0f4; color:#5b6577; }
+  .reply .out { font-size:15px; white-space:pre-wrap; }
+  .copyone { font-size:12px; padding:6px 12px; margin-top:8px; }
+  .count { font-size:13px; color:#5b6577; margin:6px 2px 0; }
+  .copied { color:var(--ok); font-weight:700; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🏪 사장님 리뷰 답글 자동 생성기</h1>
+  <div class="sub">리뷰를 붙여넣으면 가게 이름·말투에 맞춰 답글 초안을 한 번에 만들어줍니다. 인터넷·결제 없이 이 화면에서 바로 동작해요.</div>
+
+  <div class="card">
+    <div class="row">
+      <div>
+        <label>가게 이름</label>
+        <input id="store" placeholder="예: 봄날카페">
+      </div>
+      <div>
+        <label>호칭</label>
+        <select id="addr">
+          <option value="고객님">고객님</option>
+          <option value="손님">손님</option>
+          <option value="회원님">회원님</option>
+          <option value="사장님">사장님(B2B)</option>
+        </select>
+      </div>
+      <div>
+        <label>말투</label>
+        <select id="tone">
+          <option value="warm">따뜻·친근</option>
+          <option value="polite">정중·깔끔</option>
+          <option value="cheer">밝고 활기찬</option>
+        </select>
+      </div>
+    </div>
+
+    <label>리뷰 붙여넣기 <span class="hint">(한 줄에 리뷰 하나씩)</span></label>
+    <textarea id="reviews" placeholder="여기 음식 진짜 맛있어요 또 올게요
+사장님이 친절하세요 분위기도 좋아요
+주차가 너무 불편하고 웨이팅이 길었어요
+가격대비 양이 좀 적은 것 같아요
+아이랑 갔는데 키즈존이 있어서 편했어요"></textarea>
+    <div class="btns">
+      <button onclick="gen()">답글 생성</button>
+      <button class="ghost" onclick="copyAll()">전체 복사</button>
+    </div>
+    <div class="count" id="count"></div>
+  </div>
+
+  <div id="result"></div>
+</div>
+
+<script>
+// 키워드 사전 ───────────────────────────────────────────────
+const NEG = ["불편","별로","최악","실망","아쉽","느리","오래","길","비싸","비쌈","적","짜","싱겁","불친절","더럽","위생","웨이팅","대기","주차","좁","시끄","불만","환불","에러","고장","안돼","안됨","품절","늦","식었","차가","불쾌"];
+const POS = ["맛있","최고","좋아","좋았","친절","만족","추천","again","또 올","재방문","분위기","깔끔","신선","훌륭","감동","행복","사랑","대박","완벽","가성비","넓","빠르","정성","예쁘","멋"];
+
+// 토픽별 한 줄 공감 (리뷰에 들어있으면 자연스럽게 언급)
+const TOPICS = [
+  { k:["맛","음식","메뉴","커피","빵","디저트"], pos:"맛있게 드셨다니", neg:"맛에서 기대에 못 미친 점" },
+  { k:["친절","응대","서비스","직원","사장"], pos:"따뜻하게 봐주셔서", neg:"응대가 미흡했던 점" },
+  { k:["분위기","인테리어","공간","뷰","조용"], pos:"공간을 좋게 봐주셔서", neg:"공간이 불편하셨던 점" },
+  { k:["주차"], pos:"편하게 오셨다니", neg:"주차가 불편하셨던 점" },
+  { k:["웨이팅","대기","줄","기다"], pos:"", neg:"오래 기다리시게 한 점" },
+  { k:["가격","가성비","양","가격대비"], pos:"만족스러우셨다니", neg:"가격·양에서 아쉬우셨던 점" },
+  { k:["청결","위생","깨끗","더럽"], pos:"깨끗하게 느껴주셔서", neg:"청결 부분에서 불편을 드린 점" },
+  { k:["아이","키즈","유아","아기"], pos:"아이와 편하게 다녀가셔서", neg:"" },
+];
+
+const OPEN = {
+  warm:  ["소중한 리뷰 정말 감사드려요", "방문해 주시고 후기까지 남겨주셔서 감사해요", "따뜻한 리뷰 남겨주셔서 감사합니다"],
+  polite:["방문해 주셔서 진심으로 감사드립니다", "소중한 후기 남겨주셔서 감사합니다", "이용해 주셔서 감사합니다"],
+  cheer: ["우와, 후기 너무 감사해요!", "리뷰 남겨주셔서 정말 감사해요!", "와주시고 후기까지! 감사합니다"]
+};
+const CLOSE_POS = {
+  warm:  ["다음에도 편하게 들러주세요. 더 좋은 모습으로 맞이할게요 :)", "또 뵐 수 있길 바랄게요. 늘 건강하세요!", "다음 방문도 기분 좋게 해드릴게요. 감사합니다!"],
+  polite:["앞으로도 변함없는 모습으로 보답하겠습니다.", "다시 찾아주시면 정성껏 모시겠습니다.", "더 나은 서비스로 보답하겠습니다. 감사합니다."],
+  cheer: ["또 놀러 오세요! 기다리고 있을게요 :)", "다음에도 신나게 맞이할게요!", "또 만나요! 행복한 하루 되세요!"]
+};
+const CLOSE_NEG = {
+  warm:  ["바로 점검해서 개선하겠습니다. 다음엔 더 좋은 모습 보여드릴게요.", "말씀 깊이 새기고 고쳐나가겠습니다. 다시 한번 기회를 주시면 감사하겠습니다.", "불편을 드려 죄송해요. 꼭 개선해서 더 나은 곳으로 만들겠습니다."],
+  polite:["소중한 의견 반영하여 개선하겠습니다. 불편을 드려 죄송합니다.", "동일한 일이 없도록 점검·개선하겠습니다. 너른 양해 부탁드립니다.", "지적해 주신 부분 신속히 보완하겠습니다. 죄송합니다."],
+  cheer: ["바로 바꿔볼게요! 다음엔 꼭 만족시켜 드릴게요 :)", "피드백 감사해요! 더 좋아진 모습으로 보여드릴게요!", "앗 죄송해요! 금방 개선해서 다시 놀라게 해드릴게요!"]
+};
+
+const pick = (a,i)=>a[i % a.length];
+const has = (t,arr)=>arr.some(w=>t.includes(w));
+
+function classify(t){
+  const neg = NEG.filter(w=>t.includes(w)).length;
+  const pos = POS.filter(w=>t.includes(w)).length;
+  if (neg>pos) return "neg";
+  if (pos>0) return "pos";
+  return "neu";
+}
+
+function topicLine(t, kind){
+  for(const tp of TOPICS){
+    if(has(t, tp.k)){
+      const s = kind==="neg" ? tp.neg : tp.pos;
+      if(s) return s;
+    }
+  }
+  return "";
+}
+
+function build(review, i){
+  const store = (document.getElementById('store').value||"저희 가게").trim();
+  const addr = document.getElementById('addr').value;
+  const tone = document.getElementById('tone').value;
+  const t = review.toLowerCase();
+  const kind = classify(t);
+  const open = pick(OPEN[tone], i);
+
+  let body, close, tag, tagcls;
+  if(kind==="neg"){
+    const tl = topicLine(t,"neg");
+    body = tl ? `${tl}, 진심으로 죄송합니다.` : `기대에 못 미쳐 죄송합니다.`;
+    close = pick(CLOSE_NEG[tone], i);
+    tag="아쉬움/불만"; tagcls="neg";
+  } else if(kind==="pos"){
+    const tl = topicLine(t,"pos");
+    body = tl ? `${tl} 저희가 더 힘이 나요.` : `좋게 봐주셔서 큰 힘이 됩니다.`;
+    close = pick(CLOSE_POS[tone], i);
+    tag="긍정"; tagcls="pos";
+  } else {
+    body = `남겨주신 의견 잘 살펴보겠습니다.`;
+    close = pick(CLOSE_POS[tone], i);
+    tag="중립"; tagcls="neu";
+  }
+  const text = `${addr}, ${open}. ${body} ${close}\n- ${store} 드림`;
+  return {tag,tagcls,src:review,text};
+}
+
+let LAST=[];
+function gen(){
+  const raw = document.getElementById('reviews').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  const res = document.getElementById('result');
+  if(!raw.length){ res.innerHTML=''; document.getElementById('count').textContent=''; return; }
+  LAST = raw.map(build);
+  res.innerHTML = LAST.map((r,i)=>`
+    <div class="reply">
+      <span class="tag ${r.tagcls}">${r.tag}</span>
+      <div class="src">📝 ${escapeHtml(r.src)}</div>
+      <div class="out" id="out${i}">${escapeHtml(r.text)}</div>
+      <button class="ghost copyone" onclick="copyOne(${i},this)">이 답글 복사</button>
+    </div>`).join('');
+  document.getElementById('count').textContent = `총 ${LAST.length}개 답글 생성 완료 · 그대로 써도 되고 살짝 다듬어 더 자연스럽게 만들면 최고예요.`;
+}
+function escapeHtml(s){ return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+function copyOne(i,btn){ navigator.clipboard.writeText(LAST[i].text); btn.textContent="복사됨 ✓"; btn.classList.add('copied'); setTimeout(()=>{btn.textContent="이 답글 복사";btn.classList.remove('copied');},1500); }
+function copyAll(){
+  if(!LAST.length) return;
+  const all = LAST.map((r,i)=>`[리뷰 ${i+1}] ${r.src}\n→ ${r.text}`).join('\n\n');
+  navigator.clipboard.writeText(all);
+  const c=document.getElementById('count'); const o=c.textContent; c.innerHTML='<span class="copied">전체 복사됨 ✓</span>'; setTimeout(()=>c.textContent=o,1500);
+}
+</script>
+</body>
+</html>
