@@ -94,37 +94,47 @@ function judge(e,r,im,meal,att,amt){let model=baseline(e,r,im,meal,att),
  return{score:Math.round(p),label,emoji,fair_low:fl,fair_high:fh,model,drip,sample:real.length}}
 
 /* ===== UI ===== */
-const S={event:EVENTS&&Object.keys(EVENTS)[0],meal:MEALS[0],attend:ATTEND[0]};
+const S={event:Object.keys(EVENTS)[0],meal:MEALS[0],attend:ATTEND[0]};
 function chips(id,arr,key){const el=document.getElementById(id);el.innerHTML='';
  arr.forEach(v=>{const c=document.createElement('div');c.className='chip'+(S[key]===v?' on':'');
   c.textContent=v;c.onclick=()=>{S[key]=v;chips(id,arr,key)};el.appendChild(c)})}
-chips('events',Object.keys(EVENTS),'event');chips('meals',MEALS,'meal');chips('attend',ATTEND,'attend');
-const rel=document.getElementById('relation');
-Object.keys(RELATIONS).forEach(r=>{const o=document.createElement('option');o.value=r;o.textContent=r;rel.appendChild(o)});
-rel.value="친구";
-const im=document.getElementById('intimacy');
-im.oninput=()=>document.getElementById('intimv').textContent=im.value;
 let last=null;
-document.getElementById('go').onclick=()=>{const amt=+document.getElementById('amount').value;
- if(!amt){alert('금액을 입력해줘');return}
- last={e:S.event,r:rel.value,im:+im.value,meal:S.meal,att:S.attend,amt};
- const v=judge(last.e,last.r,last.im,last.meal,last.att,last.amt);last.v=v;
- document.getElementById('emoji').textContent=v.emoji;
- document.getElementById('rlabel').textContent=v.label;
- document.getElementById('score').textContent='호구지수 '+v.score;
- document.getElementById('drip').textContent=v.drip;
- document.getElementById('fair').textContent='또래 적정 구간: '+won(v.fair_low)+' ~ '+won(v.fair_high);
- document.getElementById('sample').textContent=v.sample>0?('또래 실데이터 '+v.sample+'건 반영'):'(아직 실데이터 없음 — 통념 기준 판정)';
- document.getElementById('form').classList.add('hidden');
- document.getElementById('out').classList.remove('hidden')}
-document.getElementById('rec').onclick=()=>{const n=addReal(ckey(last.e,last.r,last.im,last.meal,last.att),last.amt);
- const b=document.getElementById('rec');b.textContent='✓ 더해졌어! (이 조건 '+n+'건)';b.disabled=true;showTotal()}
-document.getElementById('share').onclick=()=>{const t='내 '+last.r+' '+last.e+' 호구지수: '+last.v.score+' '+last.v.emoji+'\n'+last.v.drip+'\n— 내 호구지수 판정받기 → 부조';
- if(navigator.share){navigator.share({text:t}).catch(()=>{})}
- else{navigator.clipboard&&navigator.clipboard.writeText(t);alert('결과를 복사했어!\n\n'+t)}}
-document.getElementById('again').onclick=()=>{document.getElementById('out').classList.add('hidden');
- document.getElementById('form').classList.remove('hidden');
- const b=document.getElementById('rec');b.disabled=false;b.textContent='내 금액도 데이터에 더하기 (익명)'}
 function showTotal(){document.getElementById('total').textContent='이 브라우저에 모인 익명 부조 데이터 '+total()+'건'}
-showTotal();
+function init(){
+ chips('events',Object.keys(EVENTS),'event');chips('meals',MEALS,'meal');chips('attend',ATTEND,'attend');
+ const rel=document.getElementById('relation');
+ Object.keys(RELATIONS).forEach(r=>{const o=document.createElement('option');o.value=r;o.textContent=r;rel.appendChild(o)});
+ rel.value="친구";
+ const im=document.getElementById('intimacy');
+ im.oninput=()=>document.getElementById('intimv').textContent=im.value;
+ document.getElementById('go').onclick=()=>{const amt=+document.getElementById('amount').value;
+  if(!amt){alert('금액을 입력해줘');return}
+  last={e:S.event,r:rel.value,im:+im.value,meal:S.meal,att:S.attend,amt};
+  const v=judge(last.e,last.r,last.im,last.meal,last.att,last.amt);last.v=v;
+  document.getElementById('emoji').textContent=v.emoji;
+  document.getElementById('rlabel').textContent=v.label;
+  document.getElementById('score').textContent='호구지수 '+v.score;
+  document.getElementById('drip').textContent=v.drip;
+  document.getElementById('fair').textContent='또래 적정 구간: '+won(v.fair_low)+' ~ '+won(v.fair_high);
+  document.getElementById('sample').textContent=v.sample>0?('또래 실데이터 '+v.sample+'건 반영'):'(아직 실데이터 없음 — 통념 기준 판정)';
+  document.getElementById('form').classList.add('hidden');
+  document.getElementById('out').classList.remove('hidden')};
+ document.getElementById('rec').onclick=()=>{const n=addReal(ckey(last.e,last.r,last.im,last.meal,last.att),last.amt);
+  const b=document.getElementById('rec');b.textContent='✓ 더해졌어! (이 조건 '+n+'건)';b.disabled=true;showTotal()};
+ document.getElementById('share').onclick=()=>{const t='내 '+last.r+' '+last.e+' 호구지수: '+last.v.score+' '+last.v.emoji+'\n'+last.v.drip+'\n— 내 호구지수 판정받기 → 부조';
+  if(navigator.share){navigator.share({text:t}).catch(()=>{})}
+  else{try{navigator.clipboard&&navigator.clipboard.writeText(t)}catch(_){}alert('결과를 복사했어!\n\n'+t)}};
+ document.getElementById('again').onclick=()=>{document.getElementById('out').classList.add('hidden');
+  document.getElementById('form').classList.remove('hidden');
+  const b=document.getElementById('rec');b.disabled=false;b.textContent='내 금액도 데이터에 더하기 (익명)'};
+ showTotal();
+}
+try{
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{try{init()}catch(e){_oops(e)}});
+ else init();
+}catch(e){_oops(e)}
+function _oops(e){const m=document.createElement('div');m.style.cssText='background:#ffecec;color:#a00;padding:14px;border-radius:10px;margin:10px 0;font-size:13px;white-space:pre-wrap';
+ m.textContent='⚠️ 초기화 오류(이 메시지를 캡처해서 보내줘):\n'+(e&&e.stack||e);
+ (document.querySelector('.wrap')||document.body).prepend(m);}
 </script></body></html>
+
