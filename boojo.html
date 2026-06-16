@@ -69,10 +69,15 @@ function baseline(e,r,im,meal,att){let b=RELATIONS[r]||50000,ev=EVENTS[e]||1,
  f=0.6+0.2*(Math.max(1,Math.min(5,im))-1),a=ATTF[att]||1,amt=b*ev*f*a;
  if(att!=="미참석"&&meal==="호텔·고급")amt+=50000;return roundMan(amt)}
 const ckey=(e,r,im,meal,att)=>[e,r,im,meal,att].join("|");
-const getReal=k=>{try{return JSON.parse(localStorage.getItem("boojo:"+k)||"[]")}catch(_){return[]}};
-function addReal(k,amt){let a=getReal(k);a.push(amt);localStorage.setItem("boojo:"+k,JSON.stringify(a));return a.length}
-function total(){let t=0;for(let i=0;i<localStorage.length;i++){let k=localStorage.key(i);
- if(k.indexOf("boojo:")===0){try{t+=JSON.parse(localStorage.getItem(k)).length}catch(_){}}}return t}
+/* 안전 저장 레이어: file://·사생활모드 등에서 localStorage가 막혀도 메모리로 대체 */
+let MEM={};
+function lsGet(k){try{return localStorage.getItem(k)}catch(_){return (k in MEM)?MEM[k]:null}}
+function lsSet(k,v){try{localStorage.setItem(k,v)}catch(_){MEM[k]=v}}
+function lsKeys(){try{return Object.keys(localStorage)}catch(_){return Object.keys(MEM)}}
+const getReal=k=>{try{return JSON.parse(lsGet("boojo:"+k)||"[]")}catch(_){return[]}};
+function addReal(k,amt){let a=getReal(k);a.push(amt);lsSet("boojo:"+k,JSON.stringify(a));return a.length}
+function total(){let t=0;for(const k of lsKeys()){if(k.indexOf("boojo:")===0){
+ try{t+=JSON.parse(lsGet(k)).length}catch(_){}}}return t}
 function distribution(model,real){let n=real.length,reps=n<5?3:(n<15?2:1),seed=[];
  for(let i=0;i<reps;i++)for(const q of SPREAD)seed.push(roundMan(model*q));
  return seed.concat(real).sort((a,b)=>a-b)}
