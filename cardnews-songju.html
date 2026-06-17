@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>카드뉴스 — 손주 보는 당신에게</title>
+<style>
+ *{box-sizing:border-box;margin:0;padding:0}
+ body{background:#e8e0d2;font-family:"Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif;
+   padding:24px 0;color:#3a2e22}
+ .guide{max-width:360px;margin:0 auto 18px;text-align:center;color:#7a6a55;font-size:13px;line-height:1.5}
+ .deck{display:flex;flex-direction:column;align-items:center;gap:26px}
+ /* 9:16 세로 카드 (쇼츠/인스타 스토리 규격) */
+ .card{width:360px;height:640px;border-radius:22px;overflow:hidden;position:relative;
+   box-shadow:0 10px 30px rgba(0,0,0,.15);display:flex;flex-direction:column;
+   justify-content:center;align-items:center;text-align:center;padding:48px 36px;
+   background:linear-gradient(160deg,#fdfaf3 0%,#f6ecd9 100%)}
+ .card .big{font-size:33px;font-weight:800;line-height:1.5;letter-spacing:-.5px;word-break:keep-all}
+ .card .mid{font-size:27px;font-weight:600;line-height:1.65;color:#4a3b2c;word-break:keep-all}
+ .num{position:absolute;top:22px;left:26px;font-size:14px;color:#b9a888;font-weight:700}
+ .mark{position:absolute;bottom:22px;left:0;right:0;text-align:center;font-size:13px;color:#b9a888;letter-spacing:.5px}
+ .emoji{font-size:46px;margin-bottom:22px}
+ /* 표지·CTA 강조 카드 */
+ .cover{background:linear-gradient(160deg,#c98a5a 0%,#a96b3c 100%)}
+ .cover .big,.cover .mark,.cover .num{color:#fff6ec}
+ .cover .mark{color:#f3dcc2}
+ .cta{background:linear-gradient(160deg,#7a9a6d 0%,#5d7e53 100%)}
+ .cta .big,.cta .mid,.cta .mark,.cta .num{color:#f5f9ef}
+ .cta .pill{margin-top:20px;background:#fff;color:#5d7e53;font-weight:800;font-size:20px;
+   padding:12px 22px;border-radius:999px}
+</style></head>
+<body>
+ <div class="guide">📱 카드뉴스 v1 · 각 카드를 캡처하면 쇼츠/인스타 8컷이 됩니다.<br>(세로 9:16 규격)</div>
+ <div class="deck">
+
+  <div class="card cover"><span class="num">1/8</span>
+   <div class="emoji">🌿</div>
+   <div class="big">손주 보느라<br>하루가 다 가는<br>할머니·할아버지께</div>
+   <div class="mark">손주 보는 사람들</div>
+  </div>
+
+  <div class="card"><span class="num">2/8</span>
+   <div class="mid">오늘도 허리 한 번<br>못 펴고<br>하루가 지나갔지요.</div>
+   <div class="mark">손주 보는 사람들</div>
+  </div>
+
+  <div class="card"><span class="num">3/8</span>
+   <div class="mid">예쁘다가도 문득<br><b>'내 시간은 어디 갔나'</b><br>싶을 때가 있지요.</div>
+   <div class="mark">손주 보는 사람들</div>
+  </div>
+
+  <div class="card"><span class="num">4/8</span>
+   <div class="big">그런 마음이 들어도<br>괜찮아요.</div>
+   <div class="mid" style="margin-top:18px">손주를 덜 사랑해서가<br>아니니까요.</div>
+   <div class="mark">손주 보는 사람들</div>
+  </div>
+
+  <div class="card"><span class="num">5/8</span>
+   <div class="mid">힘든 건<br>그만큼 <b>온 힘을 다하고</b><br>있다는 증거예요.</div>
+   <div class="mark">손주 보는 사람들</div>
+  </div>
+
+  <div class="card"><span class="num">6/8</span>
+   <div class="big">아무도 몰라주던<br>그 수고,</div>
+   <div class="big" style="margin-top:14px;color:#a96b3c">우리는 압니다.</div>
+   <div class="mark">손주 보는 사람들</div>
+  </div>
+
+  <div class="card"><span class="num">7/8</span>
+   <div class="mid">오늘 손주에게 쏟은<br>그 하루는<br><b>결코 헛되지 않았어요.</b></div>
+   <div class="mark">손주 보는 사람들</div>
+  </div>
+
+  <div class="card cta"><span class="num">8/8</span>
+   <div class="emoji">🤝</div>
+   <div class="big">같은 마음인 분들과<br>나눠요</div>
+   <div class="pill">손주 보는 사람들</div>
+   <div class="mark">밴드·유튜브에서 만나요</div>
+  </div>
+
+ </div>
+</body></html>
