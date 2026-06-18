@@ -1,134 +1,171 @@
 <!doctype html>
 <html lang="ko"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>백꾸 도감 — 내 가방 시가총액은?</title>
+<title>백꾸 — 가방 꾸미기 큐레이션</title>
 <style>
  *{box-sizing:border-box;margin:0;padding:0}
- body{font-family:-apple-system,system-ui,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;
-   background:#fdf0f4;color:#2a2230}
- .wrap{max-width:480px;margin:0 auto;padding:18px}
- h1{font-size:23px;margin:6px 0 2px} .sub{color:#9a8a96;font-size:13px;margin:0 0 16px}
- .card{background:#fff;border-radius:18px;padding:18px;box-shadow:0 4px 16px rgba(180,90,140,.12);margin-bottom:16px}
- .bag{background:linear-gradient(160deg,#ff8fb3 0%,#c06bd6 100%);color:#fff;text-align:center;padding:24px 18px}
- .bag .val{font-size:40px;font-weight:800;letter-spacing:-1px;margin:4px 0}
- .bag .idx{font-size:18px;font-weight:700}
- .bag .drip{font-size:14px;margin:12px 0;opacity:.95;line-height:1.5}
- .bag .meta{font-size:13px;opacity:.9}
- .bag button{margin-top:14px;background:#fff;color:#c06bd6;border:0;border-radius:999px;
-   font-size:16px;font-weight:800;padding:12px 20px;cursor:pointer}
- .secline{display:flex;justify-content:space-between;align-items:baseline;margin:6px 4px 10px}
- .secline b{font-size:16px} .secline span{font-size:13px;color:#9a8a96}
- .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
- .item{background:#fff;border-radius:16px;padding:14px;box-shadow:0 2px 8px rgba(180,90,140,.10);position:relative}
- .item.owned{outline:2.5px solid #ff5a9e}
- .emoji{font-size:38px;text-align:center;display:block;margin:2px 0 8px}
- .nm{font-size:15px;font-weight:700;line-height:1.3} .br{font-size:12px;color:#9a8a96}
- .price{font-size:14px;font-weight:700;color:#c06bd6;margin-top:6px}
- .ltd{position:absolute;top:10px;right:10px;background:#ffe14d;color:#7a5b00;font-size:11px;
-   font-weight:800;padding:2px 7px;border-radius:999px}
- .btns{display:flex;gap:6px;margin-top:10px}
- .btns button{flex:1;border:0;border-radius:9px;padding:9px 0;font-size:13px;font-weight:700;cursor:pointer}
- .add{background:#ff5a9e;color:#fff} .add.on{background:#eee;color:#666}
- .wish{background:#f3e6ef;color:#a06; } .wish.on{background:#c06bd6;color:#fff}
- .src{font-size:12px;color:#b58; margin-top:8px; text-align:center}
+ body{font-family:-apple-system,system-ui,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;background:#fdf0f4;color:#2a2230}
+ .wrap{max-width:480px;margin:0 auto;padding:16px 16px 60px}
+ h1{font-size:22px;margin:4px 0 2px} .sub{color:#9a8a96;font-size:13px;margin:0 0 14px}
+ .tabs{display:flex;gap:8px;margin-bottom:14px}
+ .tab{flex:1;text-align:center;padding:10px;border-radius:999px;background:#fff;font-weight:700;font-size:14px;cursor:pointer;color:#a08}
+ .tab.on{background:#ff5a9e;color:#fff}
+ .card{background:#fff;border-radius:18px;padding:16px;box-shadow:0 3px 14px rgba(180,90,140,.12);margin-bottom:14px}
+ label{font-size:13px;font-weight:700;color:#705;display:block;margin:12px 0 6px}
+ .chips{display:flex;flex-wrap:wrap;gap:8px}
+ .chip{padding:9px 14px;border-radius:999px;background:#f3e6ef;font-size:14px;cursor:pointer;border:0}
+ .chip.on{background:#ff5a9e;color:#fff}
+ .photo{width:100%;height:180px;border-radius:14px;background:#f6e8f0 url() center/cover;display:flex;align-items:center;justify-content:center;color:#b58;font-size:14px;overflow:hidden;margin-top:4px}
+ .photo img{width:100%;height:100%;object-fit:cover}
+ .upbtn{display:inline-block;margin-top:10px;background:#f3e6ef;color:#a06;padding:10px 16px;border-radius:999px;font-weight:700;font-size:14px;cursor:pointer}
+ button.go{width:100%;padding:14px;border:0;border-radius:12px;background:#ff5a9e;color:#fff;font-size:16px;font-weight:800;cursor:pointer;margin-top:16px}
+ .reco{display:flex;gap:10px;overflow-x:auto;padding:4px 0;margin-top:6px}
+ .pill{flex:0 0 auto;background:#fff;border-radius:14px;padding:10px;width:108px;text-align:center;box-shadow:0 2px 8px rgba(180,90,140,.1)}
+ .pill .e{font-size:30px} .pill .n{font-size:13px;font-weight:700;margin-top:4px;line-height:1.2}
+ .pill .s{font-size:11px;color:#b58;margin-top:3px}
+ .reason{background:#fff4f9;border-radius:12px;padding:12px;font-size:14px;color:#a04;margin-top:12px;line-height:1.5}
+ .look{margin-bottom:14px}
+ .look .top{display:flex;align-items:center;gap:10px}
+ .look .bag{width:60px;height:60px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:30px;flex:0 0 auto}
+ .look .ttl{font-weight:800;font-size:16px} .look .vibe{font-size:12px;color:#b58}
+ .look .charms{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+ .look .cm{background:#f6e8f0;border-radius:10px;padding:6px 9px;font-size:13px}
+ .savebtn{margin-top:10px;background:#f3e6ef;color:#a06;border:0;border-radius:10px;padding:9px 14px;font-weight:700;font-size:13px;cursor:pointer}
+ .savebtn.on{background:#c06bd6;color:#fff}
+ .hidden{display:none} .empty{color:#b58;text-align:center;padding:30px 0;font-size:14px}
 </style></head>
 <body><div class="wrap">
- <h1>백꾸 도감 👜✨</h1>
- <p class="sub">내 가방에 매달린 키링, 다 합치면 얼마? 도감에서 담아보세요.</p>
+ <h1>백꾸 👜✨</h1>
+ <p class="sub">가방 사진 올리고, 어울리는 키링 추천받고, 남들 백꾸 구경하고.</p>
 
- <div class="card bag">
-  <div>내 백꾸 시가총액</div>
-  <div class="val" id="val">₩0</div>
-  <div class="idx" id="idx">백꾸지수 0</div>
-  <div class="drip" id="drip">도감에서 내 키링을 담아보세요!</div>
-  <div class="meta" id="meta">보유 0개 · 수집률 0%</div>
-  <button id="share">결과 공유하기</button>
+ <div class="tabs">
+  <div class="tab on" data-tab="reco">추천받기</div>
+  <div class="tab" data-tab="feed">둘러보기</div>
+  <div class="tab" data-tab="board">내 보드</div>
  </div>
 
- <div class="secline"><b>키링 도감</b><span id="collrate">수집률 0%</span></div>
- <div class="grid" id="grid"></div>
- <p class="src" style="margin-top:16px">데이터는 이 브라우저에만 저장돼요 · 시세는 예시값(리셀 기준)</p>
+ <!-- 추천받기 -->
+ <div id="reco">
+  <div class="card">
+   <label>1. 내 가방 (선택)</label>
+   <div class="photo" id="photo">사진을 올리면 여기 보여요</div>
+   <label class="upbtn" for="file">📷 가방 사진 올리기</label>
+   <input id="file" type="file" accept="image/*" style="display:none">
+   <label>2. 무드</label>
+   <div class="chips" id="moods"></div>
+   <label>3. 가방 색</label>
+   <div class="chips" id="colors"></div>
+   <button class="go" id="recoBtn">어울리는 키링 추천받기 →</button>
+  </div>
+  <div class="card hidden" id="recoOut">
+   <label>이 조합 어때요?</label>
+   <div class="reco" id="recoList"></div>
+   <div class="reason" id="reason"></div>
+   <button class="savebtn" id="saveReco">이 조합 내 보드에 저장 ♥</button>
+  </div>
+ </div>
+
+ <!-- 둘러보기 -->
+ <div id="feed" class="hidden"></div>
+
+ <!-- 내 보드 -->
+ <div id="board" class="hidden"></div>
 </div>
 
 <script>
-/* ===== 안전 저장 (file://·사생활모드 대비) ===== */
 let MEM={};
 function lsGet(k){try{return localStorage.getItem(k)}catch(_){return (k in MEM)?MEM[k]:null}}
 function lsSet(k,v){try{localStorage.setItem(k,v)}catch(_){MEM[k]=v}}
 const load=k=>{try{return JSON.parse(lsGet("backku:"+k)||"[]")}catch(_){return[]}};
 const save=(k,v)=>lsSet("backku:"+k,JSON.stringify(v));
 
-/* ===== 도감 시드 (인기 키링, 리셀 시세 예시·원) ===== */
-const CHARMS=[
- {id:"labubu_s",nm:"라부부 시크릿",br:"팝마트",emoji:"👹",price:160000,src:"KREAM·팝마트",ltd:true},
- {id:"labubu",nm:"라부부 일반",br:"팝마트",emoji:"👺",price:35000,src:"팝마트·번개"},
- {id:"smiski",nm:"스마이스키",br:"드림즈",emoji:"🧸",price:25000,src:"오프라인·아이디어스"},
- {id:"bonecdo",nm:"쁘넥도",br:"보이넥스트도어",emoji:"🐤",price:30000,src:"29CM·위버스",ltd:true},
- {id:"cinnamoroll",nm:"시나모롤",br:"산리오",emoji:"🐶",price:18000,src:"산리오샵·G마켓"},
- {id:"kuromi",nm:"쿠로미",br:"산리오",emoji:"😈",price:18000,src:"산리오샵"},
- {id:"stitch",nm:"스티치",br:"디즈니",emoji:"💙",price:22000,src:"디즈니스토어"},
- {id:"loopy",nm:"잔망루피",br:"위글위글",emoji:"🐧",price:15000,src:"스마트스토어"},
- {id:"miffy",nm:"미피",br:"미피",emoji:"🐰",price:14000,src:"텐바이텐·G마켓"},
- {id:"mangbear",nm:"망그러진곰",br:"망곰",emoji:"🐻",price:16000,src:"아이디어스"},
- {id:"mujik",nm:"무직타이거",br:"무직타이거",emoji:"🐯",price:17000,src:"스마트스토어"},
- {id:"chunsik",nm:"춘식이",br:"카카오프렌즈",emoji:"🐱",price:12000,src:"카카오프렌즈샵"},
- {id:"kitty",nm:"헬로키티",br:"산리오",emoji:"🎀",price:20000,src:"산리오샵"},
- {id:"duck",nm:"백꿈 오리인형",br:"핸드메이드",emoji:"🦆",price:11000,src:"아이디어스·인스타"},
- {id:"beads",nm:"비즈 키링",br:"핸드메이드",emoji:"📿",price:9000,src:"아이디어스"},
- {id:"crayon",nm:"짱구 액션키링",br:"반다이",emoji:"🖍️",price:13000,src:"애니메이트"}
-];
-const won=n=>"₩"+n.toLocaleString("ko-KR");
-
-let owned=load("owned"), wish=load("wish");
-function isOn(arr,id){return arr.indexOf(id)>=0}
-function toggle(arr,id){const i=arr.indexOf(id);if(i>=0)arr.splice(i,1);else arr.push(id);}
-
-function summary(){
- const items=CHARMS.filter(c=>isOn(owned,c.id));
- const total=items.reduce((s,c)=>s+c.price,0);
- const score=Math.min(100,Math.round(total/5000)); // 50만원 = 100
- let drip;
- if(items.length===0) drip="도감에서 내 키링을 담아보세요!";
- else if(score<30) drip="소박한 미니멀 백꾸 🌿 깔끔한 매력!";
- else if(score<70) drip="균형 잡힌 꾸안꾸 ✨ 센스 좋은데?";
- else drip="지나가던 사람도 쳐다보는 풀백꾸 💸 가방이 곧 명품!";
- const top=items.slice().sort((a,b)=>b.price-a.price)[0];
- const coll=Math.round(items.length/CHARMS.length*100);
- return {total,score,drip,top,count:items.length,coll};
-}
-function render(){
- const s=summary();
- document.getElementById("val").textContent=won(s.total);
- document.getElementById("idx").textContent="백꾸지수 "+s.score;
- document.getElementById("drip").textContent=s.drip;
- document.getElementById("meta").textContent="보유 "+s.count+"개"+(s.top?(" · 최고가 "+s.top.nm):"")+" · 수집률 "+s.coll+"%";
- document.getElementById("collrate").textContent="수집률 "+s.coll+"%";
- const g=document.getElementById("grid");g.innerHTML="";
- CHARMS.forEach(c=>{
-  const on=isOn(owned,c.id), w=isOn(wish,c.id);
-  const el=document.createElement("div");el.className="item"+(on?" owned":"");
-  el.innerHTML=
-   (c.ltd?'<span class="ltd">한정</span>':'')+
-   '<span class="emoji">'+c.emoji+'</span>'+
-   '<div class="nm">'+c.nm+'</div><div class="br">'+c.br+'</div>'+
-   '<div class="price">'+won(c.price)+'</div>'+
-   '<div class="btns"><button class="add'+(on?' on':'')+'" data-add="'+c.id+'">'+(on?'담음 ✓':'+ 담기')+'</button>'+
-   '<button class="wish'+(w?' on':'')+'" data-wish="'+c.id+'">'+(w?'위시 ♥':'위시')+'</button></div>'+
-   '<div class="src">어디서? '+c.src+'</div>';
-  g.appendChild(el);
- });
-}
-document.addEventListener("click",e=>{
- const a=e.target.getAttribute&&e.target.getAttribute("data-add");
- const w=e.target.getAttribute&&e.target.getAttribute("data-wish");
- if(a){toggle(owned,a);save("owned",owned);render();}
- else if(w){toggle(wish,w);save("wish",wish);render();}
-});
-document.getElementById("share").onclick=()=>{
- const s=summary();
- const t="내 백꾸 시가총액 "+won(s.total)+" 💸\n백꾸지수 "+s.score+(s.top?(" · 최고가는 "+s.top.nm):"")+"\n"+s.drip+"\n— 내 백꾸 점수 보기 → 백꾸 도감";
- if(navigator.share){navigator.share({text:t}).catch(()=>{})}
- else{try{navigator.clipboard&&navigator.clipboard.writeText(t)}catch(_){}alert("결과를 복사했어!\n\n"+t)}
+const CHARMS={
+ labubu_s:{nm:"라부부 시크릿",e:"👹",vibe:"맥시멀",color:"포인트",src:"KREAM·팝마트"},
+ labubu:{nm:"라부부",e:"👺",vibe:"맥시멀",color:"포인트",src:"팝마트"},
+ smiski:{nm:"스마이스키",e:"🧸",vibe:"미니멀",color:"뉴트럴",src:"아이디어스"},
+ bonecdo:{nm:"쁘넥도",e:"🐤",vibe:"큐트",color:"파스텔",src:"29CM"},
+ cinnamoroll:{nm:"시나모롤",e:"🐶",vibe:"큐트",color:"파스텔",src:"산리오샵"},
+ kuromi:{nm:"쿠로미",e:"😈",vibe:"시크",color:"블랙",src:"산리오샵"},
+ stitch:{nm:"스티치",e:"💙",vibe:"큐트",color:"블루",src:"디즈니스토어"},
+ loopy:{nm:"잔망루피",e:"🐧",vibe:"큐트",color:"파스텔",src:"스마트스토어"},
+ miffy:{nm:"미피",e:"🐰",vibe:"미니멀",color:"뉴트럴",src:"텐바이텐"},
+ mangbear:{nm:"망그러진곰",e:"🐻",vibe:"큐트",color:"브라운",src:"아이디어스"},
+ mujik:{nm:"무직타이거",e:"🐯",vibe:"시크",color:"포인트",src:"스마트스토어"},
+ chunsik:{nm:"춘식이",e:"🐱",vibe:"큐트",color:"옐로",src:"카카오프렌즈샵"},
+ kitty:{nm:"헬로키티",e:"🎀",vibe:"큐트",color:"핑크",src:"산리오샵"},
+ duck:{nm:"백꿈 오리",e:"🦆",vibe:"미니멀",color:"옐로",src:"아이디어스"},
+ beads:{nm:"비즈 키링",e:"📿",vibe:"미니멀",color:"뉴트럴",src:"아이디어스"},
+ crayon:{nm:"짱구",e:"🖍️",vibe:"맥시멀",color:"포인트",src:"애니메이트"}
 };
-try{render()}catch(e){document.body.insertAdjacentHTML("afterbegin",'<pre style="color:#c00;padding:12px;white-space:pre-wrap">⚠️ 오류(캡처해 보내줘):\n'+(e&&e.stack||e)+'</pre>')}
+const MOODS=["큐트","시크","미니멀","맥시멀"];
+const COLORS=["블랙","화이트","파스텔","데님","브라운","어디든"];
+const LOOKS=[
+ {ttl:"파스텔 큐티 백꾸",vibe:"큐트 · 파스텔 가방에",bag:"👜",bg:"#ffe1ee",charms:["cinnamoroll","loopy","duck"]},
+ {ttl:"블랙 시크 한 끗",vibe:"시크 · 블랙 가방에",bag:"🖤",bg:"#e6e0ea",charms:["kuromi","mujik"]},
+ {ttl:"미니멀 원포인트",vibe:"미니멀 · 뭐든 잘 어울림",bag:"👝",bg:"#efe7f2",charms:["miffy"]},
+ {ttl:"맥시멀 플렉스",vibe:"맥시멀 · 존재감 폭발",bag:"🎒",bg:"#ffe1ee",charms:["labubu_s","crayon","mangbear"]},
+ {ttl:"캐릭터 덕질백",vibe:"큐트 · 최애 모으기",bag:"👜",bg:"#fff0d6",charms:["chunsik","kitty","stitch"]}
+];
+
+const sel={mood:null,color:null,photo:null};
+let board=load("board");
+
+function chips(id,arr,key){const el=document.getElementById(id);el.innerHTML="";
+ arr.forEach(v=>{const b=document.createElement("button");b.className="chip"+(sel[key]===v?" on":"");
+  b.textContent=v;b.onclick=()=>{sel[key]=v;chips(id,arr,key)};el.appendChild(b)})}
+chips("moods",MOODS,"mood");chips("colors",COLORS,"color");
+
+document.getElementById("file").onchange=e=>{const f=e.target.files[0];if(!f)return;
+ const rd=new FileReader();rd.onload=()=>{sel.photo=rd.result;
+  document.getElementById("photo").innerHTML='<img src="'+rd.result+'">'};rd.readAsDataURL(f)};
+
+let lastReco=null;
+function recommend(){
+ const mood=sel.mood||"큐트";
+ let pool=Object.keys(CHARMS).filter(id=>CHARMS[id].vibe===mood);
+ if(pool.length<3) pool=pool.concat(Object.keys(CHARMS).filter(id=>!pool.includes(id)));
+ const pick=pool.slice(0,mood==="미니멀"?1:3);
+ lastReco={mood:sel.mood,color:sel.color,charms:pick};
+ const list=document.getElementById("recoList");list.innerHTML="";
+ pick.forEach(id=>{const c=CHARMS[id];const p=document.createElement("div");p.className="pill";
+  p.innerHTML='<div class="e">'+c.e+'</div><div class="n">'+c.nm+'</div><div class="s">'+c.src+'</div>';list.appendChild(p)});
+ const cnt=pick.length;
+ document.getElementById("reason").textContent=
+  (sel.color&&sel.color!=="어디든"?sel.color+" 가방엔 ":"")+ (sel.mood||"큐트")+" 무드로 "+
+  (cnt===1?"원포인트 하나만 딱":"키링 "+cnt+"개 조합")+"하면 깔끔해요. 위 키링들이 잘 어울려요!";
+ document.getElementById("recoOut").classList.remove("hidden");
+ document.getElementById("saveReco").textContent="이 조합 내 보드에 저장 ♥";
+ document.getElementById("saveReco").classList.remove("on");
+}
+document.getElementById("recoBtn").onclick=recommend;
+document.getElementById("saveReco").onclick=()=>{if(!lastReco)return;
+ board.push({ttl:(lastReco.mood||"큐트")+" 추천 조합",vibe:"내 추천",bag:"👜",bg:"#ffe1ee",charms:lastReco.charms});
+ save("board",board);
+ const b=document.getElementById("saveReco");b.textContent="✓ 보드에 저장됨";b.classList.add("on");renderBoard()};
+
+function lookCard(L,idx,inBoard){
+ const charms=L.charms.map(id=>'<span class="cm">'+CHARMS[id].e+" "+CHARMS[id].nm+"</span>").join("");
+ const srcs=[...new Set(L.charms.map(id=>CHARMS[id].src))].join(" · ");
+ const btn=inBoard?'<button class="savebtn on" data-del="'+idx+'">보드에서 빼기</button>'
+                  :'<button class="savebtn" data-save="'+idx+'">이 룩 저장 ♥</button>';
+ return '<div class="card look"><div class="top"><div class="bag" style="background:'+L.bg+'">'+L.bag+'</div>'+
+  '<div><div class="ttl">'+L.ttl+'</div><div class="vibe">'+L.vibe+'</div></div></div>'+
+  '<div class="charms">'+charms+'</div><div class="vibe" style="margin-top:8px">어디서? '+srcs+'</div>'+btn+'</div>';
+}
+function renderFeed(){document.getElementById("feed").innerHTML=LOOKS.map((L,i)=>lookCard(L,i,false)).join("")}
+function renderBoard(){const el=document.getElementById("board");
+ el.innerHTML=board.length?board.map((L,i)=>lookCard(L,i,true)).join(""):'<div class="empty">아직 저장한 백꾸가 없어요.<br>둘러보기에서 ♥ 하거나 추천을 저장해보세요!</div>'}
+
+document.addEventListener("click",e=>{
+ const sv=e.target.getAttribute&&e.target.getAttribute("data-save");
+ const dl=e.target.getAttribute&&e.target.getAttribute("data-del");
+ if(sv!=null){board.push(LOOKS[+sv]);save("board",board);e.target.textContent="✓ 저장됨";e.target.classList.add("on");renderBoard()}
+ else if(dl!=null){board.splice(+dl,1);save("board",board);renderBoard()}
+});
+document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{
+ document.querySelectorAll(".tab").forEach(x=>x.classList.remove("on"));t.classList.add("on");
+ ["reco","feed","board"].forEach(id=>document.getElementById(id).classList.add("hidden"));
+ document.getElementById(t.getAttribute("data-tab")).classList.remove("hidden");
+});
+try{renderFeed();renderBoard()}catch(e){document.body.insertAdjacentHTML("afterbegin",'<pre style="color:#c00;padding:12px;white-space:pre-wrap">⚠️ 오류(캡처해 보내줘):\n'+(e&&e.stack||e)+'</pre>')}
 </script></body></html>
