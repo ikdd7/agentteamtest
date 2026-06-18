@@ -42,6 +42,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./game/dist
           publish_branch: gh-pages
+          force_orphan: true # 내용이 같아도 새 커밋을 만들어 Pages 빌드를 확실히 트리거
 
       # Pages가 gh-pages 브랜치를 서빙하도록 소스 설정(이미 workflow 소스면 branch로 전환)
       - name: Point Pages at gh-pages branch
