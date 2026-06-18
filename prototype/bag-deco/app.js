@@ -271,7 +271,20 @@ document.getElementById("ctl-del").addEventListener("click", () => {
   if (placed.length === 0) emptyTip.style.display = "";
 });
 
-// ---- 장바구니 ----
+// ---- 아웃바운드(판매처 이동) ----
+// 오늘의집 모델: 재고 없이 실제 판매처(네이버쇼핑)로 트래픽을 보냄.
+const buyUrl = (name) =>
+  `https://search.shopping.naver.com/search/all?query=${encodeURIComponent("키링 " + name)}`;
+
+let outbound = 0;
+const outboundStat = document.getElementById("outbound-stat");
+function goShop(name) {
+  outbound++;
+  outboundStat.textContent = `판매처 이동 ${outbound}회 · 제휴 트래픽 데모`;
+  window.open(buyUrl(name), "_blank", "noopener");
+}
+
+// ---- 쇼핑 리스트 ----
 function updateCart() {
   cartList.innerHTML = "";
   if (placed.length === 0) {
@@ -290,21 +303,46 @@ function updateCart() {
     const li = document.createElement("li");
     li.className = "cart-item";
     const thumb = g.src
-      ? `<img class="ci-emoji" src="${g.src}" alt="" style="width:24px;height:24px;object-fit:contain;">`
+      ? `<img class="ci-emoji" src="${g.src}" alt="" style="width:26px;height:26px;object-fit:contain;">`
       : `<span class="ci-emoji">${g.emoji}</span>`;
     li.innerHTML =
       thumb +
-      `<span class="ci-name">${g.name} ×${g.qty}</span>` +
-      `<span class="ci-price">${g.price ? formatWon(g.price * g.qty) : "내 사진"}</span>`;
+      `<div class="ci-info">` +
+        `<span class="ci-name">${g.name} ×${g.qty}</span>` +
+        `<span class="ci-price">${g.price ? formatWon(g.price) + " 부터" : "가격대 다양"}</span>` +
+      `</div>` +
+      `<button class="ci-buy" type="button" data-buy="${g.name}">사러 가기 →</button>`;
     cartList.appendChild(li);
   });
   cartTotal.textContent = formatWon(total);
 }
 
-document.getElementById("btn-buy").addEventListener("click", () => {
+// 리스트의 '사러 가기' 클릭 → 판매처로 이동(아웃바운드 집계)
+cartList.addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-buy]");
+  if (btn) goShop(btn.getAttribute("data-buy"));
+});
+
+// 선택된 아이템 '사러 가기'
+document.getElementById("ctl-buy").addEventListener("click", () => {
+  const item = placed.find((p) => p.id === selectedId);
+  if (item) goShop(item.name);
+});
+
+// 쇼핑 리스트 복사·공유 (공유 = 또 다른 트래픽 유입)
+document.getElementById("btn-copy").addEventListener("click", async () => {
   if (placed.length === 0) return alert("먼저 가방을 꾸며주세요! ✨");
-  const total = placed.reduce((s, p) => s + p.price, 0);
-  alert(`🛍️ 데모 주문\n아이템 ${placed.length}개\n결제 예정 금액: ${formatWon(total)}\n\n(프로토타입이라 실제 결제는 없어요)`);
+  const groups = {};
+  placed.forEach((p) => { groups[p.name] = (groups[p.name] || 0) + 1; });
+  const lines = ["🎀 내 백꾸 쇼핑 리스트", ""];
+  Object.keys(groups).forEach((name) => lines.push(`· ${name} → ${buyUrl(name)}`));
+  const text = lines.join("\n");
+  try {
+    await navigator.clipboard.writeText(text);
+    alert("쇼핑 리스트를 복사했어요! 친구에게 붙여넣어 공유해보세요 📋");
+  } catch {
+    prompt("아래 리스트를 복사하세요:", text);
+  }
 });
 
 // ---- 초기화 ----

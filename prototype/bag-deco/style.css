@@ -254,9 +254,23 @@ body {
   border-radius: 12px;
 }
 .cart-item:hover { background: var(--cream); }
-.cart-item .ci-emoji { font-size: 22px; }
-.cart-item .ci-name { flex: 1; font-size: 13px; }
-.cart-item .ci-price { font-size: 13px; font-weight: 700; }
+.cart-item .ci-emoji { font-size: 22px; width: 26px; text-align: center; flex-shrink: 0; }
+.cart-item .ci-info { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.cart-item .ci-name { font-size: 13px; font-weight: 600; }
+.cart-item .ci-price { font-size: 11px; color: var(--ink-soft); }
+.cart-item .ci-buy {
+  flex-shrink: 0;
+  border: none;
+  background: linear-gradient(135deg, var(--pink), var(--lilac));
+  color: #fff;
+  border-radius: 999px;
+  padding: 6px 11px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.cart-item .ci-buy:active { transform: scale(0.94); }
 .cart-empty { text-align: center; color: var(--ink-soft); font-size: 13px; padding: 24px 0; }
 .cart-foot { border-top: 1px solid var(--line); padding-top: 12px; margin-top: 8px; }
 .cart-total { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }

@@ -62,23 +62,25 @@
           <input type="range" id="ctl-rot" min="-180" max="180" value="0" />
         </label>
         <button id="ctl-front" class="btn btn-ghost btn-sm" type="button">맨 앞으로</button>
+        <button id="ctl-buy" class="btn btn-primary btn-sm" type="button">🛒 사러 가기</button>
         <button id="ctl-del" class="btn btn-danger btn-sm" type="button">🗑 삭제</button>
       </div>
     </section>
 
-    <!-- 우측: 장바구니 -->
-    <aside class="panel cart" aria-label="장바구니">
+    <!-- 우측: 쇼핑 리스트 (아웃바운드) -->
+    <aside class="panel cart" aria-label="쇼핑 리스트">
       <div class="panel-head">
-        <h2>내 백꾸 장바구니</h2>
+        <h2>담은 아이템 · 쇼핑 리스트</h2>
+        <p class="hint">아이템마다 실제 판매처로 이동해요</p>
       </div>
       <ul class="cart-list" id="cart-list"></ul>
       <div class="cart-foot">
         <div class="cart-total">
-          <span>합계</span>
+          <span>예상가 합계</span>
           <strong id="cart-total">0원</strong>
         </div>
-        <button class="btn btn-primary btn-block" id="btn-buy" type="button">이 조합 그대로 구매하기</button>
-        <p class="demo-note">* 프로토타입 데모 — 실제 결제는 일어나지 않습니다</p>
+        <button class="btn btn-primary btn-block" id="btn-copy" type="button">📋 쇼핑 리스트 복사 · 공유</button>
+        <p class="demo-note" id="outbound-stat">판매처 이동 0회 · 제휴 트래픽 데모</p>
       </div>
     </aside>
   </main>
