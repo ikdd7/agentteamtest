@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>백꾸 도감 — 내 가방 시가총액은?</title>
+<style>
+ *{box-sizing:border-box;margin:0;padding:0}
+ body{font-family:-apple-system,system-ui,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;
+   background:#fdf0f4;color:#2a2230}
+ .wrap{max-width:480px;margin:0 auto;padding:18px}
+ h1{font-size:23px;margin:6px 0 2px} .sub{color:#9a8a96;font-size:13px;margin:0 0 16px}
+ .card{background:#fff;border-radius:18px;padding:18px;box-shadow:0 4px 16px rgba(180,90,140,.12);margin-bottom:16px}
+ .bag{background:linear-gradient(160deg,#ff8fb3 0%,#c06bd6 100%);color:#fff;text-align:center;padding:24px 18px}
+ .bag .val{font-size:40px;font-weight:800;letter-spacing:-1px;margin:4px 0}
+ .bag .idx{font-size:18px;font-weight:700}
+ .bag .drip{font-size:14px;margin:12px 0;opacity:.95;line-height:1.5}
+ .bag .meta{font-size:13px;opacity:.9}
+ .bag button{margin-top:14px;background:#fff;color:#c06bd6;border:0;border-radius:999px;
+   font-size:16px;font-weight:800;padding:12px 20px;cursor:pointer}
+ .secline{display:flex;justify-content:space-between;align-items:baseline;margin:6px 4px 10px}
+ .secline b{font-size:16px} .secline span{font-size:13px;color:#9a8a96}
+ .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+ .item{background:#fff;border-radius:16px;padding:14px;box-shadow:0 2px 8px rgba(180,90,140,.10);position:relative}
+ .item.owned{outline:2.5px solid #ff5a9e}
+ .emoji{font-size:38px;text-align:center;display:block;margin:2px 0 8px}
+ .nm{font-size:15px;font-weight:700;line-height:1.3} .br{font-size:12px;color:#9a8a96}
+ .price{font-size:14px;font-weight:700;color:#c06bd6;margin-top:6px}
+ .ltd{position:absolute;top:10px;right:10px;background:#ffe14d;color:#7a5b00;font-size:11px;
+   font-weight:800;padding:2px 7px;border-radius:999px}
+ .btns{display:flex;gap:6px;margin-top:10px}
+ .btns button{flex:1;border:0;border-radius:9px;padding:9px 0;font-size:13px;font-weight:700;cursor:pointer}
+ .add{background:#ff5a9e;color:#fff} .add.on{background:#eee;color:#666}
+ .wish{background:#f3e6ef;color:#a06; } .wish.on{background:#c06bd6;color:#fff}
+ .src{font-size:12px;color:#b58; margin-top:8px; text-align:center}
+</style></head>
+<body><div class="wrap">
+ <h1>백꾸 도감 👜✨</h1>
+ <p class="sub">내 가방에 매달린 키링, 다 합치면 얼마? 도감에서 담아보세요.</p>
+
+ <div class="card bag">
+  <div>내 백꾸 시가총액</div>
+  <div class="val" id="val">₩0</div>
+  <div class="idx" id="idx">백꾸지수 0</div>
+  <div class="drip" id="drip">도감에서 내 키링을 담아보세요!</div>
+  <div class="meta" id="meta">보유 0개 · 수집률 0%</div>
+  <button id="share">결과 공유하기</button>
+ </div>
+
+ <div class="secline"><b>키링 도감</b><span id="collrate">수집률 0%</span></div>
+ <div class="grid" id="grid"></div>
+ <p class="src" style="margin-top:16px">데이터는 이 브라우저에만 저장돼요 · 시세는 예시값(리셀 기준)</p>
+</div>
+
+<script>
+/* ===== 안전 저장 (file://·사생활모드 대비) ===== */
+let MEM={};
+function lsGet(k){try{return localStorage.getItem(k)}catch(_){return (k in MEM)?MEM[k]:null}}
+function lsSet(k,v){try{localStorage.setItem(k,v)}catch(_){MEM[k]=v}}
+const load=k=>{try{return JSON.parse(lsGet("backku:"+k)||"[]")}catch(_){return[]}};
+const save=(k,v)=>lsSet("backku:"+k,JSON.stringify(v));
+
+/* ===== 도감 시드 (인기 키링, 리셀 시세 예시·원) ===== */
+const CHARMS=[
+ {id:"labubu_s",nm:"라부부 시크릿",br:"팝마트",emoji:"👹",price:160000,src:"KREAM·팝마트",ltd:true},
+ {id:"labubu",nm:"라부부 일반",br:"팝마트",emoji:"👺",price:35000,src:"팝마트·번개"},
+ {id:"smiski",nm:"스마이스키",br:"드림즈",emoji:"🧸",price:25000,src:"오프라인·아이디어스"},
+ {id:"bonecdo",nm:"쁘넥도",br:"보이넥스트도어",emoji:"🐤",price:30000,src:"29CM·위버스",ltd:true},
+ {id:"cinnamoroll",nm:"시나모롤",br:"산리오",emoji:"🐶",price:18000,src:"산리오샵·G마켓"},
+ {id:"kuromi",nm:"쿠로미",br:"산리오",emoji:"😈",price:18000,src:"산리오샵"},
+ {id:"stitch",nm:"스티치",br:"디즈니",emoji:"💙",price:22000,src:"디즈니스토어"},
+ {id:"loopy",nm:"잔망루피",br:"위글위글",emoji:"🐧",price:15000,src:"스마트스토어"},
+ {id:"miffy",nm:"미피",br:"미피",emoji:"🐰",price:14000,src:"텐바이텐·G마켓"},
+ {id:"mangbear",nm:"망그러진곰",br:"망곰",emoji:"🐻",price:16000,src:"아이디어스"},
+ {id:"mujik",nm:"무직타이거",br:"무직타이거",emoji:"🐯",price:17000,src:"스마트스토어"},
+ {id:"chunsik",nm:"춘식이",br:"카카오프렌즈",emoji:"🐱",price:12000,src:"카카오프렌즈샵"},
+ {id:"kitty",nm:"헬로키티",br:"산리오",emoji:"🎀",price:20000,src:"산리오샵"},
+ {id:"duck",nm:"백꿈 오리인형",br:"핸드메이드",emoji:"🦆",price:11000,src:"아이디어스·인스타"},
+ {id:"beads",nm:"비즈 키링",br:"핸드메이드",emoji:"📿",price:9000,src:"아이디어스"},
+ {id:"crayon",nm:"짱구 액션키링",br:"반다이",emoji:"🖍️",price:13000,src:"애니메이트"}
+];
+const won=n=>"₩"+n.toLocaleString("ko-KR");
+
+let owned=load("owned"), wish=load("wish");
+function isOn(arr,id){return arr.indexOf(id)>=0}
+function toggle(arr,id){const i=arr.indexOf(id);if(i>=0)arr.splice(i,1);else arr.push(id);}
+
+function summary(){
+ const items=CHARMS.filter(c=>isOn(owned,c.id));
+ const total=items.reduce((s,c)=>s+c.price,0);
+ const score=Math.min(100,Math.round(total/5000)); // 50만원 = 100
+ let drip;
+ if(items.length===0) drip="도감에서 내 키링을 담아보세요!";
+ else if(score<30) drip="소박한 미니멀 백꾸 🌿 깔끔한 매력!";
+ else if(score<70) drip="균형 잡힌 꾸안꾸 ✨ 센스 좋은데?";
+ else drip="지나가던 사람도 쳐다보는 풀백꾸 💸 가방이 곧 명품!";
+ const top=items.slice().sort((a,b)=>b.price-a.price)[0];
+ const coll=Math.round(items.length/CHARMS.length*100);
+ return {total,score,drip,top,count:items.length,coll};
+}
+function render(){
+ const s=summary();
+ document.getElementById("val").textContent=won(s.total);
+ document.getElementById("idx").textContent="백꾸지수 "+s.score;
+ document.getElementById("drip").textContent=s.drip;
+ document.getElementById("meta").textContent="보유 "+s.count+"개"+(s.top?(" · 최고가 "+s.top.nm):"")+" · 수집률 "+s.coll+"%";
+ document.getElementById("collrate").textContent="수집률 "+s.coll+"%";
+ const g=document.getElementById("grid");g.innerHTML="";
+ CHARMS.forEach(c=>{
+  const on=isOn(owned,c.id), w=isOn(wish,c.id);
+  const el=document.createElement("div");el.className="item"+(on?" owned":"");
+  el.innerHTML=
+   (c.ltd?'<span class="ltd">한정</span>':'')+
+   '<span class="emoji">'+c.emoji+'</span>'+
+   '<div class="nm">'+c.nm+'</div><div class="br">'+c.br+'</div>'+
+   '<div class="price">'+won(c.price)+'</div>'+
+   '<div class="btns"><button class="add'+(on?' on':'')+'" data-add="'+c.id+'">'+(on?'담음 ✓':'+ 담기')+'</button>'+
+   '<button class="wish'+(w?' on':'')+'" data-wish="'+c.id+'">'+(w?'위시 ♥':'위시')+'</button></div>'+
+   '<div class="src">어디서? '+c.src+'</div>';
+  g.appendChild(el);
+ });
+}
+document.addEventListener("click",e=>{
+ const a=e.target.getAttribute&&e.target.getAttribute("data-add");
+ const w=e.target.getAttribute&&e.target.getAttribute("data-wish");
+ if(a){toggle(owned,a);save("owned",owned);render();}
+ else if(w){toggle(wish,w);save("wish",wish);render();}
+});
+document.getElementById("share").onclick=()=>{
+ const s=summary();
+ const t="내 백꾸 시가총액 "+won(s.total)+" 💸\n백꾸지수 "+s.score+(s.top?(" · 최고가는 "+s.top.nm):"")+"\n"+s.drip+"\n— 내 백꾸 점수 보기 → 백꾸 도감";
+ if(navigator.share){navigator.share({text:t}).catch(()=>{})}
+ else{try{navigator.clipboard&&navigator.clipboard.writeText(t)}catch(_){}alert("결과를 복사했어!\n\n"+t)}
+};
+try{render()}catch(e){document.body.insertAdjacentHTML("afterbegin",'<pre style="color:#c00;padding:12px;white-space:pre-wrap">⚠️ 오류(캡처해 보내줘):\n'+(e&&e.stack||e)+'</pre>')}
+</script></body></html>
