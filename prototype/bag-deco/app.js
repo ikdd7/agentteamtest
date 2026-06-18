@@ -4,36 +4,25 @@
  * 사진 로드 실패 시 이모지로 자동 폴백 → 항상 깨지지 않음.
  */
 
-// 키워드로 실제 사진을 받아오는 공개 서비스. lock 값으로 사진을 고정.
-const photo = (tag, lock, w = 320, h = 320) =>
-  `https://loremflickr.com/${w}/${h}/${encodeURIComponent(tag)}?lock=${lock}`;
-
-// ---- 데이터: 가방 ----
+// ---- 데이터: 가방 (벡터 일러스트 + 이모지 폴백) ----
 const BAGS = [
-  { id: "tote", emoji: "👜", label: "토트백" },
-  { id: "back", emoji: "🎒", label: "백팩" },
-  { id: "pouch", emoji: "👝", label: "파우치" },
-  { id: "brief", emoji: "💼", label: "서류백" },
+  { id: "tote", emoji: "👜", label: "토트백", img: "assets/bag-tote.svg" },
+  { id: "back", emoji: "🎒", label: "백팩", img: "assets/bag-backpack.svg" },
+  { id: "pouch", emoji: "👝", label: "파우치", img: "assets/bag-pouch.svg" },
 ];
 
-// ---- 데이터: 키링/참 (실제 사진 + 이모지 폴백) ----
+// ---- 데이터: 키링/참 (벡터 일러스트 + 이모지 폴백) ----
 const CHARMS = [
-  { name: "곰돌이 인형 키링", price: 12000, emoji: "🧸", img: photo("teddybear,plush", 11) },
-  { name: "토끼 키링", price: 9000, emoji: "🐰", img: photo("rabbit,plush", 12) },
-  { name: "리본 참", price: 5000, emoji: "🎀", img: photo("ribbon,bow", 13) },
-  { name: "별 키링", price: 3000, emoji: "⭐", img: photo("star,charm", 14) },
-  { name: "하트 키링", price: 4000, emoji: "💖", img: photo("heart,keychain", 15) },
-  { name: "꽃 스티커", price: 2000, emoji: "🌸", img: photo("flower,blossom", 16) },
-  { name: "딸기 참", price: 3500, emoji: "🍓", img: photo("strawberry", 17) },
-  { name: "나비 참", price: 4500, emoji: "🦋", img: photo("butterfly", 18) },
-  { name: "곰 키링", price: 6000, emoji: "🐻", img: photo("bear,toy", 19) },
-  { name: "캐릭터 키링", price: 7000, emoji: "👾", img: photo("keychain,toy", 20) },
-  { name: "무지개 참", price: 3000, emoji: "🌈", img: photo("rainbow", 21) },
-  { name: "열쇠 참", price: 2500, emoji: "🔑", img: photo("key,keychain", 22) },
-  { name: "체리 참", price: 3000, emoji: "🍒", img: photo("cherry", 23) },
-  { name: "비즈 참", price: 3500, emoji: "🧿", img: photo("beads,jewelry", 24) },
-  { name: "구름 참", price: 2000, emoji: "☁️", img: photo("cloud", 25) },
-  { name: "미러볼 참", price: 5500, emoji: "🪩", img: photo("disco,ball", 26) },
+  { name: "곰돌이 키링", price: 12000, emoji: "🧸", img: "assets/bear.svg" },
+  { name: "토끼 키링", price: 9000, emoji: "🐰", img: "assets/bunny.svg" },
+  { name: "리본 참", price: 5000, emoji: "🎀", img: "assets/ribbon.svg" },
+  { name: "별 키링", price: 3000, emoji: "⭐", img: "assets/star.svg" },
+  { name: "하트 키링", price: 4000, emoji: "💖", img: "assets/heart.svg" },
+  { name: "꽃 참", price: 2000, emoji: "🌸", img: "assets/flower.svg" },
+  { name: "딸기 참", price: 3500, emoji: "🍓", img: "assets/strawberry.svg" },
+  { name: "나비 참", price: 4500, emoji: "🦋", img: "assets/butterfly.svg" },
+  { name: "체리 참", price: 3000, emoji: "🍒", img: "assets/cherry.svg" },
+  { name: "무지개 참", price: 3000, emoji: "🌈", img: "assets/rainbow.svg" },
 ];
 
 // ---- 상태 ----
@@ -42,6 +31,7 @@ let selectedId = null;
 let nextId = 1;
 let currentBag = BAGS[0];
 let bagImageEl = null;    // 가방 export용 로드된 Image (없으면 이모지)
+let bagFit = "contain";   // 일러스트는 contain, 업로드 사진은 cover
 
 // ---- DOM ----
 const stage = document.getElementById("stage");
@@ -82,8 +72,9 @@ function selectBag(bag, btnEl) {
   applyBag(bag.img || null, bag.emoji);
 }
 
-// 가방을 화면+export에 반영. url 있으면 사진, 실패 시 이모지 폴백.
-function applyBag(url, emoji) {
+// 가방을 화면+export에 반영. url 있으면 그림/사진, 실패 시 이모지 폴백.
+function applyBag(url, emoji, fit = "contain") {
+  bagFit = fit;
   if (!url) {
     bagImageEl = null;
     bagLayer.style.backgroundImage = "";
@@ -91,13 +82,13 @@ function applyBag(url, emoji) {
     return;
   }
   const img = new Image();
-  img.crossOrigin = "anonymous";
   img.onload = () => {
     bagImageEl = img;
     bagLayer.textContent = "";
+    bagLayer.style.backgroundSize = fit;
     bagLayer.style.backgroundImage = `url("${url}")`;
   };
-  img.onerror = () => {           // 사진 실패 → 이모지로
+  img.onerror = () => {           // 실패 → 이모지로
     bagImageEl = null;
     bagLayer.style.backgroundImage = "";
     bagLayer.textContent = emoji;
@@ -113,7 +104,7 @@ document.getElementById("bag-upload").addEventListener("change", (e) => {
   reader.onload = (ev) => {
     currentBag = { id: "upload", emoji: "👜", img: ev.target.result };
     document.querySelectorAll(".bag-opt").forEach((x) => x.classList.remove("active"));
-    applyBag(ev.target.result, "👜");
+    applyBag(ev.target.result, "👜", "cover");
   };
   reader.readAsDataURL(file);
 });
@@ -185,7 +176,6 @@ function renderCharm(item) {
   el.className = "charm";
   if (item.src) {
     const img = document.createElement("img");
-    img.crossOrigin = "anonymous";
     img.src = item.src;
     img.alt = item.name;
     img.onerror = () => {          // 사진 실패 → 이모지로 폴백
@@ -300,7 +290,7 @@ function updateCart() {
     const li = document.createElement("li");
     li.className = "cart-item";
     const thumb = g.src
-      ? `<img class="ci-emoji" src="${g.src}" alt="" style="width:24px;height:24px;border-radius:6px;object-fit:cover;">`
+      ? `<img class="ci-emoji" src="${g.src}" alt="" style="width:24px;height:24px;object-fit:contain;">`
       : `<span class="ci-emoji">${g.emoji}</span>`;
     li.innerHTML =
       thumb +
@@ -349,7 +339,8 @@ document.getElementById("btn-save").addEventListener("click", () => {
 
   // 가방
   if (bagImageEl && bagImageEl.complete && bagImageEl.naturalWidth) {
-    drawCover(ctx, bagImageEl, canvas.width, canvas.height);
+    if (bagFit === "cover") drawCover(ctx, bagImageEl, canvas.width, canvas.height);
+    else drawContain(ctx, bagImageEl, canvas.width, canvas.height);
   } else {
     ctx.font = `${230 * scale}px sans-serif`;
     ctx.textAlign = "center";
@@ -365,10 +356,10 @@ document.getElementById("btn-save").addEventListener("click", () => {
     const useImg = p.src && p.imgEl && p.imgEl.complete && p.imgEl.naturalWidth;
     if (useImg) {
       const s = p.size * scale;
-      ctx.beginPath();
-      roundRect(ctx, -s / 2, -s / 2, s, s, s * 0.18);
-      ctx.clip();
-      ctx.drawImage(p.imgEl, -s / 2, -s / 2, s, s);
+      const ar = p.imgEl.naturalWidth / p.imgEl.naturalHeight;
+      let dw = s, dh = s;
+      if (ar > 1) dh = s / ar; else dw = s * ar;   // 비율 유지
+      ctx.drawImage(p.imgEl, -dw / 2, -dh / 2, dw, dh);
     } else {
       ctx.font = `${p.size * scale}px sans-serif`;
       ctx.textAlign = "center";
@@ -399,13 +390,12 @@ function drawCover(ctx, img, W, H) {
   if (ar > car) { dh = H; dw = dh * ar; } else { dw = W; dh = dw / ar; }
   ctx.drawImage(img, (W - dw) / 2, (H - dh) / 2, dw, dh);
 }
-function roundRect(ctx, x, y, w, h, r) {
-  ctx.moveTo(x + r, y);
-  ctx.arcTo(x + w, y, x + w, y + h, r);
-  ctx.arcTo(x + w, y + h, x, y + h, r);
-  ctx.arcTo(x, y + h, x, y, r);
-  ctx.arcTo(x, y, x + w, y, r);
-  ctx.closePath();
+function drawContain(ctx, img, W, H) {
+  const ar = img.naturalWidth / img.naturalHeight;
+  const car = W / H;
+  let dw, dh;
+  if (ar > car) { dw = W * 0.86; dh = dw / ar; } else { dh = H * 0.86; dw = dh * ar; }
+  ctx.drawImage(img, (W - dw) / 2, (H - dh) / 2, dw, dh);
 }
 
 // ---- 기타 ----
