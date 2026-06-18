@@ -105,6 +105,13 @@ body {
 }
 .bag-opt:hover { background: var(--pink-soft); }
 .bag-opt.active { border-color: var(--pink); background: var(--pink-soft); }
+.bag-opt img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 11px;
+  pointer-events: none;
+}
 .upload {
   display: block;
   text-align: center;
@@ -147,6 +154,17 @@ body {
   font-size: 9px;
   color: var(--ink-soft);
   font-weight: 700;
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: 6px;
+  padding: 0 3px;
+}
+/* 실제 사진 썸네일 */
+.charm-btn img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 13px;
+  pointer-events: none;
 }
 
 /* ---------- Stage ---------- */
@@ -182,6 +200,17 @@ body {
   transform: translate(-50%, -50%) rotate(0deg);
   transition: filter 0.1s;
   line-height: 1;
+}
+/* 캔버스 위 실제 사진 키링 — 스티커 느낌 */
+.charm img {
+  display: block;
+  width: 1em;
+  height: 1em;
+  object-fit: cover;
+  border-radius: 18%;
+  border: 3px solid #fff;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.22);
+  pointer-events: none;
 }
 .charm.selected {
   filter: drop-shadow(0 0 0 var(--pink));

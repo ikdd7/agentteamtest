@@ -1,42 +1,49 @@
 /* 백꾸 스튜디오 — 가방 꾸미기 프로토타입
- * 외부 의존성 없는 순수 바닐라 JS. 브라우저에서 index.html 열면 바로 동작.
+ * 외부 의존성 없는 순수 바닐라 JS.
+ * 키링/가방을 "실제 사진"으로 렌더(loremflickr 핫링크 + 사진 업로드).
+ * 사진 로드 실패 시 이모지로 자동 폴백 → 항상 깨지지 않음.
  */
 
-// ---- 데이터: 가방 & 아이템 카탈로그 ----
+// 키워드로 실제 사진을 받아오는 공개 서비스. lock 값으로 사진을 고정.
+const photo = (tag, lock, w = 320, h = 320) =>
+  `https://loremflickr.com/${w}/${h}/${encodeURIComponent(tag)}?lock=${lock}`;
+
+// ---- 데이터: 가방 ----
 const BAGS = [
+  { id: "photo", emoji: "👜", label: "가방 사진", img: photo("handbag,bag", 31, 600, 800) },
   { id: "tote", emoji: "👜", label: "토트백" },
   { id: "back", emoji: "🎒", label: "백팩" },
   { id: "pouch", emoji: "👝", label: "파우치" },
-  { id: "brief", emoji: "💼", label: "서류백" },
 ];
 
+// ---- 데이터: 키링/참 (실제 사진 + 이모지 폴백) ----
 const CHARMS = [
-  { emoji: "🧸", name: "곰돌이 인형 키링", price: 12000 },
-  { emoji: "🐰", name: "토끼 키링", price: 9000 },
-  { emoji: "🎀", name: "리본 참", price: 5000 },
-  { emoji: "⭐", name: "별 참", price: 3000 },
-  { emoji: "💖", name: "하트 키링", price: 4000 },
-  { emoji: "🌸", name: "벚꽃 스티커", price: 2000 },
-  { emoji: "🍓", name: "딸기 참", price: 3500 },
-  { emoji: "🦋", name: "나비 참", price: 4500 },
-  { emoji: "🐻", name: "베어 참", price: 6000 },
-  { emoji: "👾", name: "픽셀 키링", price: 7000 },
-  { emoji: "🌈", name: "무지개 참", price: 3000 },
-  { emoji: "🔑", name: "열쇠 참", price: 2500 },
-  { emoji: "🧿", name: "아이 참", price: 3500 },
-  { emoji: "🍒", name: "체리 참", price: 3000 },
-  { emoji: "☁️", name: "구름 참", price: 2000 },
-  { emoji: "🪩", name: "디스코볼", price: 5500 },
+  { name: "곰돌이 인형 키링", price: 12000, emoji: "🧸", img: photo("teddybear,plush", 11) },
+  { name: "토끼 키링", price: 9000, emoji: "🐰", img: photo("rabbit,plush", 12) },
+  { name: "리본 참", price: 5000, emoji: "🎀", img: photo("ribbon,bow", 13) },
+  { name: "별 키링", price: 3000, emoji: "⭐", img: photo("star,charm", 14) },
+  { name: "하트 키링", price: 4000, emoji: "💖", img: photo("heart,keychain", 15) },
+  { name: "꽃 스티커", price: 2000, emoji: "🌸", img: photo("flower,blossom", 16) },
+  { name: "딸기 참", price: 3500, emoji: "🍓", img: photo("strawberry", 17) },
+  { name: "나비 참", price: 4500, emoji: "🦋", img: photo("butterfly", 18) },
+  { name: "곰 키링", price: 6000, emoji: "🐻", img: photo("bear,toy", 19) },
+  { name: "캐릭터 키링", price: 7000, emoji: "👾", img: photo("keychain,toy", 20) },
+  { name: "무지개 참", price: 3000, emoji: "🌈", img: photo("rainbow", 21) },
+  { name: "열쇠 참", price: 2500, emoji: "🔑", img: photo("key,keychain", 22) },
+  { name: "체리 참", price: 3000, emoji: "🍒", img: photo("cherry", 23) },
+  { name: "비즈 참", price: 3500, emoji: "🧿", img: photo("beads,jewelry", 24) },
+  { name: "구름 참", price: 2000, emoji: "☁️", img: photo("cloud", 25) },
+  { name: "미러볼 참", price: 5500, emoji: "🪩", img: photo("disco,ball", 26) },
 ];
 
 // ---- 상태 ----
-let placed = [];          // {id, emoji, name, price, x, y, size, rot, el}
+let placed = [];          // {id, name, price, emoji, src, el, imgEl, x, y, size, rot}
 let selectedId = null;
 let nextId = 1;
 let currentBag = BAGS[0];
-let bagImage = null;      // 업로드된 이미지 dataURL (있으면 emoji 대신 사용)
+let bagImageEl = null;    // 가방 export용 로드된 Image (없으면 이모지)
 
-// ---- DOM 참조 ----
+// ---- DOM ----
 const stage = document.getElementById("stage");
 const bagLayer = document.getElementById("bag-layer");
 const charmLayer = document.getElementById("charm-layer");
@@ -48,67 +55,124 @@ const ctlRot = document.getElementById("ctl-rot");
 const cartList = document.getElementById("cart-list");
 const cartTotal = document.getElementById("cart-total");
 
-// ---- 초기 렌더: 가방 선택지 ----
+// ---- 가방 선택지 렌더 ----
 const bagPicker = document.getElementById("bag-picker");
 BAGS.forEach((bag, i) => {
   const b = document.createElement("button");
   b.className = "bag-opt" + (i === 0 ? " active" : "");
-  b.textContent = bag.emoji;
   b.title = bag.label;
   b.type = "button";
+  if (bag.img) {
+    const im = document.createElement("img");
+    im.src = bag.img;
+    im.alt = bag.label;
+    im.onerror = () => { b.innerHTML = ""; b.textContent = bag.emoji; };
+    b.appendChild(im);
+  } else {
+    b.textContent = bag.emoji;
+  }
   b.addEventListener("click", () => selectBag(bag, b));
   bagPicker.appendChild(b);
 });
 
 function selectBag(bag, btnEl) {
   currentBag = bag;
-  bagImage = null;
-  bagLayer.style.backgroundImage = "";
-  bagLayer.textContent = bag.emoji;
   document.querySelectorAll(".bag-opt").forEach((x) => x.classList.remove("active"));
-  btnEl.classList.add("active");
+  if (btnEl) btnEl.classList.add("active");
+  applyBag(bag.img || null, bag.emoji);
 }
 
-// 가방 사진 업로드
+// 가방을 화면+export에 반영. url 있으면 사진, 실패 시 이모지 폴백.
+function applyBag(url, emoji) {
+  if (!url) {
+    bagImageEl = null;
+    bagLayer.style.backgroundImage = "";
+    bagLayer.textContent = emoji;
+    return;
+  }
+  const img = new Image();
+  img.crossOrigin = "anonymous";
+  img.onload = () => {
+    bagImageEl = img;
+    bagLayer.textContent = "";
+    bagLayer.style.backgroundImage = `url("${url}")`;
+  };
+  img.onerror = () => {           // 사진 실패 → 이모지로
+    bagImageEl = null;
+    bagLayer.style.backgroundImage = "";
+    bagLayer.textContent = emoji;
+  };
+  img.src = url;
+}
+
+// 가방 사진 업로드 (업로드 이미지는 same-origin → 저장도 안전)
 document.getElementById("bag-upload").addEventListener("change", (e) => {
   const file = e.target.files[0];
   if (!file) return;
   const reader = new FileReader();
   reader.onload = (ev) => {
-    bagImage = ev.target.result;
-    bagLayer.textContent = "";
-    bagLayer.style.backgroundImage = `url(${bagImage})`;
+    currentBag = { id: "upload", emoji: "👜", img: ev.target.result };
     document.querySelectorAll(".bag-opt").forEach((x) => x.classList.remove("active"));
+    applyBag(ev.target.result, "👜");
   };
   reader.readAsDataURL(file);
 });
 
-// ---- 초기 렌더: 아이템 팔레트 ----
+// ---- 키링 팔레트 렌더 ----
 const charmGrid = document.getElementById("charm-grid");
-CHARMS.forEach((charm) => {
+function addPaletteButton(charm, prepend) {
   const b = document.createElement("button");
   b.className = "charm-btn";
   b.type = "button";
-  b.innerHTML = `${charm.emoji}<span class="price-tag">${(charm.price / 1000)}천</span>`;
   b.title = `${charm.name} · ${formatWon(charm.price)}`;
+  if (charm.img) {
+    const im = document.createElement("img");
+    im.src = charm.img;
+    im.alt = charm.name;
+    im.onerror = () => { b.innerHTML = ""; b.textContent = charm.emoji; addPriceTag(b, charm); };
+    b.appendChild(im);
+  } else {
+    b.textContent = charm.emoji;
+  }
+  addPriceTag(b, charm);
   b.addEventListener("click", () => addCharm(charm));
-  charmGrid.appendChild(b);
+  if (prepend && charmGrid.firstChild) charmGrid.insertBefore(b, charmGrid.firstChild);
+  else charmGrid.appendChild(b);
+}
+function addPriceTag(b, charm) {
+  const tag = document.createElement("span");
+  tag.className = "price-tag";
+  tag.textContent = charm.price >= 1000 ? charm.price / 1000 + "천" : charm.price;
+  b.appendChild(tag);
+}
+CHARMS.forEach((c) => addPaletteButton(c, false));
+
+// 키링 사진 업로드 → 팔레트에 추가하고 바로 캔버스에 올림
+document.getElementById("charm-upload").addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const charm = { name: "내 키링", price: 0, emoji: "📷", img: ev.target.result };
+    addPaletteButton(charm, true);
+    addCharm(charm);
+  };
+  reader.readAsDataURL(file);
 });
 
 // ---- 아이템 추가 ----
 function addCharm(charm, x = 0.5, y = 0.45) {
   const item = {
     id: nextId++,
-    emoji: charm.emoji,
     name: charm.name,
     price: charm.price,
-    x, y,
-    size: 48,
-    rot: rand(-15, 15),
+    emoji: charm.emoji,
+    src: charm.img || null,
+    size: 70,
+    rot: rand(-12, 12),
+    x: clamp(x + rand(-0.12, 0.12), 0.1, 0.9),
+    y: clamp(y + rand(-0.12, 0.12), 0.1, 0.9),
   };
-  // 겹치지 않게 살짝 흩뿌리기
-  item.x = clamp(x + rand(-0.12, 0.12), 0.1, 0.9);
-  item.y = clamp(y + rand(-0.12, 0.12), 0.1, 0.9);
   placed.push(item);
   renderCharm(item);
   selectCharm(item.id);
@@ -119,15 +183,27 @@ function addCharm(charm, x = 0.5, y = 0.45) {
 function renderCharm(item) {
   const el = document.createElement("div");
   el.className = "charm";
-  el.textContent = item.emoji;
+  if (item.src) {
+    const img = document.createElement("img");
+    img.crossOrigin = "anonymous";
+    img.src = item.src;
+    img.alt = item.name;
+    img.onerror = () => {          // 사진 실패 → 이모지로 폴백
+      item.src = null;
+      item.imgEl = null;
+      el.innerHTML = "";
+      el.textContent = item.emoji;
+    };
+    el.appendChild(img);
+    item.imgEl = img;
+  } else {
+    el.textContent = item.emoji;
+  }
   item.el = el;
   applyTransform(item);
   charmLayer.appendChild(el);
   makeDraggable(item);
-  el.addEventListener("pointerdown", (e) => {
-    e.stopPropagation();
-    selectCharm(item.id);
-  });
+  el.addEventListener("pointerdown", (e) => { e.stopPropagation(); selectCharm(item.id); });
 }
 
 function applyTransform(item) {
@@ -191,7 +267,7 @@ ctlRot.addEventListener("input", () => {
 document.getElementById("ctl-front").addEventListener("click", () => {
   const item = placed.find((p) => p.id === selectedId);
   if (!item) return;
-  charmLayer.appendChild(item.el); // 맨 뒤 = DOM상 마지막 = 맨 앞
+  charmLayer.appendChild(item.el);
   placed = placed.filter((p) => p.id !== item.id).concat(item);
 });
 document.getElementById("ctl-del").addEventListener("click", () => {
@@ -213,7 +289,6 @@ function updateCart() {
     cartTotal.textContent = "0원";
     return;
   }
-  // 같은 아이템 수량 묶기
   const groups = {};
   placed.forEach((p) => {
     if (!groups[p.name]) groups[p.name] = { ...p, qty: 0 };
@@ -224,10 +299,13 @@ function updateCart() {
     total += g.price * g.qty;
     const li = document.createElement("li");
     li.className = "cart-item";
+    const thumb = g.src
+      ? `<img class="ci-emoji" src="${g.src}" alt="" style="width:24px;height:24px;border-radius:6px;object-fit:cover;">`
+      : `<span class="ci-emoji">${g.emoji}</span>`;
     li.innerHTML =
-      `<span class="ci-emoji">${g.emoji}</span>` +
+      thumb +
       `<span class="ci-name">${g.name} ×${g.qty}</span>` +
-      `<span class="ci-price">${formatWon(g.price * g.qty)}</span>`;
+      `<span class="ci-price">${g.price ? formatWon(g.price * g.qty) : "내 사진"}</span>`;
     cartList.appendChild(li);
   });
   cartTotal.textContent = formatWon(total);
@@ -250,7 +328,7 @@ document.getElementById("btn-reset").addEventListener("click", () => {
   updateCart();
 });
 
-// ---- 이미지로 저장 (PNG 다운로드) ----
+// ---- 이미지로 저장 (PNG) ----
 document.getElementById("btn-save").addEventListener("click", () => {
   const r = stage.getBoundingClientRect();
   const scale = 2;
@@ -259,7 +337,6 @@ document.getElementById("btn-save").addEventListener("click", () => {
   canvas.height = r.height * scale;
   const ctx = canvas.getContext("2d");
 
-  // 배경
   const grad = ctx.createRadialGradient(
     canvas.width / 2, canvas.height * 0.38, 10,
     canvas.width / 2, canvas.height * 0.38, canvas.width
@@ -270,56 +347,73 @@ document.getElementById("btn-save").addEventListener("click", () => {
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  const drawCharms = () => {
-    placed.forEach((p) => {
-      ctx.save();
-      ctx.translate(p.x * canvas.width, p.y * canvas.height);
-      ctx.rotate((p.rot * Math.PI) / 180);
-      ctx.font = `${p.size * scale}px sans-serif`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(p.emoji, 0, 0);
-      ctx.restore();
-    });
-    triggerDownload(canvas);
-  };
-
-  if (bagImage) {
-    const img = new Image();
-    img.onload = () => {
-      // cover 방식으로 배경 채우기
-      const ar = img.width / img.height;
-      const car = canvas.width / canvas.height;
-      let dw, dh;
-      if (ar > car) { dh = canvas.height; dw = dh * ar; }
-      else { dw = canvas.width; dh = dw / ar; }
-      ctx.drawImage(img, (canvas.width - dw) / 2, (canvas.height - dh) / 2, dw, dh);
-      drawCharms();
-    };
-    img.src = bagImage;
+  // 가방
+  if (bagImageEl && bagImageEl.complete && bagImageEl.naturalWidth) {
+    drawCover(ctx, bagImageEl, canvas.width, canvas.height);
   } else {
     ctx.font = `${230 * scale}px sans-serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(currentBag.emoji, canvas.width / 2, canvas.height / 2);
-    drawCharms();
+  }
+
+  // 키링들
+  placed.forEach((p) => {
+    ctx.save();
+    ctx.translate(p.x * canvas.width, p.y * canvas.height);
+    ctx.rotate((p.rot * Math.PI) / 180);
+    const useImg = p.src && p.imgEl && p.imgEl.complete && p.imgEl.naturalWidth;
+    if (useImg) {
+      const s = p.size * scale;
+      ctx.beginPath();
+      roundRect(ctx, -s / 2, -s / 2, s, s, s * 0.18);
+      ctx.clip();
+      ctx.drawImage(p.imgEl, -s / 2, -s / 2, s, s);
+    } else {
+      ctx.font = `${p.size * scale}px sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(p.emoji, 0, 0);
+    }
+    ctx.restore();
+  });
+
+  // 저장 (외부 사진이 섞이면 보안상 막힐 수 있음 → 안내)
+  try {
+    const link = document.createElement("a");
+    link.download = `내백꾸_${Date.now()}.png`;
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+  } catch (err) {
+    alert(
+      "외부에서 불러온 사진이 포함되어 브라우저 보안상 저장이 제한됐어요. 😢\n" +
+      "‘내 키링 사진 올리기 / 내 가방 사진 올리기’로 올린 사진만으로 꾸미면 저장이 됩니다."
+    );
   }
 });
 
-function triggerDownload(canvas) {
-  const link = document.createElement("a");
-  link.download = `내백꾸_${Date.now()}.png`;
-  link.href = canvas.toDataURL("image/png");
-  link.click();
+function drawCover(ctx, img, W, H) {
+  const ar = img.naturalWidth / img.naturalHeight;
+  const car = W / H;
+  let dw, dh;
+  if (ar > car) { dh = H; dw = dh * ar; } else { dw = W; dh = dw / ar; }
+  ctx.drawImage(img, (W - dw) / 2, (H - dh) / 2, dw, dh);
+}
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
 }
 
-// ---- 창 크기 변경 시 위치 재계산 ----
+// ---- 기타 ----
 window.addEventListener("resize", () => placed.forEach(applyTransform));
-
-// ---- 유틸 ----
 function formatWon(n) { return n.toLocaleString("ko-KR") + "원"; }
 function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 function rand(a, b) { return a + Math.random() * (b - a); }
 
-// 초기 상태
+// 초기 가방(사진) 적용 + 빈 장바구니
+applyBag(currentBag.img, currentBag.emoji);
 updateCart();
