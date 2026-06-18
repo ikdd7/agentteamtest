@@ -77,6 +77,7 @@ BAGS.forEach((bag, i) => {
   b.className = "bag-opt" + (i === 0 ? " active" : "");
   b.title = bag.label;
   b.type = "button";
+  b.dataset.bagId = bag.id;
   if (bag.img) {
     const im = document.createElement("img");
     im.src = bag.img;
@@ -95,6 +96,11 @@ function selectBag(bag, btnEl) {
   document.querySelectorAll(".bag-opt").forEach((x) => x.classList.remove("active"));
   if (btnEl) btnEl.classList.add("active");
   applyBag(bag.img || null, bag.emoji);
+}
+
+function selectBagById(id) {
+  const bag = BAGS.find((b) => b.id === id) || BAGS[0];
+  selectBag(bag, bagPicker.querySelector(`[data-bag-id="${bag.id}"]`));
 }
 
 // 가방을 화면+export에 반영. url 있으면 그림/사진, 실패 시 이모지 폴백.
@@ -183,7 +189,8 @@ document.getElementById("charm-upload").addEventListener("change", (e) => {
 });
 
 // ---- 아이템 추가 ----
-function addCharm(charm, x = 0.5, y = 0.45) {
+// 정확한 위치/크기로 아이템 생성 (룩 불러오기에 사용)
+function spawnCharm(charm, x, y, size, rot) {
   const item = {
     id: nextId++,
     name: charm.name,
@@ -191,16 +198,25 @@ function addCharm(charm, x = 0.5, y = 0.45) {
     emoji: charm.emoji,
     src: charm.img || null,
     meta: charm,
-    size: 70,
-    rot: rand(-12, 12),
-    x: clamp(x + rand(-0.12, 0.12), 0.1, 0.9),
-    y: clamp(y + rand(-0.12, 0.12), 0.1, 0.9),
+    size, rot, x, y,
   };
   placed.push(item);
   renderCharm(item);
-  selectCharm(item.id);
   updateCart();
   emptyTip.style.display = "none";
+  return item;
+}
+
+// 팔레트에서 추가 (위치/회전 살짝 랜덤)
+function addCharm(charm, x = 0.5, y = 0.45) {
+  const item = spawnCharm(
+    charm,
+    clamp(x + rand(-0.12, 0.12), 0.1, 0.9),
+    clamp(y + rand(-0.12, 0.12), 0.1, 0.9),
+    70,
+    rand(-12, 12)
+  );
+  selectCharm(item.id);
 }
 
 function renderCharm(item) {
@@ -420,14 +436,18 @@ document.getElementById("btn-copy").addEventListener("click", async () => {
 });
 
 // ---- 초기화 ----
-document.getElementById("btn-reset").addEventListener("click", () => {
-  if (placed.length && !confirm("꾸민 내용을 모두 지울까요?")) return;
+function clearPlaced() {
   placed.forEach((p) => p.el.remove());
   placed = [];
   selectedId = null;
   toolDock.hidden = true;
   emptyTip.style.display = "";
   updateCart();
+}
+
+document.getElementById("btn-reset").addEventListener("click", () => {
+  if (placed.length && !confirm("꾸민 내용을 모두 지울까요?")) return;
+  clearPlaced();
 });
 
 // ---- 이미지로 저장 (PNG) ----
@@ -516,6 +536,148 @@ function formatWon(n) { return n.toLocaleString("ko-KR") + "원"; }
 function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 function rand(a, b) { return a + Math.random() * (b - a); }
 
-// 초기 가방(사진) 적용 + 빈 장바구니
+// ---- 둘러보기(갤러리) ----
+// 다른 사람들이 꾸민 백꾸 예시. items 좌표는 0~1, size는 460px 스테이지 기준 px.
+let LOOKS = [
+  { id: 1, author: "민지 🐰", likes: 248, bag: "tote", items: [
+    { name: "곰돌이 인형 키링", x: 0.62, y: 0.36, size: 112, rot: -8 },
+    { name: "리본 참", x: 0.40, y: 0.30, size: 72, rot: 10 },
+    { name: "하트 키링", x: 0.50, y: 0.56, size: 60, rot: 0 } ] },
+  { id: 2, author: "하루", likes: 173, bag: "back", items: [
+    { name: "토끼 인형 키링", x: 0.50, y: 0.40, size: 110, rot: 4 },
+    { name: "별 키링", x: 0.66, y: 0.30, size: 58, rot: 12 },
+    { name: "꽃 참", x: 0.36, y: 0.50, size: 60, rot: -6 } ] },
+  { id: 3, author: "soyeon", likes: 421, bag: "pouch", items: [
+    { name: "리본 참", x: 0.50, y: 0.42, size: 92, rot: 0 },
+    { name: "체리 참", x: 0.66, y: 0.55, size: 60, rot: 8 },
+    { name: "딸기 참", x: 0.35, y: 0.55, size: 58, rot: -10 } ] },
+  { id: 4, author: "코코 🤎", likes: 96, bag: "tote", items: [
+    { name: "나비 참", x: 0.45, y: 0.32, size: 82, rot: -10 },
+    { name: "나비 참", x: 0.60, y: 0.46, size: 60, rot: 15 },
+    { name: "무지개 참", x: 0.40, y: 0.60, size: 70, rot: 0 } ] },
+  { id: 5, author: "지우 ✨", likes: 312, bag: "back", items: [
+    { name: "곰돌이 인형 키링", x: 0.50, y: 0.38, size: 100, rot: 0 },
+    { name: "별 키링", x: 0.35, y: 0.34, size: 50, rot: -12 },
+    { name: "별 키링", x: 0.66, y: 0.34, size: 50, rot: 12 },
+    { name: "하트 키링", x: 0.50, y: 0.60, size: 60, rot: 0 } ] },
+  { id: 6, author: "rin", likes: 154, bag: "pouch", items: [
+    { name: "꽃 참", x: 0.42, y: 0.40, size: 72, rot: -8 },
+    { name: "꽃 참", x: 0.58, y: 0.46, size: 60, rot: 8 },
+    { name: "리본 참", x: 0.50, y: 0.60, size: 60, rot: 0 } ] },
+];
+
+const viewEditor = document.getElementById("view-editor");
+const viewGallery = document.getElementById("view-gallery");
+const galleryGrid = document.getElementById("gallery-grid");
+
+function showGallery() { renderGallery(); viewEditor.hidden = true; viewGallery.hidden = false; window.scrollTo(0, 0); }
+function showEditor() { viewGallery.hidden = true; viewEditor.hidden = false; }
+document.getElementById("btn-gallery").addEventListener("click", showGallery);
+document.getElementById("btn-back-editor").addEventListener("click", showEditor);
+
+function renderGallery() {
+  galleryGrid.innerHTML = "";
+  LOOKS.forEach((look) => galleryGrid.appendChild(buildLookCard(look)));
+}
+
+function buildLookCard(look) {
+  const card = document.createElement("article");
+  card.className = "look-card";
+
+  // 미리보기 썸네일 (가방 + 키링 배치)
+  const thumb = document.createElement("div");
+  thumb.className = "look-thumb";
+  const bag = BAGS.find((b) => b.id === look.bag) || BAGS[0];
+  if (look.bagImg) thumb.style.backgroundImage = `url("${look.bagImg}")`;
+  else if (bag.img) thumb.style.backgroundImage = `url("${bag.img}")`;
+  else thumb.innerHTML = `<span class="look-bag-emoji">${bag.emoji}</span>`;
+  look.items.forEach((it) => {
+    const m = metaByName[it.name];
+    if (!m) return;
+    const c = document.createElement(m.img ? "img" : "span");
+    c.className = "look-charm";
+    if (m.img) c.src = m.img; else c.textContent = m.emoji;
+    c.style.left = it.x * 100 + "%";
+    c.style.top = it.y * 100 + "%";
+    c.style.width = (it.size / 460 * 100) + "%";
+    c.style.transform = `translate(-50%,-50%) rotate(${it.rot || 0}deg)`;
+    thumb.appendChild(c);
+  });
+  card.appendChild(thumb);
+
+  // 작성자 · 좋아요
+  const info = document.createElement("div");
+  info.className = "look-info";
+  info.innerHTML = `<span class="look-author">${look.author}</span>`;
+  const like = document.createElement("button");
+  like.className = "look-like";
+  like.type = "button";
+  like.innerHTML = `♡ <b>${look.likes}</b>`;
+  like.addEventListener("click", () => {
+    look.likes++; look._liked = !look._liked;
+    like.innerHTML = `${look._liked ? "❤" : "♡"} <b>${look.likes}</b>`;
+    like.classList.toggle("liked", look._liked);
+  });
+  info.appendChild(like);
+  card.appendChild(info);
+
+  // 쓰인 아이템 칩 (탭하면 상세/구매)
+  const items = document.createElement("div");
+  items.className = "look-items";
+  [...new Set(look.items.map((i) => i.name))].forEach((name) => {
+    const m = metaByName[name];
+    if (!m) return;
+    const chip = document.createElement("button");
+    chip.className = "look-chip";
+    chip.type = "button";
+    chip.title = m.name + " 정보";
+    chip.innerHTML = m.img ? `<img src="${m.img}" alt="">` : m.emoji;
+    chip.addEventListener("click", () => openDetail(m));
+    items.appendChild(chip);
+  });
+  card.appendChild(items);
+
+  // 따라 꾸미기
+  const follow = document.createElement("button");
+  follow.className = "btn btn-primary btn-block look-follow";
+  follow.type = "button";
+  follow.textContent = "🎨 따라 꾸미기";
+  follow.addEventListener("click", () => loadLook(look));
+  card.appendChild(follow);
+
+  return card;
+}
+
+function loadLook(look) {
+  showEditor();
+  clearPlaced();
+  if (look.bagImg) { currentBag = { id: "shared", emoji: "👜", img: look.bagImg };
+    document.querySelectorAll(".bag-opt").forEach((x) => x.classList.remove("active"));
+    applyBag(look.bagImg, "👜", "contain"); }
+  else selectBagById(look.bag);
+  look.items.forEach((it) => {
+    const m = metaByName[it.name];
+    if (m) spawnCharm(m, it.x, it.y, it.size, it.rot || 0);
+  });
+}
+
+// 내 백꾸를 갤러리에 올리기
+document.getElementById("btn-share-look").addEventListener("click", () => {
+  if (placed.length === 0) { showEditor(); return alert("먼저 가방을 꾸민 뒤 올려보세요! ✨"); }
+  const look = {
+    id: Date.now(),
+    author: "나 🩷",
+    likes: 0,
+    bag: BAGS.find((b) => b.id === currentBag.id) ? currentBag.id : "tote",
+    bagImg: currentBag.img && !BAGS.find((b) => b.id === currentBag.id) ? currentBag.img : null,
+    items: placed.map((p) => ({ name: p.name, x: p.x, y: p.y, size: p.size, rot: p.rot })),
+  };
+  LOOKS.unshift(look);
+  renderGallery();
+  showGallery();
+  alert("내 백꾸를 둘러보기에 올렸어요! 🎉");
+});
+
+// 초기 가방 적용 + 빈 리스트
 applyBag(currentBag.img, currentBag.emoji);
 updateCart();

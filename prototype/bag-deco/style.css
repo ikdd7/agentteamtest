@@ -340,3 +340,59 @@ body {
 .detail-actions .btn { flex: 1; }
 .detail-note { margin: 10px 0 0; font-size: 11px; color: var(--ink-soft); text-align: center; }
 .cart-item { cursor: pointer; }
+
+/* ---------- 둘러보기 갤러리 ---------- */
+.gallery { max-width: 1100px; margin: 0 auto; padding: 18px 16px 40px; }
+.gallery-head {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap; margin-bottom: 18px;
+}
+.gallery-head h2 { margin: 0; font-size: 20px; }
+.gallery-actions { display: flex; gap: 8px; }
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 16px;
+}
+.look-card {
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 12px;
+  box-shadow: var(--shadow);
+  display: flex; flex-direction: column; gap: 10px;
+}
+.look-thumb {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  border-radius: 14px;
+  background: radial-gradient(circle at 50% 38%, #ffffff 0%, #fde9f4 70%, #f6e4ff 100%);
+  background-size: 72% auto;
+  background-repeat: no-repeat;
+  background-position: center;
+  overflow: hidden;
+}
+.look-bag-emoji { position: absolute; inset: 0; display: grid; place-items: center; font-size: 120px; }
+.look-charm {
+  position: absolute;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.28));
+  pointer-events: none;
+}
+span.look-charm { font-size: 32px; line-height: 1; }
+.look-info { display: flex; align-items: center; justify-content: space-between; }
+.look-author { font-size: 14px; font-weight: 700; }
+.look-like {
+  border: none; background: #f6eef6; color: var(--ink-soft);
+  border-radius: 999px; padding: 5px 11px; font-size: 13px; cursor: pointer;
+}
+.look-like.liked { color: var(--danger); background: #fff0f2; }
+.look-items { display: flex; gap: 6px; flex-wrap: wrap; }
+.look-chip {
+  width: 34px; height: 34px; border: 1px solid var(--line); background: #fff;
+  border-radius: 10px; cursor: pointer; display: grid; place-items: center;
+  font-size: 18px; padding: 3px;
+}
+.look-chip img { width: 100%; height: 100%; object-fit: contain; }
+.look-chip:hover { border-color: var(--pink); }
+.look-follow { margin-top: 2px; }

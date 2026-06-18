@@ -16,12 +16,13 @@
       </div>
     </div>
     <div class="topbar-actions">
+      <button id="btn-gallery" class="btn btn-ghost" type="button">✨ 둘러보기</button>
       <button id="btn-reset" class="btn btn-ghost" type="button">↺ 초기화</button>
       <button id="btn-save" class="btn btn-primary" type="button">📸 이미지 저장</button>
     </div>
   </header>
 
-  <main class="layout">
+  <main class="layout" id="view-editor">
     <!-- 좌측: 아이템 팔레트 -->
     <section class="panel palette" aria-label="아이템 팔레트">
       <div class="panel-head">
@@ -85,6 +86,21 @@
       </div>
     </aside>
   </main>
+
+  <!-- 둘러보기: 다른 사람들이 꾸민 백꾸 피드 -->
+  <section class="gallery" id="view-gallery" hidden>
+    <div class="gallery-head">
+      <div>
+        <h2>✨ 다른 사람들의 백꾸 구경하기</h2>
+        <p class="hint">마음에 들면 「따라 꾸미기」로 불러오거나, 아이템을 바로 사러 갈 수 있어요</p>
+      </div>
+      <div class="gallery-actions">
+        <button id="btn-share-look" class="btn btn-ghost" type="button">＋ 내 백꾸 올리기</button>
+        <button id="btn-back-editor" class="btn btn-primary" type="button">🎨 꾸미러 가기</button>
+      </div>
+    </div>
+    <div class="gallery-grid" id="gallery-grid"></div>
+  </section>
 
   <!-- 아이템 상세 정보 카드 (오늘의집형) -->
   <div class="detail-backdrop" id="detail-card" hidden>
