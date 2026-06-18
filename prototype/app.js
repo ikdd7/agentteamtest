@@ -249,3 +249,5 @@ function wrapText(ctx,text,cx,y,maxW,lh){
 // ---------- 초기화 ----------
 renderCandy();
 go('home');
+
+/* redeploy trigger */
