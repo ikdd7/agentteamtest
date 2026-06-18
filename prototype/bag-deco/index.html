@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>백꾸 스튜디오 — 가방 꾸미기 프로토타입</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">🎀</span>
+      <div>
+        <h1>백꾸 스튜디오</h1>
+        <p class="tagline">달아보고 · 마음에 들면 · 바로 담기</p>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <button id="btn-reset" class="btn btn-ghost" type="button">↺ 초기화</button>
+      <button id="btn-save" class="btn btn-primary" type="button">📸 이미지 저장</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <!-- 좌측: 아이템 팔레트 -->
+    <section class="panel palette" aria-label="아이템 팔레트">
+      <div class="panel-head">
+        <h2>가방 고르기</h2>
+      </div>
+      <div class="bag-picker" id="bag-picker"></div>
+      <label class="upload">
+        <input type="file" id="bag-upload" accept="image/*" hidden />
+        <span>＋ 내 가방 사진 올리기</span>
+      </label>
+
+      <div class="panel-head">
+        <h2>키링 · 참 · 스티커</h2>
+        <p class="hint">탭하거나 캔버스로 끌어다 놓으세요</p>
+      </div>
+      <div class="charm-grid" id="charm-grid"></div>
+    </section>
+
+    <!-- 중앙: 꾸미기 캔버스 -->
+    <section class="stage-wrap">
+      <div class="stage" id="stage">
+        <div class="bag-layer" id="bag-layer" aria-hidden="true">👜</div>
+        <div class="charm-layer" id="charm-layer"></div>
+        <p class="empty-tip" id="empty-tip">아이템을 탭해서 가방을 꾸며보세요 ✨</p>
+      </div>
+
+      <!-- 선택된 아이템 조작 바 -->
+      <div class="tool-dock" id="tool-dock" hidden>
+        <span class="tool-label" id="tool-label">아이템</span>
+        <label class="slider">크기
+          <input type="range" id="ctl-size" min="40" max="180" value="80" />
+        </label>
+        <label class="slider">회전
+          <input type="range" id="ctl-rot" min="-180" max="180" value="0" />
+        </label>
+        <button id="ctl-front" class="btn btn-ghost btn-sm" type="button">맨 앞으로</button>
+        <button id="ctl-del" class="btn btn-danger btn-sm" type="button">🗑 삭제</button>
+      </div>
+    </section>
+
+    <!-- 우측: 장바구니 -->
+    <aside class="panel cart" aria-label="장바구니">
+      <div class="panel-head">
+        <h2>내 백꾸 장바구니</h2>
+      </div>
+      <ul class="cart-list" id="cart-list"></ul>
+      <div class="cart-foot">
+        <div class="cart-total">
+          <span>합계</span>
+          <strong id="cart-total">0원</strong>
+        </div>
+        <button class="btn btn-primary btn-block" id="btn-buy" type="button">이 조합 그대로 구매하기</button>
+        <p class="demo-note">* 프로토타입 데모 — 실제 결제는 일어나지 않습니다</p>
+      </div>
+    </aside>
+  </main>
+
+  <canvas id="export-canvas" hidden></canvas>
+  <script src="app.js"></script>
+</body>
+</html>
