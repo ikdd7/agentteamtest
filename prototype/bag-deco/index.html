@@ -62,6 +62,7 @@
           <input type="range" id="ctl-rot" min="-180" max="180" value="0" />
         </label>
         <button id="ctl-front" class="btn btn-ghost btn-sm" type="button">맨 앞으로</button>
+        <button id="ctl-info" class="btn btn-ghost btn-sm" type="button">ℹ️ 상세</button>
         <button id="ctl-buy" class="btn btn-primary btn-sm" type="button">🛒 사러 가기</button>
         <button id="ctl-del" class="btn btn-danger btn-sm" type="button">🗑 삭제</button>
       </div>
@@ -84,6 +85,28 @@
       </div>
     </aside>
   </main>
+
+  <!-- 아이템 상세 정보 카드 (오늘의집형) -->
+  <div class="detail-backdrop" id="detail-card" hidden>
+    <div class="detail" role="dialog" aria-modal="true">
+      <button class="detail-close" id="detail-close" type="button" aria-label="닫기">✕</button>
+      <div class="detail-top">
+        <div class="detail-thumb" id="detail-thumb"></div>
+        <div class="detail-meta">
+          <span class="detail-brand" id="detail-brand"></span>
+          <h3 class="detail-name" id="detail-name"></h3>
+          <p class="detail-price" id="detail-price"></p>
+        </div>
+      </div>
+      <div class="detail-chips" id="detail-chips"></div>
+      <p class="detail-desc" id="detail-desc"></p>
+      <div class="detail-actions">
+        <button class="btn btn-ghost" id="detail-add" type="button">＋ 가방에 올리기</button>
+        <button class="btn btn-primary" id="detail-buy" type="button">🛒 사러 가기 →</button>
+      </div>
+      <p class="detail-note">판매처(네이버쇼핑)로 이동합니다 · 제휴 트래픽 데모</p>
+    </div>
+  </div>
 
   <canvas id="export-canvas" hidden></canvas>
   <script src="app.js"></script>

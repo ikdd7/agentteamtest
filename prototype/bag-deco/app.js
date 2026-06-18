@@ -11,24 +11,49 @@ const BAGS = [
   { id: "pouch", emoji: "👝", label: "파우치", img: "assets/bag-pouch.svg" },
 ];
 
-// ---- 데이터: 키링/참 (벡터 일러스트 + 이모지 폴백) ----
+// ---- 데이터: 키링/참 (일러스트 + 상세 정보) ----
 const CHARMS = [
-  { name: "곰돌이 키링", price: 12000, emoji: "🧸", img: "assets/bear.svg" },
-  { name: "토끼 키링", price: 9000, emoji: "🐰", img: "assets/bunny.svg" },
-  { name: "리본 참", price: 5000, emoji: "🎀", img: "assets/ribbon.svg" },
-  { name: "별 키링", price: 3000, emoji: "⭐", img: "assets/star.svg" },
-  { name: "하트 키링", price: 4000, emoji: "💖", img: "assets/heart.svg" },
-  { name: "꽃 참", price: 2000, emoji: "🌸", img: "assets/flower.svg" },
-  { name: "딸기 참", price: 3500, emoji: "🍓", img: "assets/strawberry.svg" },
-  { name: "나비 참", price: 4500, emoji: "🦋", img: "assets/butterfly.svg" },
-  { name: "체리 참", price: 3000, emoji: "🍒", img: "assets/cherry.svg" },
-  { name: "무지개 참", price: 3000, emoji: "🌈", img: "assets/rainbow.svg" },
+  { name: "곰돌이 인형 키링", price: 12000, priceMax: 19000, emoji: "🧸", img: "assets/bear.svg",
+    brand: "마뗑킴 스타일", material: "퍼/아크릴", tags: ["인형", "베스트"],
+    desc: "복슬복슬 곰돌이 인형 키링. 가방 한쪽에 큼직하게 달면 포인트가 확 살아요." },
+  { name: "토끼 인형 키링", price: 9000, priceMax: 16000, emoji: "🐰", img: "assets/bunny.svg",
+    brand: "마리떼 무드", material: "벨보아", tags: ["인형", "파스텔"],
+    desc: "말랑한 토끼 인형 참. 연한 톤이라 어떤 색 가방과도 잘 어울립니다." },
+  { name: "리본 참", price: 5000, priceMax: 9000, emoji: "🎀", img: "assets/ribbon.svg",
+    brand: "코퀘트", material: "새틴 리본", tags: ["코퀘트", "러블리"],
+    desc: "요즘 대세 리본 참. 핸들에 묶으면 단정하면서도 사랑스러운 무드." },
+  { name: "별 키링", price: 3000, priceMax: 7000, emoji: "⭐", img: "assets/star.svg",
+    brand: "데일리참", material: "아크릴", tags: ["베이직"],
+    desc: "어디에나 무난한 별 참. 작은 포인트로 하나씩 더하기 좋아요." },
+  { name: "하트 키링", price: 4000, priceMax: 8000, emoji: "💖", img: "assets/heart.svg",
+    brand: "Y2K 무드", material: "에폭시", tags: ["Y2K", "글로시"],
+    desc: "반짝이는 하트 키링. 키치한 Y2K 백꾸의 단골 아이템." },
+  { name: "꽃 참", price: 2000, priceMax: 6000, emoji: "🌸", img: "assets/flower.svg",
+    brand: "블룸", material: "아크릴", tags: ["봄", "데일리"],
+    desc: "은은한 플라워 참. 여러 개 흩뿌리면 화사한 느낌이 납니다." },
+  { name: "딸기 참", price: 3500, priceMax: 7000, emoji: "🍓", img: "assets/strawberry.svg",
+    brand: "프룻클럽", material: "에폭시", tags: ["프루티", "키치"],
+    desc: "달콤한 딸기 참. 과일 참끼리 모아 달면 톡톡 튀는 백꾸 완성." },
+  { name: "나비 참", price: 4500, priceMax: 9000, emoji: "🦋", img: "assets/butterfly.svg",
+    brand: "에어리", material: "메탈/아크릴", tags: ["시어", "트렌드"],
+    desc: "살랑이는 나비 참. 시스루 윙이 고급스러운 포인트를 줍니다." },
+  { name: "체리 참", price: 3000, priceMax: 6500, emoji: "🍒", img: "assets/cherry.svg",
+    brand: "프룻클럽", material: "에폭시", tags: ["프루티", "레드"],
+    desc: "쨍한 체리 참. 한 알만 달아도 시선을 끄는 강한 포인트." },
+  { name: "무지개 참", price: 3000, priceMax: 7000, emoji: "🌈", img: "assets/rainbow.svg",
+    brand: "큐트랩", material: "아크릴", tags: ["레인보우", "키즈"],
+    desc: "알록달록 무지개 참. 발랄하고 캐주얼한 가방에 잘 어울려요." },
 ];
+
+// 이름 → 상세정보 매핑 (업로드 키링도 등록됨)
+const metaByName = {};
+CHARMS.forEach((c) => { metaByName[c.name] = c; });
 
 // ---- 상태 ----
 let placed = [];          // {id, name, price, emoji, src, el, imgEl, x, y, size, rot}
 let selectedId = null;
 let nextId = 1;
+let uploadCount = 0;
 let currentBag = BAGS[0];
 let bagImageEl = null;    // 가방 export용 로드된 Image (없으면 이모지)
 let bagFit = "contain";   // 일러스트는 contain, 업로드 사진은 cover
@@ -144,7 +169,13 @@ document.getElementById("charm-upload").addEventListener("change", (e) => {
   if (!file) return;
   const reader = new FileReader();
   reader.onload = (ev) => {
-    const charm = { name: "내 키링", price: 0, emoji: "📷", img: ev.target.result };
+    const charm = {
+      name: "내 키링 " + (++uploadCount),
+      price: 0, emoji: "📷", img: ev.target.result,
+      brand: "내 사진", material: "직접 업로드",
+      desc: "내가 올린 키링 사진이에요. 판매처에서 비슷한 상품을 찾아볼 수 있어요.",
+    };
+    metaByName[charm.name] = charm;
     addPaletteButton(charm, true);
     addCharm(charm);
   };
@@ -159,6 +190,7 @@ function addCharm(charm, x = 0.5, y = 0.45) {
     price: charm.price,
     emoji: charm.emoji,
     src: charm.img || null,
+    meta: charm,
     size: 70,
     rot: rand(-12, 12),
     x: clamp(x + rand(-0.12, 0.12), 0.1, 0.9),
@@ -302,6 +334,7 @@ function updateCart() {
     total += g.price * g.qty;
     const li = document.createElement("li");
     li.className = "cart-item";
+    li.dataset.detail = g.name;
     const thumb = g.src
       ? `<img class="ci-emoji" src="${g.src}" alt="" style="width:26px;height:26px;object-fit:contain;">`
       : `<span class="ci-emoji">${g.emoji}</span>`;
@@ -309,7 +342,7 @@ function updateCart() {
       thumb +
       `<div class="ci-info">` +
         `<span class="ci-name">${g.name} ×${g.qty}</span>` +
-        `<span class="ci-price">${g.price ? formatWon(g.price) + " 부터" : "가격대 다양"}</span>` +
+        `<span class="ci-price">${g.brand ? g.brand + " · " : ""}${g.price ? formatWon(g.price) + " 부터" : "가격대 다양"}</span>` +
       `</div>` +
       `<button class="ci-buy" type="button" data-buy="${g.name}">사러 가기 →</button>`;
     cartList.appendChild(li);
@@ -317,16 +350,57 @@ function updateCart() {
   cartTotal.textContent = formatWon(total);
 }
 
-// 리스트의 '사러 가기' 클릭 → 판매처로 이동(아웃바운드 집계)
+// 리스트: '사러 가기'=아웃바운드, 그 외 행 클릭=상세 카드
 cartList.addEventListener("click", (e) => {
   const btn = e.target.closest("[data-buy]");
-  if (btn) goShop(btn.getAttribute("data-buy"));
+  if (btn) { goShop(btn.getAttribute("data-buy")); return; }
+  const row = e.target.closest("[data-detail]");
+  if (row) openDetail(metaByName[row.getAttribute("data-detail")]);
 });
 
-// 선택된 아이템 '사러 가기'
+// 선택된 아이템 '사러 가기' / '상세'
 document.getElementById("ctl-buy").addEventListener("click", () => {
   const item = placed.find((p) => p.id === selectedId);
   if (item) goShop(item.name);
+});
+document.getElementById("ctl-info").addEventListener("click", () => {
+  const item = placed.find((p) => p.id === selectedId);
+  if (item) openDetail(item.meta);
+});
+
+// ---- 아이템 상세 카드 ----
+const dCard = document.getElementById("detail-card");
+function openDetail(charm) {
+  if (!charm) return;
+  document.getElementById("detail-name").textContent = charm.name;
+  document.getElementById("detail-brand").textContent = charm.brand || "셀렉트";
+  document.getElementById("detail-price").textContent = charm.price
+    ? (charm.priceMax ? `${formatWon(charm.price)} ~ ${formatWon(charm.priceMax)}` : `${formatWon(charm.price)}~`)
+    : "가격대 다양";
+  document.getElementById("detail-desc").textContent = charm.desc || "";
+  const thumb = document.getElementById("detail-thumb");
+  thumb.innerHTML = charm.img
+    ? `<img src="${charm.img}" alt="${charm.name}">`
+    : `<span>${charm.emoji || "🧷"}</span>`;
+  const chips = document.getElementById("detail-chips");
+  chips.innerHTML = "";
+  (charm.tags || []).concat(charm.material ? [charm.material] : []).forEach((t) => {
+    const s = document.createElement("span");
+    s.className = "chip";
+    s.textContent = t;
+    chips.appendChild(s);
+  });
+  dCard._charm = charm;
+  dCard.hidden = false;
+}
+function closeDetail() { dCard.hidden = true; }
+document.getElementById("detail-close").addEventListener("click", closeDetail);
+dCard.addEventListener("click", (e) => { if (e.target === dCard) closeDetail(); });
+document.getElementById("detail-add").addEventListener("click", () => {
+  if (dCard._charm) { addCharm(dCard._charm); closeDetail(); }
+});
+document.getElementById("detail-buy").addEventListener("click", () => {
+  if (dCard._charm) goShop(dCard._charm.name);
 });
 
 // 쇼핑 리스트 복사·공유 (공유 = 또 다른 트래픽 유입)
