@@ -10,10 +10,10 @@ const photo = (tag, lock, w = 320, h = 320) =>
 
 // ---- 데이터: 가방 ----
 const BAGS = [
-  { id: "photo", emoji: "👜", label: "가방 사진", img: photo("handbag,bag", 31, 600, 800) },
   { id: "tote", emoji: "👜", label: "토트백" },
   { id: "back", emoji: "🎒", label: "백팩" },
   { id: "pouch", emoji: "👝", label: "파우치" },
+  { id: "brief", emoji: "💼", label: "서류백" },
 ];
 
 // ---- 데이터: 키링/참 (실제 사진 + 이모지 폴백) ----
