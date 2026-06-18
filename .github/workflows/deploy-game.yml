@@ -9,21 +9,16 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write # gh-pages 브랜치에 push
+  pages: write # Pages 소스 설정(API)
 
-# 동시에 한 번만 배포
 concurrency:
   group: pages
   cancel-in-progress: true
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: game
     steps:
       - uses: actions/checkout@v4
 
@@ -33,25 +28,35 @@ jobs:
           cache: npm
           cache-dependency-path: game/package-lock.json
 
-      - run: npm ci
-      - run: npm test
-      - run: npm run build
+      - name: Install / Test / Build
+        working-directory: game
+        run: |
+          npm ci
+          npm test
+          npm run build
 
-      # Pages가 꺼져 있으면 자동 활성화(enablement: true)
-      - uses: actions/configure-pages@v5
+      # 빌드 산출물(dist)을 gh-pages 브랜치로 배포 (환경 보호규칙 영향 없음)
+      - name: Publish to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
         with:
-          enablement: true
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./game/dist
+          publish_branch: gh-pages
 
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: game/dist
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+      # Pages가 gh-pages 브랜치를 서빙하도록 소스 설정(이미 workflow 소스면 branch로 전환)
+      - name: Point Pages at gh-pages branch
+        run: |
+          repo="${{ github.repository }}"
+          body='{"source":{"branch":"gh-pages","path":"/"},"build_type":"legacy"}'
+          code=$(curl -s -o /tmp/pages.out -w "%{http_code}" -X PUT \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$repo/pages" -d "$body")
+          echo "PUT /pages -> $code"; cat /tmp/pages.out || true
+          if [ "$code" -ge 400 ]; then
+            code=$(curl -s -o /tmp/pages.out -w "%{http_code}" -X POST \
+              -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/$repo/pages" -d "$body")
+            echo "POST /pages -> $code"; cat /tmp/pages.out || true
+          fi
