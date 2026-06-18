@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>느좋점수 · NeujotScore (프로토타입)</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="phone">
+    <!-- 상단바 -->
+    <header class="topbar">
+      <div class="brand" onclick="go('home')">느좋<span>점수</span></div>
+      <div class="candy" title="평가하면 모이는 재화">🍬 <b id="candyCount">0</b></div>
+    </header>
+
+    <!-- 화면들 -->
+    <main id="screens">
+
+      <!-- 0. 홈 / 온보딩 -->
+      <section class="screen active" data-screen="home">
+        <div class="hero">
+          <div class="hero-emoji">✨</div>
+          <h1>당신의 사진,<br/>얼마나 <span class="grad">느좋</span>할까?</h1>
+          <p class="sub">얼굴 점수가 아니에요. 사람들이 매기는<br/><b>무드·분위기·스타일</b> 점수.</p>
+          <button class="btn primary" onclick="go('upload')">내 사진 평가받기</button>
+          <button class="btn ghost" onclick="startRating()">남 사진 평가하고 🍬 모으기</button>
+          <p class="tiny">프로토타입 · 샘플 데이터 · 목업 AI</p>
+        </div>
+      </section>
+
+      <!-- 1. 업로드 -->
+      <section class="screen" data-screen="upload">
+        <h2 class="title">사진 올리기</h2>
+        <p class="desc">본인 사진을 올려주세요. (배경·코디 포함 무드를 봐요)</p>
+
+        <label class="uploader" id="dropzone">
+          <input type="file" id="fileInput" accept="image/*" hidden />
+          <div id="uploadPlaceholder">
+            <div class="up-emoji">📷</div>
+            <div class="up-text">탭해서 사진 선택</div>
+          </div>
+          <img id="preview" alt="" hidden />
+        </label>
+
+        <div id="aiPeek" class="ai-peek" hidden>
+          <div class="ai-row"><span class="ai-badge">AI 즉석</span> 첫인상 무드를 미리 봤어요</div>
+          <div class="ai-score">예상 느좋점수 <b id="aiScore">–</b></div>
+          <div class="chips" id="aiTags"></div>
+          <button class="btn primary" onclick="requestRealRating()">진짜 사람들의 평가 받기</button>
+          <p class="tiny" id="gateHint"></p>
+        </div>
+      </section>
+
+      <!-- 2. 평가하기 -->
+      <section class="screen" data-screen="rate">
+        <div class="rate-head">
+          <h2 class="title">느좋 평가하기</h2>
+          <div class="progress"><b id="rateDone">0</b>/<span id="rateGoal">10</span></div>
+        </div>
+        <p class="desc">이 사진의 <b>무드</b>가 얼마나 느좋한가요? (외모 평가 아님)</p>
+
+        <div class="rate-card">
+          <img id="rateImg" alt="평가할 사진" />
+          <div class="rate-caption" id="rateCaption"></div>
+        </div>
+
+        <div class="slider-wrap">
+          <div class="slider-labels"><span>영혼없음</span><span>느좋 폭발</span></div>
+          <input type="range" id="vibeSlider" min="0" max="100" value="50" />
+          <div class="slider-val"><b id="vibeVal">50</b></div>
+        </div>
+
+        <div class="tag-pick" id="tagPick"></div>
+
+        <button class="btn primary" onclick="submitRating()">평가 완료 → 다음</button>
+      </section>
+
+      <!-- 3. 결과 카드 -->
+      <section class="screen" data-screen="result">
+        <h2 class="title">결과 카드</h2>
+        <div class="result-card" id="resultCard">
+          <div class="rc-top">느좋점수</div>
+          <div class="rc-score" id="rcScore">–</div>
+          <img id="rcImg" class="rc-img" alt="" />
+          <div class="rc-moods" id="rcMoods"></div>
+          <div class="rc-coach" id="rcCoach"></div>
+          <div class="rc-foot">느좋점수 · NeujotScore</div>
+        </div>
+        <button class="btn primary" onclick="downloadCard()">공유 이미지 저장하기</button>
+        <button class="btn ghost" onclick="go('home')">처음으로</button>
+        <canvas id="cardCanvas" width="720" height="1080" hidden></canvas>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- 토스트 -->
+  <div id="toast" class="toast"></div>
+
+  <script src="sample-data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
