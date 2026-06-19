@@ -43,9 +43,13 @@
  .ptile .lk{position:absolute;top:8px;right:8px;background:rgba(0,0,0,.35);color:#fff;font-size:11px;padding:3px 7px;border-radius:999px}
  .search{width:100%;padding:13px 16px;border:1px solid #f0dbe5;border-radius:13px;font-size:15px;background:#fff;margin-bottom:12px}
  /* 상세 */
- .dhero{height:230px;display:flex;align-items:center;justify-content:center;gap:8px;border-radius:0 0 24px 24px}
+ .dhero{height:300px;display:flex;align-items:center;justify-content:center;gap:8px;border-radius:0 0 24px 24px}
+ .dhero.photo{height:64vh;max-height:600px}
  .dhero .em{font-size:74px;filter:drop-shadow(0 6px 8px rgba(0,0,0,.14))} .dhero .em.s{font-size:50px}
  .dhero img{width:100%;height:100%;object-fit:cover;border-radius:0 0 24px 24px}
+ .selrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+ .selchip{background:#fff0f5;border:1px solid var(--pk);color:#a04;border-radius:999px;padding:7px 12px;font-size:13px;cursor:pointer}
+ .srch{display:flex;gap:8px;margin-top:6px} .srch input{flex:1} .srch button{border:0;border-radius:11px;background:var(--ink);color:#fff;font-weight:700;padding:0 16px;cursor:pointer}
  .dwrap{padding:18px 16px}
  .dttl{font-size:22px;font-weight:800} .dcr{color:var(--mut);font-size:13px;margin-top:3px}
  .crow{display:flex;align-items:center;gap:12px;background:#fff;border-radius:14px;padding:12px;margin-bottom:9px;box-shadow:0 2px 8px rgba(180,90,140,.07)}
@@ -161,6 +165,7 @@ const NOTI=[
  {ic:"🔥",t:"이번 주 인기 무드는 '큐트'! 지금 구경해보세요",d:"어제"}
 ];
 let board=load("board",[]),mine=load("mine",[]),wish=load("wish",[]),likes=load("likes",{});
+const CUSTOM=load("custom",{});Object.assign(CHARMS,CUSTOM);/* 검색으로 추가한 커스텀 아이템 복원 */
 let exploreCat="전체",exploreQ="",cur=null,mySeg="board",curScreen="home";
 const allLooks=()=>mine.concat(SEED);
 const heroInner=L=>'<span class="em">'+bagEmoji(L)+'</span>'+L.charms.slice(0,3).map(id=>'<span class="em s">'+(CHARMS[id]?CHARMS[id].e:'❓')+'</span>').join('');
@@ -221,7 +226,7 @@ function renderDetail(){
  const sim=allLooks().filter(x=>x.vibe===L.vibe&&x.id!==L.id).slice(0,6)
   .map(x=>'<div class="pp" data-look="'+x.id+'"><div class="e">'+bagEmoji(x)+'</div><div class="n">'+x.ttl+'</div></div>').join('')||'<div class="cb" style="color:var(--mut)">준비 중</div>';
  document.getElementById("detail").innerHTML=
-  '<div class="dhero" style="background:'+(GRAD[L.vibe]||GRAD.큐트)+'">'+hero+'</div>'+
+  '<div class="dhero'+(L.photo?' photo':'')+'" style="background:'+(GRAD[L.vibe]||GRAD.큐트)+'">'+hero+'</div>'+
   '<div class="dwrap"><div class="dttl">'+L.ttl+'</div><div class="dcr">'+(L.cr||'@나')+' · '+L.vibe+' · ❤️ '+likeCount(L)+'</div>'+
   '<div class="sectit">🛍️ 이 가방</div><div class="crow"><span class="ce">'+bagEmoji(L)+'</span><div><div class="cn">'+(L.bagBrand&&L.bagBrand!=="기타"?L.bagBrand+' ':'')+(L.bagType||"가방")+'</div><div class="cb">'+(L.bagBrand&&L.bagBrand!=="기타"?L.bagBrand+' · ':'')+'이 룩의 베이스 가방</div></div></div>'+
   '<div class="sectit">📍 이 가방에 단 아이템 '+L.charms.length+'개</div>'+rows+
@@ -239,7 +244,7 @@ function toggleWish(id){const i=wish.indexOf(id);if(i>=0)wish.splice(i,1);else w
 /* 올리기 */
 const post={photo:null,charms:[],mood:null,bagType:null,bagBrand:null};
 function renderPost(){
- document.getElementById("post").innerHTML='<label>1. 내 가방 사진</label><div class="photo" id="pPhoto">'+(post.photo?'<img src="'+post.photo+'">':'사진을 올리면 미리보기 📷')+'</div><label class="upbtn" for="pFile">사진 올리기</label><input id="pFile" type="file" accept="image/*" style="display:none"><label>2. 내 가방 종류</label><div class="chips" id="pBag"></div><label>3. 가방 브랜드</label><div class="chips" id="pBrand"></div><label>4. 단 아이템 (여러 개, 카테고리별)</label><div id="pPick"></div><label>5. 무드</label><div class="chips" id="pMood"></div><label>6. 제목</label><input type="text" id="pTtl" placeholder="예: 파스텔 큐티 백꾸"><button class="go" id="pGo">피드에 올리기 →</button>';
+ document.getElementById("post").innerHTML='<label>1. 내 가방 사진</label><div class="photo" id="pPhoto">'+(post.photo?'<img src="'+post.photo+'">':'사진을 올리면 미리보기 📷')+'</div><label class="upbtn" for="pFile">사진 올리기</label><input id="pFile" type="file" accept="image/*" style="display:none"><label>2. 내 가방 종류</label><div class="chips" id="pBag"></div><label>3. 가방 브랜드</label><div class="chips" id="pBrand"></div><label>4. 단 아이템 (검색으로 추가하거나 아래에서 선택)</label><div class="srch"><input id="pSearch" type="text" placeholder="키링·액세서리 이름 → 추가"><button id="pAddItem">추가</button></div><div class="selrow" id="pSel"></div><div id="pPick"></div><label>5. 무드</label><div class="chips" id="pMood"></div><label>6. 제목</label><input type="text" id="pTtl" placeholder="예: 파스텔 큐티 백꾸"><button class="go" id="pGo">피드에 올리기 →</button>';
  const bg=document.getElementById("pBag");BAGS.forEach(t=>{const b=document.createElement("button");b.className="chip"+(post.bagType===t?" on":"");b.textContent=BAGEMO[t]+" "+t;b.setAttribute("data-pbag",t);bg.appendChild(b)});
  const brd=document.getElementById("pBrand");BAGBRANDS.forEach(t=>{const b=document.createElement("button");b.className="chip"+(post.bagBrand===t?" on":"");b.textContent=t;b.setAttribute("data-pbrand",t);brd.appendChild(b)});
  const pg=document.getElementById("pPick");
@@ -248,6 +253,8 @@ function renderPost(){
   const grid=document.createElement("div");grid.className="pickgrid";
   ids.forEach(id=>{const c=CHARMS[id];const b=document.createElement("button");b.className="pick"+(post.charms.includes(id)?" on":"");b.setAttribute("data-pick",id);b.innerHTML='<span class="e">'+c.e+'</span>'+c.nm;grid.appendChild(b)});
   pg.appendChild(grid);});
+ const sel=document.getElementById("pSel");sel.innerHTML=post.charms.map(id=>{const c=CHARMS[id];return c?'<button class="selchip" data-unpick="'+id+'">'+c.e+' '+c.nm+' ✕</button>':''}).join('');
+ const addBtn=document.getElementById("pAddItem");if(addBtn)addBtn.onclick=()=>{const inp=document.getElementById("pSearch");const v=inp.value.trim();if(!v)return;const id="c"+Date.now();CUSTOM[id]={nm:v,e:"🔗",cat:"기타",src:"검색",br:""};CHARMS[id]=CUSTOM[id];save("custom",CUSTOM);post.charms.push(id);renderPost()};
  const mg=document.getElementById("pMood");MOODS.forEach(m=>{const b=document.createElement("button");b.className="chip"+(post.mood===m?" on":"");b.textContent=m;b.setAttribute("data-pmood",m);mg.appendChild(b)});
  document.getElementById("pFile").onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{post.photo=rd.result;renderPost()};rd.readAsDataURL(f)};
  document.getElementById("pGo").onclick=()=>{if(post.charms.length===0){alert("키링을 하나 이상 골라줘!");return}const ttl=document.getElementById("pTtl").value.trim()||((post.mood||"나의")+" 백꾸");mine.unshift({id:"u"+Date.now(),ttl:ttl,cr:"@나",vibe:post.mood||"큐트",bagType:post.bagType||"토트백",bagBrand:post.bagBrand||"기타",charms:post.charms.slice(),photo:post.photo,likes:0});save("mine",mine);post.photo=null;post.charms=[];post.mood=null;post.bagType=null;post.bagBrand=null;go("home");alert("피드에 올렸어! 🎉")};
@@ -288,6 +295,7 @@ function go(scr){
 document.querySelectorAll(".nav button").forEach(b=>b.onclick=()=>go(b.getAttribute("data-go")));
 document.addEventListener("click",e=>{const t=e.target;
  const pick=t.closest&&t.closest("[data-pick]");if(pick){const id=pick.getAttribute("data-pick");const i=post.charms.indexOf(id);if(i>=0)post.charms.splice(i,1);else post.charms.push(id);renderPost();return}
+ const up=t.closest&&t.closest("[data-unpick]");if(up){const id=up.getAttribute("data-unpick");const i=post.charms.indexOf(id);if(i>=0)post.charms.splice(i,1);renderPost();return}
  const pm=t.getAttribute&&t.getAttribute("data-pmood");if(pm){post.mood=pm;renderPost();return}
  const pb=t.getAttribute&&t.getAttribute("data-pbag");if(pb){post.bagType=pb;renderPost();return}
  const pbr=t.getAttribute&&t.getAttribute("data-pbrand");if(pbr){post.bagBrand=pbr;renderPost();return}
