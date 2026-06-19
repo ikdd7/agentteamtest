@@ -15,6 +15,9 @@
 
 * { box-sizing: border-box; }
 
+/* hidden 속성이 display 지정 클래스보다 항상 우선하도록 (모바일 레이어 버그 수정) */
+[hidden] { display: none !important; }
+
 body {
   margin: 0;
   background: linear-gradient(160deg, #fff0f8 0%, #f3ecff 50%, #e9fbf5 100%);
@@ -492,4 +495,24 @@ span.look-charm { font-size: 30px; line-height: 1; }
 @media (max-width: 560px) {
   .pin { flex-direction: column; max-height: 92vh; overflow-y: auto; }
   .pin-img { aspect-ratio: 3 / 4; flex-basis: auto; }
+}
+
+/* ===== 모바일 상단/레이아웃 정리 ===== */
+.topbar { flex-wrap: wrap; row-gap: 8px; }
+.brand { flex-shrink: 0; min-width: 0; }
+.topbar h1 { white-space: nowrap; }
+
+@media (max-width: 640px) {
+  .topbar { padding: 10px 14px; }
+  .logo { font-size: 24px; }
+  .topbar h1 { font-size: 17px; }
+  .tagline { display: none; }
+  .topbar-actions { gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+  .btn { padding: 9px 13px; font-size: 13px; }
+  .feed { padding: 14px 12px 40px; }
+  .feed-hero h2 { font-size: 20px; margin: 2px 0 12px; }
+  .tag-chip { padding: 7px 13px; font-size: 12px; }
+}
+@media (max-width: 380px) {
+  .topbar-actions .btn { padding: 8px 10px; font-size: 12px; }
 }
