@@ -134,19 +134,22 @@ const CHARMS={
 const CATS=["키링","인형","스카프","참","뱃지","체인"];
 const CATMETA={키링:{e:"🔑",d:"포인트 하나로",bg:"linear-gradient(150deg,#ffd9e8,#ffeccf)"},인형:{e:"🧸",d:"셀럽도 빠진",bg:"linear-gradient(150deg,#ffd0e0,#ffd9b0)"},스카프:{e:"🧣",d:"감각적으로",bg:"linear-gradient(150deg,#ffe3cf,#ffd9e8)"},참:{e:"💠",d:"성숙한 무드",bg:"linear-gradient(150deg,#d9d2e8,#ffd9e8)"},뱃지:{e:"📛",d:"볼드하게",bg:"linear-gradient(150deg,#cfe0ff,#d9d2e8)"},체인:{e:"⛓️",d:"시크하게",bg:"linear-gradient(150deg,#d9d2e8,#cfd6e8)"}};
 const MOODS=["큐트","시크","미니멀","맥시멀","덕질"];
+const BAGS=["토트백","크로스백","숄더백","백팩","미니백","에코백","클러치"];
+const BAGEMO={토트백:"🛍️",크로스백:"👜",숄더백:"👝",백팩:"🎒",미니백:"👛",에코백:"🧺",클러치:"💼"};
 const GRAD={큐트:"linear-gradient(150deg,#ffd9e8,#ffeccf)",시크:"linear-gradient(150deg,#d9d2e8,#cfd6e8)",미니멀:"linear-gradient(150deg,#efe9f2,#f3ede6)",맥시멀:"linear-gradient(150deg,#ffd0e0,#ffd9b0)",덕질:"linear-gradient(150deg,#fff0cf,#ffd9e8)"};
 const catOf=id=>CHARMS[id]?CHARMS[id].cat:"";
+const bagEmoji=L=>BAGEMO[L&&L.bagType]||"👜";
 const SEED=[
- {id:"s1",ttl:"파스텔 큐티 백꾸",cr:"@bagbunny",vibe:"큐트",charms:["cinnamoroll","loopy","duck"],likes:312},
- {id:"s2",ttl:"블랙 체인 시크",cr:"@noir_",vibe:"시크",charms:["kuromi","gold_chain"],likes:188},
- {id:"s3",ttl:"트윌리 원포인트",cr:"@less.is",vibe:"미니멀",charms:["twilly"],likes:241},
- {id:"s4",ttl:"맥시멀 플렉스",cr:"@maxim_b",vibe:"맥시멀",charms:["labubu_s","crayon","mangbear"],likes:530},
- {id:"s5",ttl:"최애 덕질백",cr:"@my_fav",vibe:"덕질",charms:["chunsik","kitty","stitch"],likes:276},
- {id:"s6",ttl:"데님백 큐티 조합",cr:"@denim.day",vibe:"큐트",charms:["bonecdo","smiski"],likes:154},
- {id:"s7",ttl:"라부부 + 펄체인",cr:"@popmart_kr",vibe:"맥시멀",charms:["labubu","pearl_chain"],likes:402},
- {id:"s8",ttl:"스카프 + 참 우아",cr:"@mood.b",vibe:"시크",charms:["check_scarf","heart_charm","pearl_charm"],likes:131},
- {id:"s9",ttl:"뱃지 가득 볼드백",cr:"@pin.it",vibe:"맥시멀",charms:["enamel_pin","patch","stitch"],likes:118},
- {id:"s10",ttl:"곰돌이 미니멀",cr:"@teddy.day",vibe:"큐트",charms:["teddy"],likes:88}
+ {id:"s1",ttl:"파스텔 큐티 백꾸",cr:"@bagbunny",vibe:"큐트",bagType:"크로스백",charms:["cinnamoroll","loopy","duck"],likes:312},
+ {id:"s2",ttl:"블랙 체인 시크",cr:"@noir_",vibe:"시크",bagType:"토트백",charms:["kuromi","gold_chain"],likes:188},
+ {id:"s3",ttl:"트윌리 원포인트",cr:"@less.is",vibe:"미니멀",bagType:"미니백",charms:["twilly"],likes:241},
+ {id:"s4",ttl:"맥시멀 플렉스",cr:"@maxim_b",vibe:"맥시멀",bagType:"백팩",charms:["labubu_s","crayon","mangbear"],likes:530},
+ {id:"s5",ttl:"최애 덕질백",cr:"@my_fav",vibe:"덕질",bagType:"숄더백",charms:["chunsik","kitty","stitch"],likes:276},
+ {id:"s6",ttl:"데님백 큐티 조합",cr:"@denim.day",vibe:"큐트",bagType:"에코백",charms:["bonecdo","smiski"],likes:154},
+ {id:"s7",ttl:"라부부 + 펄체인",cr:"@popmart_kr",vibe:"맥시멀",bagType:"토트백",charms:["labubu","pearl_chain"],likes:402},
+ {id:"s8",ttl:"스카프 + 참 우아",cr:"@mood.b",vibe:"시크",bagType:"숄더백",charms:["check_scarf","heart_charm","pearl_charm"],likes:131},
+ {id:"s9",ttl:"뱃지 가득 볼드백",cr:"@pin.it",vibe:"맥시멀",bagType:"백팩",charms:["enamel_pin","patch","stitch"],likes:118},
+ {id:"s10",ttl:"곰돌이 미니멀",cr:"@teddy.day",vibe:"큐트",bagType:"미니백",charms:["teddy"],likes:88}
 ];
 const NOTI=[
  {ic:"❤️",t:"@maxim_b님 외 23명이 회원님의 룩을 좋아해요",d:"방금"},
@@ -159,17 +162,17 @@ const NOTI=[
 let board=load("board",[]),mine=load("mine",[]),wish=load("wish",[]),likes=load("likes",{});
 let exploreCat="전체",exploreQ="",cur=null,mySeg="board",curScreen="home";
 const allLooks=()=>mine.concat(SEED);
-const heroEms=cs=>cs.slice(0,3).map((id,i)=>'<span class="em'+(i>0?' s':'')+'">'+(CHARMS[id]?CHARMS[id].e:'❓')+'</span>').join('');
+const heroInner=L=>'<span class="em">'+bagEmoji(L)+'</span>'+L.charms.slice(0,3).map(id=>'<span class="em s">'+(CHARMS[id]?CHARMS[id].e:'❓')+'</span>').join('');
 const likeCount=L=>(L.likes||0)+(likes[L.id]?1:0);
 const findLook=id=>allLooks().find(L=>L.id===id);
 
 function lookCard(L,feat){
  const bg=L.photo?'':('background:'+(GRAD[L.vibe]||GRAD.큐트));
- const hero=L.photo?'<img src="'+L.photo+'">':heroEms(L.charms);
+ const hero=L.photo?'<img src="'+L.photo+'">':heroInner(L);
  const liked=!!likes[L.id],saved=board.some(b=>b.id===L.id);
  return '<div class="look'+(feat?' feat':'')+'" data-look="'+L.id+'"><div class="hero" style="'+bg+'">'+
   '<span class="vibechip">'+L.vibe+'</span>'+(feat?'<span class="badge">✨ 오늘의 추천</span>':'')+hero+'</div>'+
-  '<div class="info"><div class="lt">'+L.ttl+'</div><div class="cr">'+(L.cr||'@나')+' · 키링 '+L.charms.length+'개</div>'+
+  '<div class="info"><div class="lt">'+L.ttl+'</div><div class="cr">'+(L.bagType?BAGEMO[L.bagType]+' '+L.bagType+' · ':'')+(L.cr||'@나')+' · 아이템 '+L.charms.length+'개</div>'+
   '<div class="acts"><button data-like="'+L.id+'" class="'+(liked?'on':'')+'">'+(liked?'❤️':'🤍')+' <span>'+likeCount(L)+'</span></button>'+
   '<button data-savelook="'+L.id+'" class="'+(saved?'on':'')+'">'+(saved?'🔖 저장됨':'🔖 저장')+'</button></div></div></div>';
 }
@@ -189,7 +192,7 @@ function renderHome(){
 /* 탐색 = 남들 사진 그리드 */
 function ptile(L){
  const bg=L.photo?'':('background:'+(GRAD[L.vibe]||GRAD.큐트));
- const hero=L.photo?'<img src="'+L.photo+'">':heroEms(L.charms);
+ const hero=L.photo?'<img src="'+L.photo+'">':heroInner(L);
  return '<div class="ptile" data-look="'+L.id+'" style="'+bg+'">'+hero+'<span class="lk">❤️ '+likeCount(L)+'</span><div class="ov">'+L.ttl+'</div></div>';
 }
 function renderExplore(q){
@@ -209,17 +212,18 @@ function renderExplore(q){
 function openDetail(id){cur=findLook(id);if(!cur)return;go("detail")}
 function renderDetail(){
  const L=cur;const saved=board.some(b=>b.id===L.id);
- const hero=L.photo?'<img src="'+L.photo+'">':heroEms(L.charms);
+ const hero=L.photo?'<img src="'+L.photo+'">':heroInner(L);
  const rows=L.charms.map(id=>{const c=CHARMS[id];if(!c)return'';const w=wish.includes(id);
   return '<div class="crow"><span class="ce">'+c.e+'</span><div><div class="cn">'+c.nm+'</div><div class="cb">'+c.cat+' · '+c.src+'</div></div>'+
    '<div class="cbtns"><button class="w'+(w?' on':'')+'" data-wish="'+id+'">'+(w?'♥':'위시')+'</button>'+
    '<a class="buy" href="'+shop(c.nm)+'" target="_blank" rel="noopener">구매</a></div></div>'}).join('');
  const sim=allLooks().filter(x=>x.vibe===L.vibe&&x.id!==L.id).slice(0,6)
-  .map(x=>'<div class="pp" data-look="'+x.id+'"><div class="e">'+(CHARMS[x.charms[0]]?CHARMS[x.charms[0]].e:'👜')+'</div><div class="n">'+x.ttl+'</div></div>').join('')||'<div class="cb" style="color:var(--mut)">준비 중</div>';
+  .map(x=>'<div class="pp" data-look="'+x.id+'"><div class="e">'+bagEmoji(x)+'</div><div class="n">'+x.ttl+'</div></div>').join('')||'<div class="cb" style="color:var(--mut)">준비 중</div>';
  document.getElementById("detail").innerHTML=
   '<div class="dhero" style="background:'+(GRAD[L.vibe]||GRAD.큐트)+'">'+hero+'</div>'+
   '<div class="dwrap"><div class="dttl">'+L.ttl+'</div><div class="dcr">'+(L.cr||'@나')+' · '+L.vibe+' · ❤️ '+likeCount(L)+'</div>'+
-  '<div class="sectit">이 가방에 달린 키링 '+L.charms.length+'개</div>'+rows+
+  '<div class="sectit">🛍️ 이 가방</div><div class="crow"><span class="ce">'+bagEmoji(L)+'</span><div><div class="cn">'+(L.bagType||"가방")+'</div><div class="cb">이 룩의 베이스 가방</div></div></div>'+
+  '<div class="sectit">📍 이 가방에 단 아이템 '+L.charms.length+'개</div>'+rows+
   '<button class="dsave'+(saved?' on':'')+'" data-savelook="'+L.id+'">'+(saved?'✓ 보드에 저장됨':'♥ 이 룩 보드에 저장')+'</button>'+
   '<div class="sectit">비슷한 '+L.vibe+' 룩</div><div class="pillrow">'+sim+'</div></div>';
 }
@@ -232,9 +236,10 @@ function openCharm(id){const c=CHARMS[id];if(!c)return;const used=allLooks().fil
 }
 function toggleWish(id){const i=wish.indexOf(id);if(i>=0)wish.splice(i,1);else wish.push(id);save("wish",wish);if(curScreen==="detail")renderDetail();if(curScreen==="my")renderMy()}
 /* 올리기 */
-const post={photo:null,charms:[],mood:null};
+const post={photo:null,charms:[],mood:null,bagType:null};
 function renderPost(){
- document.getElementById("post").innerHTML='<label>1. 내 가방 사진</label><div class="photo" id="pPhoto">'+(post.photo?'<img src="'+post.photo+'">':'사진을 올리면 미리보기 📷')+'</div><label class="upbtn" for="pFile">사진 올리기</label><input id="pFile" type="file" accept="image/*" style="display:none"><label>2. 단 아이템 (여러 개, 카테고리별)</label><div id="pPick"></div><label>3. 무드</label><div class="chips" id="pMood"></div><label>4. 제목</label><input type="text" id="pTtl" placeholder="예: 파스텔 큐티 백꾸"><button class="go" id="pGo">피드에 올리기 →</button>';
+ document.getElementById("post").innerHTML='<label>1. 내 가방 사진</label><div class="photo" id="pPhoto">'+(post.photo?'<img src="'+post.photo+'">':'사진을 올리면 미리보기 📷')+'</div><label class="upbtn" for="pFile">사진 올리기</label><input id="pFile" type="file" accept="image/*" style="display:none"><label>2. 내 가방 종류</label><div class="chips" id="pBag"></div><label>3. 단 아이템 (여러 개, 카테고리별)</label><div id="pPick"></div><label>4. 무드</label><div class="chips" id="pMood"></div><label>5. 제목</label><input type="text" id="pTtl" placeholder="예: 파스텔 큐티 백꾸"><button class="go" id="pGo">피드에 올리기 →</button>';
+ const bg=document.getElementById("pBag");BAGS.forEach(t=>{const b=document.createElement("button");b.className="chip"+(post.bagType===t?" on":"");b.textContent=BAGEMO[t]+" "+t;b.setAttribute("data-pbag",t);bg.appendChild(b)});
  const pg=document.getElementById("pPick");
  CATS.forEach(cat=>{const ids=Object.keys(CHARMS).filter(id=>CHARMS[id].cat===cat);if(!ids.length)return;
   const h=document.createElement("div");h.style.cssText="font-size:12px;font-weight:700;color:#b58;margin:10px 2px 6px";h.textContent=CATMETA[cat].e+" "+cat;pg.appendChild(h);
@@ -243,7 +248,7 @@ function renderPost(){
   pg.appendChild(grid);});
  const mg=document.getElementById("pMood");MOODS.forEach(m=>{const b=document.createElement("button");b.className="chip"+(post.mood===m?" on":"");b.textContent=m;b.setAttribute("data-pmood",m);mg.appendChild(b)});
  document.getElementById("pFile").onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{post.photo=rd.result;renderPost()};rd.readAsDataURL(f)};
- document.getElementById("pGo").onclick=()=>{if(post.charms.length===0){alert("키링을 하나 이상 골라줘!");return}const ttl=document.getElementById("pTtl").value.trim()||((post.mood||"나의")+" 백꾸");mine.unshift({id:"u"+Date.now(),ttl:ttl,cr:"@나",vibe:post.mood||"큐트",charms:post.charms.slice(),photo:post.photo,likes:0});save("mine",mine);post.photo=null;post.charms=[];post.mood=null;go("home");alert("피드에 올렸어! 🎉")};
+ document.getElementById("pGo").onclick=()=>{if(post.charms.length===0){alert("키링을 하나 이상 골라줘!");return}const ttl=document.getElementById("pTtl").value.trim()||((post.mood||"나의")+" 백꾸");mine.unshift({id:"u"+Date.now(),ttl:ttl,cr:"@나",vibe:post.mood||"큐트",bagType:post.bagType||"토트백",charms:post.charms.slice(),photo:post.photo,likes:0});save("mine",mine);post.photo=null;post.charms=[];post.mood=null;post.bagType=null;go("home");alert("피드에 올렸어! 🎉")};
 }
 /* 알림 */
 function renderNoti(){
@@ -282,6 +287,7 @@ document.querySelectorAll(".nav button").forEach(b=>b.onclick=()=>go(b.getAttrib
 document.addEventListener("click",e=>{const t=e.target;
  const pick=t.closest&&t.closest("[data-pick]");if(pick){const id=pick.getAttribute("data-pick");const i=post.charms.indexOf(id);if(i>=0)post.charms.splice(i,1);else post.charms.push(id);renderPost();return}
  const pm=t.getAttribute&&t.getAttribute("data-pmood");if(pm){post.mood=pm;renderPost();return}
+ const pb=t.getAttribute&&t.getAttribute("data-pbag");if(pb){post.bagType=pb;renderPost();return}
  const sg=t.getAttribute&&t.getAttribute("data-seg");if(sg){mySeg=sg;renderMy();return}
  const gc=t.closest&&t.closest("[data-gocat]");if(gc){exploreCat=gc.getAttribute("data-gocat");exploreQ="";go("explore");return}
  const ec=t.closest&&t.closest("[data-excat]");if(ec){exploreCat=ec.getAttribute("data-excat");renderExplore(exploreQ);return}
