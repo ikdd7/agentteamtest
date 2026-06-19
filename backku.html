@@ -1,76 +1,69 @@
 <!doctype html>
 <html lang="ko"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>백꾸 — 가방 꾸미기 큐레이션</title>
+<title>백꾸 — 가방 꾸미기 피드</title>
 <style>
  *{box-sizing:border-box;margin:0;padding:0}
- body{font-family:-apple-system,system-ui,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;background:#fdf0f4;color:#2a2230}
- .wrap{max-width:480px;margin:0 auto;padding:16px 16px 60px}
- h1{font-size:22px;margin:4px 0 2px} .sub{color:#9a8a96;font-size:13px;margin:0 0 14px}
- .tabs{display:flex;gap:8px;margin-bottom:14px}
- .tab{flex:1;text-align:center;padding:10px;border-radius:999px;background:#fff;font-weight:700;font-size:14px;cursor:pointer;color:#a08}
- .tab.on{background:#ff5a9e;color:#fff}
- .card{background:#fff;border-radius:18px;padding:16px;box-shadow:0 3px 14px rgba(180,90,140,.12);margin-bottom:14px}
- label{font-size:13px;font-weight:700;color:#705;display:block;margin:12px 0 6px}
- .chips{display:flex;flex-wrap:wrap;gap:8px}
- .chip{padding:9px 14px;border-radius:999px;background:#f3e6ef;font-size:14px;cursor:pointer;border:0}
- .chip.on{background:#ff5a9e;color:#fff}
- .photo{width:100%;height:180px;border-radius:14px;background:#f6e8f0 url() center/cover;display:flex;align-items:center;justify-content:center;color:#b58;font-size:14px;overflow:hidden;margin-top:4px}
- .photo img{width:100%;height:100%;object-fit:cover}
- .upbtn{display:inline-block;margin-top:10px;background:#f3e6ef;color:#a06;padding:10px 16px;border-radius:999px;font-weight:700;font-size:14px;cursor:pointer}
- button.go{width:100%;padding:14px;border:0;border-radius:12px;background:#ff5a9e;color:#fff;font-size:16px;font-weight:800;cursor:pointer;margin-top:16px}
- .reco{display:flex;gap:10px;overflow-x:auto;padding:4px 0;margin-top:6px}
- .pill{flex:0 0 auto;background:#fff;border-radius:14px;padding:10px;width:108px;text-align:center;box-shadow:0 2px 8px rgba(180,90,140,.1)}
- .pill .e{font-size:30px} .pill .n{font-size:13px;font-weight:700;margin-top:4px;line-height:1.2}
- .pill .s{font-size:11px;color:#b58;margin-top:3px}
- .reason{background:#fff4f9;border-radius:12px;padding:12px;font-size:14px;color:#a04;margin-top:12px;line-height:1.5}
- .look{margin-bottom:14px}
- .look .top{display:flex;align-items:center;gap:10px}
- .look .bag{width:60px;height:60px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:30px;flex:0 0 auto}
+ body{font-family:-apple-system,system-ui,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;background:#fdf0f4;color:#2a2230;padding-bottom:72px}
+ .wrap{max-width:480px;margin:0 auto;padding:14px}
+ h1{font-size:21px;margin:4px 0 2px} .sub{color:#9a8a96;font-size:12px;margin:0 0 12px}
+ .card{background:#fff;border-radius:18px;padding:15px;box-shadow:0 3px 14px rgba(180,90,140,.1);margin-bottom:14px}
+ /* 룩 카드 */
+ .look .head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+ .look .bag{width:54px;height:54px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:28px;flex:0 0 auto;overflow:hidden}
+ .look .bag img{width:100%;height:100%;object-fit:cover}
  .look .ttl{font-weight:800;font-size:16px} .look .vibe{font-size:12px;color:#b58}
- .look .charms{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
- .look .cm{background:#f6e8f0;border-radius:10px;padding:6px 9px;font-size:13px}
- .savebtn{margin-top:10px;background:#f3e6ef;color:#a06;border:0;border-radius:10px;padding:9px 14px;font-weight:700;font-size:13px;cursor:pointer}
- .savebtn.on{background:#c06bd6;color:#fff}
- .hidden{display:none} .empty{color:#b58;text-align:center;padding:30px 0;font-size:14px}
+ .look .charms{display:flex;gap:7px;flex-wrap:wrap}
+ .cm{background:#f6e8f0;border-radius:10px;padding:7px 10px;font-size:13px;cursor:pointer;border:0}
+ .cm:active{background:#ffd9ea}
+ .look .foot{display:flex;justify-content:space-between;align-items:center;margin-top:12px}
+ .save{background:#f3e6ef;color:#a06;border:0;border-radius:10px;padding:8px 14px;font-weight:700;font-size:13px;cursor:pointer}
+ .save.on{background:#c06bd6;color:#fff}
+ .tag{font-size:11px;color:#c79}
+ /* 올리기 */
+ label{font-size:13px;font-weight:700;color:#705;display:block;margin:12px 0 6px}
+ .photo{width:100%;height:160px;border-radius:14px;background:#f6e8f0;display:flex;align-items:center;justify-content:center;color:#b58;font-size:13px;overflow:hidden}
+ .photo img{width:100%;height:100%;object-fit:cover}
+ .upbtn{display:inline-block;margin-top:9px;background:#f3e6ef;color:#a06;padding:9px 15px;border-radius:999px;font-weight:700;font-size:13px;cursor:pointer}
+ input[type=text]{width:100%;padding:11px;border:1px solid #f0d6e4;border-radius:10px;font-size:15px}
+ .pickgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:6px}
+ .pick{background:#fff;border:2px solid #f0d6e4;border-radius:12px;padding:8px 4px;text-align:center;cursor:pointer;font-size:11px}
+ .pick.on{border-color:#ff5a9e;background:#fff0f6}
+ .pick .e{font-size:24px;display:block}
+ .chips{display:flex;flex-wrap:wrap;gap:8px} .chip{padding:8px 13px;border-radius:999px;background:#f3e6ef;font-size:14px;border:0;cursor:pointer} .chip.on{background:#ff5a9e;color:#fff}
+ button.go{width:100%;padding:14px;border:0;border-radius:12px;background:#ff5a9e;color:#fff;font-size:16px;font-weight:800;cursor:pointer;margin-top:16px}
+ .empty{color:#b58;text-align:center;padding:36px 0;font-size:14px}
+ /* 하단 탭바 */
+ .tabbar{position:fixed;bottom:0;left:0;right:0;background:#fff;display:flex;box-shadow:0 -2px 12px rgba(180,90,140,.12);max-width:480px;margin:0 auto}
+ .tabbar div{flex:1;text-align:center;padding:12px 0;font-size:13px;font-weight:700;color:#c79;cursor:pointer}
+ .tabbar div.on{color:#ff5a9e}
+ /* 구매 시트 */
+ .sheet{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:flex-end;z-index:9}
+ .sheet.on{display:flex}
+ .sheet .inner{background:#fff;width:100%;max-width:480px;margin:0 auto;border-radius:20px 20px 0 0;padding:22px;text-align:center}
+ .sheet .e{font-size:50px} .sheet .n{font-size:19px;font-weight:800;margin-top:6px} .sheet .b{font-size:13px;color:#b58}
+ .sheet a.buy{display:block;background:#ff5a9e;color:#fff;border-radius:12px;padding:14px;font-weight:800;margin-top:16px;text-decoration:none}
+ .sheet .close{margin-top:10px;color:#b58;background:none;border:0;font-size:14px;cursor:pointer}
 </style></head>
 <body><div class="wrap">
  <h1>백꾸 👜✨</h1>
- <p class="sub">가방 사진 올리고, 어울리는 키링 추천받고, 남들 백꾸 구경하고.</p>
-
- <div class="tabs">
-  <div class="tab on" data-tab="reco">추천받기</div>
-  <div class="tab" data-tab="feed">둘러보기</div>
-  <div class="tab" data-tab="board">내 보드</div>
- </div>
-
- <!-- 추천받기 -->
- <div id="reco">
-  <div class="card">
-   <label>1. 내 가방 (선택)</label>
-   <div class="photo" id="photo">사진을 올리면 여기 보여요</div>
-   <label class="upbtn" for="file">📷 가방 사진 올리기</label>
-   <input id="file" type="file" accept="image/*" style="display:none">
-   <label>2. 무드</label>
-   <div class="chips" id="moods"></div>
-   <label>3. 가방 색</label>
-   <div class="chips" id="colors"></div>
-   <button class="go" id="recoBtn">어울리는 키링 추천받기 →</button>
-  </div>
-  <div class="card hidden" id="recoOut">
-   <label>이 조합 어때요?</label>
-   <div class="reco" id="recoList"></div>
-   <div class="reason" id="reason"></div>
-   <button class="savebtn" id="saveReco">이 조합 내 보드에 저장 ♥</button>
-  </div>
- </div>
-
- <!-- 둘러보기 -->
- <div id="feed" class="hidden"></div>
-
- <!-- 내 보드 -->
+ <p class="sub">남들 가방 꾸밈 구경하고, 마음에 든 키링은 바로 사러 가고, 내 백꾸도 올리고.</p>
+ <div id="feed"></div>
+ <div id="post" class="hidden"></div>
  <div id="board" class="hidden"></div>
 </div>
+
+<div class="tabbar">
+ <div class="on" data-tab="feed">🔍 둘러보기</div>
+ <div data-tab="post">➕ 올리기</div>
+ <div data-tab="board">♥ 내 보드</div>
+</div>
+
+<div class="sheet" id="sheet"><div class="inner">
+ <div class="e" id="sE"></div><div class="n" id="sN"></div><div class="b" id="sB"></div>
+ <a class="buy" id="sBuy" target="_blank" rel="noopener">구매처에서 보기 →</a>
+ <button class="close" id="sClose">닫기</button>
+</div></div>
 
 <script>
 let MEM={};
@@ -78,94 +71,104 @@ function lsGet(k){try{return localStorage.getItem(k)}catch(_){return (k in MEM)?
 function lsSet(k,v){try{localStorage.setItem(k,v)}catch(_){MEM[k]=v}}
 const load=k=>{try{return JSON.parse(lsGet("backku:"+k)||"[]")}catch(_){return[]}};
 const save=(k,v)=>lsSet("backku:"+k,JSON.stringify(v));
+const shop=q=>"https://search.shopping.naver.com/search/all?query="+encodeURIComponent(q+" 키링");
 
 const CHARMS={
- labubu_s:{nm:"라부부 시크릿",e:"👹",vibe:"맥시멀",color:"포인트",src:"KREAM·팝마트"},
- labubu:{nm:"라부부",e:"👺",vibe:"맥시멀",color:"포인트",src:"팝마트"},
- smiski:{nm:"스마이스키",e:"🧸",vibe:"미니멀",color:"뉴트럴",src:"아이디어스"},
- bonecdo:{nm:"쁘넥도",e:"🐤",vibe:"큐트",color:"파스텔",src:"29CM"},
- cinnamoroll:{nm:"시나모롤",e:"🐶",vibe:"큐트",color:"파스텔",src:"산리오샵"},
- kuromi:{nm:"쿠로미",e:"😈",vibe:"시크",color:"블랙",src:"산리오샵"},
- stitch:{nm:"스티치",e:"💙",vibe:"큐트",color:"블루",src:"디즈니스토어"},
- loopy:{nm:"잔망루피",e:"🐧",vibe:"큐트",color:"파스텔",src:"스마트스토어"},
- miffy:{nm:"미피",e:"🐰",vibe:"미니멀",color:"뉴트럴",src:"텐바이텐"},
- mangbear:{nm:"망그러진곰",e:"🐻",vibe:"큐트",color:"브라운",src:"아이디어스"},
- mujik:{nm:"무직타이거",e:"🐯",vibe:"시크",color:"포인트",src:"스마트스토어"},
- chunsik:{nm:"춘식이",e:"🐱",vibe:"큐트",color:"옐로",src:"카카오프렌즈샵"},
- kitty:{nm:"헬로키티",e:"🎀",vibe:"큐트",color:"핑크",src:"산리오샵"},
- duck:{nm:"백꿈 오리",e:"🦆",vibe:"미니멀",color:"옐로",src:"아이디어스"},
- beads:{nm:"비즈 키링",e:"📿",vibe:"미니멀",color:"뉴트럴",src:"아이디어스"},
- crayon:{nm:"짱구",e:"🖍️",vibe:"맥시멀",color:"포인트",src:"애니메이트"}
+ labubu_s:{nm:"라부부 시크릿",e:"👹",br:"팝마트",src:"KREAM·팝마트"},
+ labubu:{nm:"라부부",e:"👺",br:"팝마트",src:"팝마트"},
+ smiski:{nm:"스마이스키",e:"🧸",br:"드림즈",src:"아이디어스"},
+ bonecdo:{nm:"쁘넥도",e:"🐤",br:"보이넥스트도어",src:"29CM"},
+ cinnamoroll:{nm:"시나모롤",e:"🐶",br:"산리오",src:"산리오샵"},
+ kuromi:{nm:"쿠로미",e:"😈",br:"산리오",src:"산리오샵"},
+ stitch:{nm:"스티치",e:"💙",br:"디즈니",src:"디즈니스토어"},
+ loopy:{nm:"잔망루피",e:"🐧",br:"위글위글",src:"스마트스토어"},
+ miffy:{nm:"미피",e:"🐰",br:"미피",src:"텐바이텐"},
+ mangbear:{nm:"망그러진곰",e:"🐻",br:"망곰",src:"아이디어스"},
+ mujik:{nm:"무직타이거",e:"🐯",br:"무직타이거",src:"스마트스토어"},
+ chunsik:{nm:"춘식이",e:"🐱",br:"카카오프렌즈",src:"카카오프렌즈샵"},
+ kitty:{nm:"헬로키티",e:"🎀",br:"산리오",src:"산리오샵"},
+ duck:{nm:"백꿈 오리",e:"🦆",br:"핸드메이드",src:"아이디어스"},
+ beads:{nm:"비즈 키링",e:"📿",br:"핸드메이드",src:"아이디어스"},
+ crayon:{nm:"짱구",e:"🖍️",br:"반다이",src:"애니메이트"}
 };
-const MOODS=["큐트","시크","미니멀","맥시멀"];
-const COLORS=["블랙","화이트","파스텔","데님","브라운","어디든"];
-const LOOKS=[
- {ttl:"파스텔 큐티 백꾸",vibe:"큐트 · 파스텔 가방에",bag:"👜",bg:"#ffe1ee",charms:["cinnamoroll","loopy","duck"]},
- {ttl:"블랙 시크 한 끗",vibe:"시크 · 블랙 가방에",bag:"🖤",bg:"#e6e0ea",charms:["kuromi","mujik"]},
- {ttl:"미니멀 원포인트",vibe:"미니멀 · 뭐든 잘 어울림",bag:"👝",bg:"#efe7f2",charms:["miffy"]},
- {ttl:"맥시멀 플렉스",vibe:"맥시멀 · 존재감 폭발",bag:"🎒",bg:"#ffe1ee",charms:["labubu_s","crayon","mangbear"]},
- {ttl:"캐릭터 덕질백",vibe:"큐트 · 최애 모으기",bag:"👜",bg:"#fff0d6",charms:["chunsik","kitty","stitch"]}
+const MOODS=["큐트","시크","미니멀","맥시멀","덕질"];
+const SEED=[
+ {ttl:"파스텔 큐티 백꾸",vibe:"큐트 · @bagbunny",bag:"👜",bg:"#ffe1ee",charms:["cinnamoroll","loopy","duck"]},
+ {ttl:"블랙 시크 한 끗",vibe:"시크 · @noir_",bag:"🖤",bg:"#e6e0ea",charms:["kuromi","mujik"]},
+ {ttl:"미니멀 원포인트",vibe:"미니멀 · @less.is",bag:"👝",bg:"#efe7f2",charms:["miffy"]},
+ {ttl:"맥시멀 플렉스",vibe:"맥시멀 · @maxim_b",bag:"🎒",bg:"#ffe1ee",charms:["labubu_s","crayon","mangbear"]},
+ {ttl:"최애 덕질백",vibe:"덕질 · @my_fav",bag:"👜",bg:"#fff0d6",charms:["chunsik","kitty","stitch"]}
 ];
+let board=load("board"), mine=load("mine");
 
-const sel={mood:null,color:null,photo:null};
-let board=load("board");
-
-function chips(id,arr,key){const el=document.getElementById(id);el.innerHTML="";
- arr.forEach(v=>{const b=document.createElement("button");b.className="chip"+(sel[key]===v?" on":"");
-  b.textContent=v;b.onclick=()=>{sel[key]=v;chips(id,arr,key)};el.appendChild(b)})}
-chips("moods",MOODS,"mood");chips("colors",COLORS,"color");
-
-document.getElementById("file").onchange=e=>{const f=e.target.files[0];if(!f)return;
- const rd=new FileReader();rd.onload=()=>{sel.photo=rd.result;
-  document.getElementById("photo").innerHTML='<img src="'+rd.result+'">'};rd.readAsDataURL(f)};
-
-let lastReco=null;
-function recommend(){
- const mood=sel.mood||"큐트";
- let pool=Object.keys(CHARMS).filter(id=>CHARMS[id].vibe===mood);
- if(pool.length<3) pool=pool.concat(Object.keys(CHARMS).filter(id=>!pool.includes(id)));
- const pick=pool.slice(0,mood==="미니멀"?1:3);
- lastReco={mood:sel.mood,color:sel.color,charms:pick};
- const list=document.getElementById("recoList");list.innerHTML="";
- pick.forEach(id=>{const c=CHARMS[id];const p=document.createElement("div");p.className="pill";
-  p.innerHTML='<div class="e">'+c.e+'</div><div class="n">'+c.nm+'</div><div class="s">'+c.src+'</div>';list.appendChild(p)});
- const cnt=pick.length;
- document.getElementById("reason").textContent=
-  (sel.color&&sel.color!=="어디든"?sel.color+" 가방엔 ":"")+ (sel.mood||"큐트")+" 무드로 "+
-  (cnt===1?"원포인트 하나만 딱":"키링 "+cnt+"개 조합")+"하면 깔끔해요. 위 키링들이 잘 어울려요!";
- document.getElementById("recoOut").classList.remove("hidden");
- document.getElementById("saveReco").textContent="이 조합 내 보드에 저장 ♥";
- document.getElementById("saveReco").classList.remove("on");
-}
-document.getElementById("recoBtn").onclick=recommend;
-document.getElementById("saveReco").onclick=()=>{if(!lastReco)return;
- board.push({ttl:(lastReco.mood||"큐트")+" 추천 조합",vibe:"내 추천",bag:"👜",bg:"#ffe1ee",charms:lastReco.charms});
- save("board",board);
- const b=document.getElementById("saveReco");b.textContent="✓ 보드에 저장됨";b.classList.add("on");renderBoard()};
-
-function lookCard(L,idx,inBoard){
- const charms=L.charms.map(id=>'<span class="cm">'+CHARMS[id].e+" "+CHARMS[id].nm+"</span>").join("");
- const srcs=[...new Set(L.charms.map(id=>CHARMS[id].src))].join(" · ");
- const btn=inBoard?'<button class="savebtn on" data-del="'+idx+'">보드에서 빼기</button>'
-                  :'<button class="savebtn" data-save="'+idx+'">이 룩 저장 ♥</button>';
- return '<div class="card look"><div class="top"><div class="bag" style="background:'+L.bg+'">'+L.bag+'</div>'+
+function lookHTML(L,tag,idx){
+ const charms=(L.charms||[]).map(id=>CHARMS[id]?'<button class="cm" data-charm="'+id+'">'+CHARMS[id].e+" "+CHARMS[id].nm+'</button>':'').join("");
+ const bag=L.photo?'<img src="'+L.photo+'">':L.bag;
+ const foot=tag==="board"
+   ? '<button class="save on" data-del="'+idx+'">보드에서 빼기</button>'
+   : '<button class="save" data-save="'+encodeURIComponent(JSON.stringify(L))+'">♥ 보드 저장</button>';
+ return '<div class="card look"><div class="head"><div class="bag" style="background:'+(L.bg||"#ffe1ee")+'">'+bag+'</div>'+
   '<div><div class="ttl">'+L.ttl+'</div><div class="vibe">'+L.vibe+'</div></div></div>'+
-  '<div class="charms">'+charms+'</div><div class="vibe" style="margin-top:8px">어디서? '+srcs+'</div>'+btn+'</div>';
+  '<div class="charms">'+charms+'</div>'+
+  '<div class="foot">'+foot+'<span class="tag">키링 탭 → 구매</span></div></div>';
 }
-function renderFeed(){document.getElementById("feed").innerHTML=LOOKS.map((L,i)=>lookCard(L,i,false)).join("")}
-function renderBoard(){const el=document.getElementById("board");
- el.innerHTML=board.length?board.map((L,i)=>lookCard(L,i,true)).join(""):'<div class="empty">아직 저장한 백꾸가 없어요.<br>둘러보기에서 ♥ 하거나 추천을 저장해보세요!</div>'}
+function renderFeed(){
+ const all=mine.concat(SEED);
+ document.getElementById("feed").innerHTML=all.map(L=>lookHTML(L,"feed")).join("");
+}
+function renderBoard(){
+ document.getElementById("board").innerHTML=board.length?board.map((L,i)=>lookHTML(L,"board",i)).join("")
+   :'<div class="empty">아직 저장한 백꾸가 없어요.<br>둘러보기에서 ♥ 눌러보세요!</div>';
+}
 
+/* 올리기 화면 */
+const post={photo:null,charms:[],mood:null};
+function renderPost(){
+ document.getElementById("post").innerHTML=
+ '<div class="card"><label>1. 내 가방 사진</label>'+
+ '<div class="photo" id="pPhoto">'+(post.photo?'<img src="'+post.photo+'">':'사진을 올리면 여기 보여요')+'</div>'+
+ '<label class="upbtn" for="pFile">📷 사진 올리기</label><input id="pFile" type="file" accept="image/*" style="display:none">'+
+ '<label>2. 단 키링 고르기 (여러 개)</label><div class="pickgrid" id="pPick"></div>'+
+ '<label>3. 무드</label><div class="chips" id="pMood"></div>'+
+ '<label>4. 제목</label><input type="text" id="pTtl" placeholder="예: 파스텔 큐티 백꾸">'+
+ '<button class="go" id="pGo">피드에 올리기 →</button></div>';
+ const pg=document.getElementById("pPick");
+ Object.keys(CHARMS).forEach(id=>{const c=CHARMS[id];const on=post.charms.includes(id);
+  const b=document.createElement("button");b.className="pick"+(on?" on":"");b.setAttribute("data-pick",id);
+  b.innerHTML='<span class="e">'+c.e+'</span>'+c.nm;pg.appendChild(b)});
+ const mg=document.getElementById("pMood");
+ MOODS.forEach(m=>{const b=document.createElement("button");b.className="chip"+(post.mood===m?" on":"");
+  b.textContent=m;b.setAttribute("data-pmood",m);mg.appendChild(b)});
+ document.getElementById("pFile").onchange=e=>{const f=e.target.files[0];if(!f)return;
+  const rd=new FileReader();rd.onload=()=>{post.photo=rd.result;renderPost()};rd.readAsDataURL(f)};
+ document.getElementById("pGo").onclick=()=>{
+  if(post.charms.length===0){alert("키링을 하나 이상 골라줘!");return}
+  const ttl=document.getElementById("pTtl").value.trim()||((post.mood||"나의")+" 백꾸");
+  mine.unshift({ttl:ttl,vibe:(post.mood||"")+" · 나",bag:"👜",bg:"#ffe1ee",charms:post.charms.slice(),photo:post.photo});
+  save("mine",mine);post.photo=null;post.charms=[];post.mood=null;
+  switchTab("feed");renderFeed();alert("피드에 올렸어! 둘러보기에서 확인해봐 ✨");
+ };
+}
 document.addEventListener("click",e=>{
- const sv=e.target.getAttribute&&e.target.getAttribute("data-save");
- const dl=e.target.getAttribute&&e.target.getAttribute("data-del");
- if(sv!=null){board.push(LOOKS[+sv]);save("board",board);e.target.textContent="✓ 저장됨";e.target.classList.add("on");renderBoard()}
- else if(dl!=null){board.splice(+dl,1);save("board",board);renderBoard()}
+ const g=e.target.closest&&e.target.closest("[data-pick]"); if(g){const id=g.getAttribute("data-pick");
+  const i=post.charms.indexOf(id); if(i>=0)post.charms.splice(i,1);else post.charms.push(id); renderPost(); return;}
+ const m=e.target.getAttribute&&e.target.getAttribute("data-pmood"); if(m){post.mood=m;renderPost();return;}
+ const ch=e.target.getAttribute&&e.target.getAttribute("data-charm"); if(ch){openSheet(ch);return;}
+ const sv=e.target.getAttribute&&e.target.getAttribute("data-save"); if(sv){board.unshift(JSON.parse(decodeURIComponent(sv)));save("board",board);e.target.textContent="✓ 저장됨";e.target.classList.add("on");renderBoard();return;}
+ const dl=e.target.getAttribute&&e.target.getAttribute("data-del"); if(dl!=null){board.splice(+dl,1);save("board",board);renderBoard();return;}
 });
-document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{
- document.querySelectorAll(".tab").forEach(x=>x.classList.remove("on"));t.classList.add("on");
- ["reco","feed","board"].forEach(id=>document.getElementById(id).classList.add("hidden"));
- document.getElementById(t.getAttribute("data-tab")).classList.remove("hidden");
-});
+function openSheet(id){const c=CHARMS[id];if(!c)return;
+ document.getElementById("sE").textContent=c.e;document.getElementById("sN").textContent=c.nm;
+ document.getElementById("sB").textContent=c.br+" · "+c.src;
+ const a=document.getElementById("sBuy");a.href=shop(c.nm);
+ document.getElementById("sheet").classList.add("on");}
+document.getElementById("sClose").onclick=()=>document.getElementById("sheet").classList.remove("on");
+document.getElementById("sheet").onclick=e=>{if(e.target.id==="sheet")document.getElementById("sheet").classList.remove("on")};
+
+function switchTab(t){document.querySelectorAll(".tabbar div").forEach(x=>x.classList.toggle("on",x.getAttribute("data-tab")===t));
+ ["feed","post","board"].forEach(id=>document.getElementById(id).classList.toggle("hidden",id!==t));
+ if(t==="post")renderPost();}
+document.querySelectorAll(".tabbar div").forEach(t=>t.onclick=()=>switchTab(t.getAttribute("data-tab")));
+
 try{renderFeed();renderBoard()}catch(e){document.body.insertAdjacentHTML("afterbegin",'<pre style="color:#c00;padding:12px;white-space:pre-wrap">⚠️ 오류(캡처해 보내줘):\n'+(e&&e.stack||e)+'</pre>')}
 </script></body></html>
