@@ -106,29 +106,47 @@ const load=(k,dv)=>{try{const v=JSON.parse(lsGet("backku:"+k));return v==null?dv
 const save=(k,v)=>lsSet("backku:"+k,JSON.stringify(v));
 const shop=q=>"https://search.shopping.naver.com/search/all?query="+encodeURIComponent(q+" 키링");
 
+/* 아이템: 6개 카테고리(키링·인형·스카프·참·뱃지·체인) */
 const CHARMS={
- labubu_s:{nm:"라부부 시크릿",e:"👹",br:"팝마트",src:"KREAM"},labubu:{nm:"라부부",e:"👺",br:"팝마트",src:"팝마트"},
- smiski:{nm:"스마이스키",e:"🧸",br:"드림즈",src:"아이디어스"},bonecdo:{nm:"쁘넥도",e:"🐤",br:"보넥도",src:"29CM"},
- cinnamoroll:{nm:"시나모롤",e:"🐶",br:"산리오",src:"산리오샵"},kuromi:{nm:"쿠로미",e:"😈",br:"산리오",src:"산리오샵"},
- stitch:{nm:"스티치",e:"💙",br:"디즈니",src:"디즈니"},loopy:{nm:"잔망루피",e:"🐧",br:"위글위글",src:"스마트스토어"},
- miffy:{nm:"미피",e:"🐰",br:"미피",src:"텐바이텐"},mangbear:{nm:"망그러진곰",e:"🐻",br:"망곰",src:"아이디어스"},
- mujik:{nm:"무직타이거",e:"🐯",br:"무직타이거",src:"스마트스토어"},chunsik:{nm:"춘식이",e:"🐱",br:"카카오",src:"카카오프렌즈"},
- kitty:{nm:"헬로키티",e:"🎀",br:"산리오",src:"산리오샵"},duck:{nm:"백꿈 오리",e:"🦆",br:"핸드메이드",src:"아이디어스"},
- beads:{nm:"비즈 키링",e:"📿",br:"핸드메이드",src:"아이디어스"},crayon:{nm:"짱구",e:"🖍️",br:"반다이",src:"애니메이트"}
+ labubu_s:{nm:"라부부 시크릿",e:"👹",br:"팝마트",src:"KREAM",cat:"인형"},
+ labubu:{nm:"라부부",e:"👺",br:"팝마트",src:"팝마트",cat:"인형"},
+ smiski:{nm:"스마이스키",e:"🧸",br:"드림즈",src:"아이디어스",cat:"인형"},
+ bonecdo:{nm:"쁘넥도",e:"🐤",br:"보넥도",src:"29CM",cat:"인형"},
+ duck:{nm:"백꿈 오리인형",e:"🦆",br:"핸드메이드",src:"아이디어스",cat:"인형"},
+ mangbear:{nm:"망그러진곰",e:"🐻",br:"망곰",src:"아이디어스",cat:"인형"},
+ teddy:{nm:"양모 곰돌이",e:"🧸",br:"핸드메이드",src:"아이디어스",cat:"인형"},
+ cinnamoroll:{nm:"시나모롤 키링",e:"🐶",br:"산리오",src:"산리오샵",cat:"키링"},
+ kuromi:{nm:"쿠로미 키링",e:"😈",br:"산리오",src:"산리오샵",cat:"키링"},
+ stitch:{nm:"스티치 키링",e:"💙",br:"디즈니",src:"디즈니",cat:"키링"},
+ loopy:{nm:"잔망루피 키링",e:"🐧",br:"위글위글",src:"스마트스토어",cat:"키링"},
+ chunsik:{nm:"춘식이 키링",e:"🐱",br:"카카오",src:"카카오프렌즈",cat:"키링"},
+ kitty:{nm:"헬로키티 키링",e:"🎀",br:"산리오",src:"산리오샵",cat:"키링"},
+ crayon:{nm:"짱구 아크릴키링",e:"🖍️",br:"반다이",src:"애니메이트",cat:"키링"},
+ twilly:{nm:"실크 트윌리",e:"🧣",br:"-",src:"스마트스토어",cat:"스카프"},
+ check_scarf:{nm:"체크 스카프",e:"🧶",br:"빈티지",src:"빈티지샵",cat:"스카프"},
+ heart_charm:{nm:"하트 볼체인 참",e:"❤️",br:"-",src:"주얼리샵",cat:"참"},
+ pearl_charm:{nm:"진주 참",e:"🤍",br:"-",src:"주얼리샵",cat:"참"},
+ enamel_pin:{nm:"에나멜 핀버튼",e:"📛",br:"-",src:"아이디어스",cat:"뱃지"},
+ patch:{nm:"패치 뱃지",e:"🏷️",br:"빈티지",src:"빈티지샵",cat:"뱃지"},
+ gold_chain:{nm:"골드 체인 스트랩",e:"⛓️",br:"-",src:"액세서리샵",cat:"체인"},
+ pearl_chain:{nm:"펄 체인",e:"📿",br:"-",src:"액세서리샵",cat:"체인"}
 };
-const FILTERS=["전체","큐트","시크","미니멀","맥시멀","덕질"];
+const CATS=["키링","인형","스카프","참","뱃지","체인"];
+const CATMETA={키링:{e:"🔑",d:"포인트 하나로",bg:"linear-gradient(150deg,#ffd9e8,#ffeccf)"},인형:{e:"🧸",d:"셀럽도 빠진",bg:"linear-gradient(150deg,#ffd0e0,#ffd9b0)"},스카프:{e:"🧣",d:"감각적으로",bg:"linear-gradient(150deg,#ffe3cf,#ffd9e8)"},참:{e:"💠",d:"성숙한 무드",bg:"linear-gradient(150deg,#d9d2e8,#ffd9e8)"},뱃지:{e:"📛",d:"볼드하게",bg:"linear-gradient(150deg,#cfe0ff,#d9d2e8)"},체인:{e:"⛓️",d:"시크하게",bg:"linear-gradient(150deg,#d9d2e8,#cfd6e8)"}};
 const MOODS=["큐트","시크","미니멀","맥시멀","덕질"];
 const GRAD={큐트:"linear-gradient(150deg,#ffd9e8,#ffeccf)",시크:"linear-gradient(150deg,#d9d2e8,#cfd6e8)",미니멀:"linear-gradient(150deg,#efe9f2,#f3ede6)",맥시멀:"linear-gradient(150deg,#ffd0e0,#ffd9b0)",덕질:"linear-gradient(150deg,#fff0cf,#ffd9e8)"};
-const COLLS=[{t:"🧸 라부부 천국",d:"요즘 제일 핫한",vibe:"맥시멀",bg:GRAD.맥시멀},{t:"🎀 산리오 모음",d:"큐트의 정석",vibe:"큐트",bg:GRAD.큐트},{t:"🤍 미니멀러",d:"원포인트 감성",vibe:"미니멀",bg:GRAD.미니멀},{t:"🖤 블랙 시크",d:"시크하게",vibe:"시크",bg:GRAD.시크}];
+const catOf=id=>CHARMS[id]?CHARMS[id].cat:"";
 const SEED=[
  {id:"s1",ttl:"파스텔 큐티 백꾸",cr:"@bagbunny",vibe:"큐트",charms:["cinnamoroll","loopy","duck"],likes:312},
- {id:"s2",ttl:"블랙 시크 한 끗",cr:"@noir_",vibe:"시크",charms:["kuromi","mujik"],likes:188},
- {id:"s3",ttl:"미니멀 원포인트",cr:"@less.is",vibe:"미니멀",charms:["miffy"],likes:241},
+ {id:"s2",ttl:"블랙 체인 시크",cr:"@noir_",vibe:"시크",charms:["kuromi","gold_chain"],likes:188},
+ {id:"s3",ttl:"트윌리 원포인트",cr:"@less.is",vibe:"미니멀",charms:["twilly"],likes:241},
  {id:"s4",ttl:"맥시멀 플렉스",cr:"@maxim_b",vibe:"맥시멀",charms:["labubu_s","crayon","mangbear"],likes:530},
  {id:"s5",ttl:"최애 덕질백",cr:"@my_fav",vibe:"덕질",charms:["chunsik","kitty","stitch"],likes:276},
  {id:"s6",ttl:"데님백 큐티 조합",cr:"@denim.day",vibe:"큐트",charms:["bonecdo","smiski"],likes:154},
- {id:"s7",ttl:"라부부 원톱",cr:"@popmart_kr",vibe:"맥시멀",charms:["labubu","beads"],likes:402},
- {id:"s8",ttl:"시크 미니멀 믹스",cr:"@mood.b",vibe:"시크",charms:["mujik","miffy"],likes:97}
+ {id:"s7",ttl:"라부부 + 펄체인",cr:"@popmart_kr",vibe:"맥시멀",charms:["labubu","pearl_chain"],likes:402},
+ {id:"s8",ttl:"스카프 + 참 우아",cr:"@mood.b",vibe:"시크",charms:["check_scarf","heart_charm","pearl_charm"],likes:131},
+ {id:"s9",ttl:"뱃지 가득 볼드백",cr:"@pin.it",vibe:"맥시멀",charms:["enamel_pin","patch","stitch"],likes:118},
+ {id:"s10",ttl:"곰돌이 미니멀",cr:"@teddy.day",vibe:"큐트",charms:["teddy"],likes:88}
 ];
 const NOTI=[
  {ic:"❤️",t:"@maxim_b님 외 23명이 회원님의 룩을 좋아해요",d:"방금"},
@@ -139,7 +157,7 @@ const NOTI=[
  {ic:"🔥",t:"이번 주 인기 무드는 '큐트'! 지금 구경해보세요",d:"어제"}
 ];
 let board=load("board",[]),mine=load("mine",[]),wish=load("wish",[]),likes=load("likes",{});
-let filter="전체",cur=null,mySeg="board",curScreen="home";
+let exploreCat="전체",exploreQ="",cur=null,mySeg="board",curScreen="home";
 const allLooks=()=>mine.concat(SEED);
 const heroEms=cs=>cs.slice(0,3).map((id,i)=>'<span class="em'+(i>0?' s':'')+'">'+(CHARMS[id]?CHARMS[id].e:'❓')+'</span>').join('');
 const likeCount=L=>(L.likes||0)+(likes[L.id]?1:0);
@@ -155,18 +173,17 @@ function lookCard(L,feat){
   '<div class="acts"><button data-like="'+L.id+'" class="'+(liked?'on':'')+'">'+(liked?'❤️':'🤍')+' <span>'+likeCount(L)+'</span></button>'+
   '<button data-savelook="'+L.id+'" class="'+(saved?'on':'')+'">'+(saved?'🔖 저장됨':'🔖 저장')+'</button></div></div></div>';
 }
-/* 홈 = 에디터 추천 피드 */
+/* 홈 = 에디터 추천 피드 (무드 필터 없음, 카테고리 컬렉션) */
 function renderHome(){
- const list=allLooks().filter(L=>filter==="전체"||L.vibe===filter);
- const feat=allLooks().slice().sort((a,b)=>likeCount(b)-likeCount(a))[0];
- const colls=COLLS.map(c=>'<div class="col" style="background:'+c.bg+';color:#5a3a4a" data-filter="'+c.vibe+'"><b>'+c.t+'</b><span>'+c.d+'</span></div>').join('');
+ const list=allLooks();
+ const feat=list.slice().sort((a,b)=>likeCount(b)-likeCount(a))[0];
+ const colls=CATS.map(c=>{const m=CATMETA[c];return '<div class="col" style="background:'+m.bg+';color:#5a3a4a" data-gocat="'+c+'"><b>'+m.e+' '+c+'</b><span>'+m.d+'</span></div>'}).join('');
  document.getElementById("scr-home").innerHTML=
-  '<div class="filters">'+FILTERS.map(f=>'<button class="fc'+(filter===f?' on':'')+'" data-filter="'+f+'">'+f+'</button>').join('')+'</div>'+
-  '<div class="body">'+
-   (filter==="전체"&&feat?lookCard(feat,true):'')+
-   '<div class="sectit">🎨 에디터 컬렉션</div><div class="colrow">'+colls+'</div>'+
-   '<div class="sectit">'+(filter==="전체"?"최신 백꾸":filter+" 백꾸")+'</div>'+
-   (list.length?list.map(L=>lookCard(L)).join(''):'<div class="empty">이 무드의 룩이 없어요.</div>')+
+  '<div class="body" style="padding-top:8px">'+
+   (feat?lookCard(feat,true):'')+
+   '<div class="sectit">🛍️ 카테고리별 구경</div><div class="colrow">'+colls+'</div>'+
+   '<div class="sectit">최신 백꾸</div>'+
+   (list.length?list.map(L=>lookCard(L)).join(''):'<div class="empty">아직 룩이 없어요.</div>')+
   '</div>';
 }
 /* 탐색 = 남들 사진 그리드 */
@@ -176,14 +193,17 @@ function ptile(L){
  return '<div class="ptile" data-look="'+L.id+'" style="'+bg+'">'+hero+'<span class="lk">❤️ '+likeCount(L)+'</span><div class="ov">'+L.ttl+'</div></div>';
 }
 function renderExplore(q){
- q=(q||"").trim();
+ q=(q==null?exploreQ:q).trim();exploreQ=q;
  let list=allLooks();
+ if(exploreCat!=="전체")list=list.filter(L=>L.charms.some(id=>catOf(id)===exploreCat));
  if(q)list=list.filter(L=>L.ttl.includes(q)||L.cr.includes(q)||L.charms.some(id=>CHARMS[id]&&(CHARMS[id].nm.includes(q)||CHARMS[id].br.includes(q))));
- document.getElementById("scr-explore").innerHTML='<div class="body" style="padding-top:6px">'+
-  '<input class="search" id="q" type="text" placeholder="룩·키링·브랜드 검색" value="'+q.replace(/"/g,'&quot;')+'">'+
-  '<div class="sectit">👀 다른 사람들의 백꾸</div>'+
-  (list.length?'<div class="pgrid">'+list.map(ptile).join('')+'</div>':'<div class="empty">검색 결과가 없어요.</div>')+'</div>';
- const qi=document.getElementById("q");qi.oninput=e=>{const v=e.target.value;renderExplore(v);const n=document.getElementById("q");n.focus();n.setSelectionRange(v.length,v.length)};
+ const chips=["전체"].concat(CATS).map(c=>'<button class="fc'+(exploreCat===c?' on':'')+'" data-excat="'+c+'">'+(c==="전체"?c:(CATMETA[c].e+" "+c))+'</button>').join('');
+ document.getElementById("scr-explore").innerHTML=
+  '<div class="body" style="padding-top:6px"><input class="search" id="q" type="text" placeholder="룩·아이템·브랜드 검색" value="'+q.replace(/"/g,'&quot;')+'"></div>'+
+  '<div class="filters">'+chips+'</div>'+
+  '<div class="body"><div class="sectit">👀 다른 사람들의 백꾸'+(exploreCat!=="전체"?' · '+exploreCat:'')+'</div>'+
+  (list.length?'<div class="pgrid">'+list.map(ptile).join('')+'</div>':'<div class="empty">결과가 없어요.</div>')+'</div>';
+ const qi=document.getElementById("q");qi.oninput=e=>{const v=e.target.value;renderExplore(v);const n=document.getElementById("q");if(n){n.focus();n.setSelectionRange(v.length,v.length)}};
 }
 /* 상세 */
 function openDetail(id){cur=findLook(id);if(!cur)return;go("detail")}
@@ -191,7 +211,7 @@ function renderDetail(){
  const L=cur;const saved=board.some(b=>b.id===L.id);
  const hero=L.photo?'<img src="'+L.photo+'">':heroEms(L.charms);
  const rows=L.charms.map(id=>{const c=CHARMS[id];if(!c)return'';const w=wish.includes(id);
-  return '<div class="crow"><span class="ce">'+c.e+'</span><div><div class="cn">'+c.nm+'</div><div class="cb">'+c.br+' · '+c.src+'</div></div>'+
+  return '<div class="crow"><span class="ce">'+c.e+'</span><div><div class="cn">'+c.nm+'</div><div class="cb">'+c.cat+' · '+c.src+'</div></div>'+
    '<div class="cbtns"><button class="w'+(w?' on':'')+'" data-wish="'+id+'">'+(w?'♥':'위시')+'</button>'+
    '<a class="buy" href="'+shop(c.nm)+'" target="_blank" rel="noopener">구매</a></div></div>'}).join('');
  const sim=allLooks().filter(x=>x.vibe===L.vibe&&x.id!==L.id).slice(0,6)
@@ -205,7 +225,7 @@ function renderDetail(){
 }
 /* 키링 시트 */
 function openCharm(id){const c=CHARMS[id];if(!c)return;const used=allLooks().filter(L=>L.charms.includes(id)).length;const w=wish.includes(id);
- document.body.insertAdjacentHTML("beforeend",'<div style="position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:20;display:flex;align-items:flex-end" id="ov"><div style="background:#fff;width:100%;max-width:480px;margin:0 auto;border-radius:22px 22px 0 0;padding:24px;text-align:center"><div style="font-size:54px">'+c.e+'</div><div style="font-size:20px;font-weight:800;margin-top:6px">'+c.nm+'</div><div style="font-size:13px;color:var(--mut)">'+c.br+' · '+c.src+' · 룩 '+used+'개</div><a href="'+shop(c.nm)+'" target="_blank" rel="noopener" style="display:block;background:var(--pk);color:#fff;border-radius:12px;padding:14px;font-weight:800;margin-top:16px;text-decoration:none">구매처에서 보기 →</a><button id="ovw" style="display:block;width:100%;background:#f3e6ef;color:#a06;border:0;border-radius:12px;padding:13px;font-weight:700;margin-top:8px;cursor:pointer">'+(w?'♥ 위시 담음':'위시리스트 담기')+'</button><button id="ovc" style="background:none;border:0;color:var(--mut);margin-top:10px;cursor:pointer">닫기</button></div></div>');
+ document.body.insertAdjacentHTML("beforeend",'<div style="position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:20;display:flex;align-items:flex-end" id="ov"><div style="background:#fff;width:100%;max-width:480px;margin:0 auto;border-radius:22px 22px 0 0;padding:24px;text-align:center"><div style="font-size:54px">'+c.e+'</div><div style="font-size:20px;font-weight:800;margin-top:6px">'+c.nm+'</div><div style="font-size:13px;color:var(--mut)">'+c.cat+' · '+c.src+' · 룩 '+used+'개</div><a href="'+shop(c.nm)+'" target="_blank" rel="noopener" style="display:block;background:var(--pk);color:#fff;border-radius:12px;padding:14px;font-weight:800;margin-top:16px;text-decoration:none">구매처에서 보기 →</a><button id="ovw" style="display:block;width:100%;background:#f3e6ef;color:#a06;border:0;border-radius:12px;padding:13px;font-weight:700;margin-top:8px;cursor:pointer">'+(w?'♥ 위시 담음':'위시리스트 담기')+'</button><button id="ovc" style="background:none;border:0;color:var(--mut);margin-top:10px;cursor:pointer">닫기</button></div></div>');
  document.getElementById("ov").onclick=e=>{if(e.target.id==="ov")e.currentTarget.remove()};
  document.getElementById("ovc").onclick=()=>document.getElementById("ov").remove();
  document.getElementById("ovw").onclick=()=>{toggleWish(id);const o=document.getElementById("ov");if(o)o.remove()};
@@ -214,8 +234,13 @@ function toggleWish(id){const i=wish.indexOf(id);if(i>=0)wish.splice(i,1);else w
 /* 올리기 */
 const post={photo:null,charms:[],mood:null};
 function renderPost(){
- document.getElementById("post").innerHTML='<label>1. 내 가방 사진</label><div class="photo" id="pPhoto">'+(post.photo?'<img src="'+post.photo+'">':'사진을 올리면 미리보기 📷')+'</div><label class="upbtn" for="pFile">사진 올리기</label><input id="pFile" type="file" accept="image/*" style="display:none"><label>2. 단 키링 (여러 개)</label><div class="pickgrid" id="pPick"></div><label>3. 무드</label><div class="chips" id="pMood"></div><label>4. 제목</label><input type="text" id="pTtl" placeholder="예: 파스텔 큐티 백꾸"><button class="go" id="pGo">피드에 올리기 →</button>';
- const pg=document.getElementById("pPick");Object.keys(CHARMS).forEach(id=>{const c=CHARMS[id];const b=document.createElement("button");b.className="pick"+(post.charms.includes(id)?" on":"");b.setAttribute("data-pick",id);b.innerHTML='<span class="e">'+c.e+'</span>'+c.nm;pg.appendChild(b)});
+ document.getElementById("post").innerHTML='<label>1. 내 가방 사진</label><div class="photo" id="pPhoto">'+(post.photo?'<img src="'+post.photo+'">':'사진을 올리면 미리보기 📷')+'</div><label class="upbtn" for="pFile">사진 올리기</label><input id="pFile" type="file" accept="image/*" style="display:none"><label>2. 단 아이템 (여러 개, 카테고리별)</label><div id="pPick"></div><label>3. 무드</label><div class="chips" id="pMood"></div><label>4. 제목</label><input type="text" id="pTtl" placeholder="예: 파스텔 큐티 백꾸"><button class="go" id="pGo">피드에 올리기 →</button>';
+ const pg=document.getElementById("pPick");
+ CATS.forEach(cat=>{const ids=Object.keys(CHARMS).filter(id=>CHARMS[id].cat===cat);if(!ids.length)return;
+  const h=document.createElement("div");h.style.cssText="font-size:12px;font-weight:700;color:#b58;margin:10px 2px 6px";h.textContent=CATMETA[cat].e+" "+cat;pg.appendChild(h);
+  const grid=document.createElement("div");grid.className="pickgrid";
+  ids.forEach(id=>{const c=CHARMS[id];const b=document.createElement("button");b.className="pick"+(post.charms.includes(id)?" on":"");b.setAttribute("data-pick",id);b.innerHTML='<span class="e">'+c.e+'</span>'+c.nm;grid.appendChild(b)});
+  pg.appendChild(grid);});
  const mg=document.getElementById("pMood");MOODS.forEach(m=>{const b=document.createElement("button");b.className="chip"+(post.mood===m?" on":"");b.textContent=m;b.setAttribute("data-pmood",m);mg.appendChild(b)});
  document.getElementById("pFile").onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{post.photo=rd.result;renderPost()};rd.readAsDataURL(f)};
  document.getElementById("pGo").onclick=()=>{if(post.charms.length===0){alert("키링을 하나 이상 골라줘!");return}const ttl=document.getElementById("pTtl").value.trim()||((post.mood||"나의")+" 백꾸");mine.unshift({id:"u"+Date.now(),ttl:ttl,cr:"@나",vibe:post.mood||"큐트",charms:post.charms.slice(),photo:post.photo,likes:0});save("mine",mine);post.photo=null;post.charms=[];post.mood=null;go("home");alert("피드에 올렸어! 🎉")};
@@ -258,7 +283,8 @@ document.addEventListener("click",e=>{const t=e.target;
  const pick=t.closest&&t.closest("[data-pick]");if(pick){const id=pick.getAttribute("data-pick");const i=post.charms.indexOf(id);if(i>=0)post.charms.splice(i,1);else post.charms.push(id);renderPost();return}
  const pm=t.getAttribute&&t.getAttribute("data-pmood");if(pm){post.mood=pm;renderPost();return}
  const sg=t.getAttribute&&t.getAttribute("data-seg");if(sg){mySeg=sg;renderMy();return}
- const fl=t.closest&&t.closest("[data-filter]");if(fl){filter=fl.getAttribute("data-filter");renderHome();return}
+ const gc=t.closest&&t.closest("[data-gocat]");if(gc){exploreCat=gc.getAttribute("data-gocat");exploreQ="";go("explore");return}
+ const ec=t.closest&&t.closest("[data-excat]");if(ec){exploreCat=ec.getAttribute("data-excat");renderExplore(exploreQ);return}
  const lk=t.closest&&t.closest("[data-like]");if(lk){const id=lk.getAttribute("data-like");likes[id]=!likes[id];save("likes",likes);if(curScreen==="home")renderHome();else if(curScreen==="detail")renderDetail();else if(curScreen==="my")renderMy();return}
  const sl=t.closest&&t.closest("[data-savelook]");if(sl){const id=sl.getAttribute("data-savelook");const L=findLook(id);const bi=board.findIndex(b=>b.id===id);if(bi>=0)board.splice(bi,1);else if(L)board.unshift(L);save("board",board);if(curScreen==="detail")renderDetail();else if(curScreen==="my")renderMy();else renderHome();return}
  const wi=t.getAttribute&&t.getAttribute("data-wish");if(wi){toggleWish(wi);return}
