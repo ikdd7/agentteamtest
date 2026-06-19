@@ -3,37 +3,50 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>백꾸 스튜디오 — 가방 꾸미기 프로토타입</title>
+  <title>백꾸핀 — 백꾸 덕후들의 핀터레스트</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <header class="topbar">
-    <div class="brand">
+    <div class="brand" id="brand-home">
       <span class="logo">🎀</span>
       <div>
-        <h1>백꾸 스튜디오</h1>
-        <p class="tagline">달아보고 · 마음에 들면 · 바로 담기</p>
+        <h1>백꾸핀</h1>
+        <p class="tagline">백꾸 덕후들의 핀터레스트</p>
       </div>
     </div>
-    <div class="topbar-actions">
-      <button id="btn-gallery" class="btn btn-ghost" type="button">✨ 둘러보기</button>
+    <div class="topbar-actions" id="feed-actions">
+      <button id="btn-create" class="btn btn-primary" type="button">＋ 나도 꾸미기</button>
+    </div>
+    <div class="topbar-actions" id="editor-actions" hidden>
+      <button id="btn-home" class="btn btn-ghost" type="button">← 홈</button>
       <button id="btn-reset" class="btn btn-ghost" type="button">↺ 초기화</button>
-      <button id="btn-save" class="btn btn-primary" type="button">📸 이미지 저장</button>
+      <button id="btn-save" class="btn btn-ghost" type="button">📸 저장</button>
+      <button id="btn-post" class="btn btn-primary" type="button">✨ 피드에 올리기</button>
     </div>
   </header>
 
-  <main class="layout" id="view-editor">
-    <!-- 좌측: 아이템 팔레트 -->
+  <!-- ===== 홈: 백꾸 피드 ===== -->
+  <section class="feed" id="view-feed">
+    <div class="feed-hero">
+      <h2>오늘의 백꾸 둘러보기</h2>
+      <input id="search" class="search" type="search" placeholder="🔍 스타일·아이템·작성자 검색 (예: 코퀘트, 곰돌이, 민지)" />
+    </div>
+    <div class="tagbar" id="tagbar"></div>
+    <div class="masonry" id="feed-grid"></div>
+    <p class="feed-empty" id="feed-empty" hidden>검색 결과가 없어요 🥲</p>
+    <p class="feed-foot" id="outbound-stat">판매처 이동 0회 · 제휴 트래픽 데모</p>
+  </section>
+
+  <!-- ===== 에디터: 나도 꾸미기 ===== -->
+  <main class="layout" id="view-editor" hidden>
     <section class="panel palette" aria-label="아이템 팔레트">
-      <div class="panel-head">
-        <h2>가방 고르기</h2>
-      </div>
+      <div class="panel-head"><h2>가방 고르기</h2></div>
       <div class="bag-picker" id="bag-picker"></div>
       <label class="upload">
         <input type="file" id="bag-upload" accept="image/*" hidden />
         <span>＋ 내 가방 사진 올리기</span>
       </label>
-
       <div class="panel-head">
         <h2>키링 · 참 · 스티커</h2>
         <p class="hint">탭하거나 캔버스로 끌어다 놓으세요</p>
@@ -45,15 +58,12 @@
       </label>
     </section>
 
-    <!-- 중앙: 꾸미기 캔버스 -->
     <section class="stage-wrap">
       <div class="stage" id="stage">
         <div class="bag-layer" id="bag-layer" aria-hidden="true">👜</div>
         <div class="charm-layer" id="charm-layer"></div>
         <p class="empty-tip" id="empty-tip">아이템을 탭해서 가방을 꾸며보세요 ✨</p>
       </div>
-
-      <!-- 선택된 아이템 조작 바 -->
       <div class="tool-dock" id="tool-dock" hidden>
         <span class="tool-label" id="tool-label">아이템</span>
         <label class="slider">크기
@@ -69,7 +79,6 @@
       </div>
     </section>
 
-    <!-- 우측: 쇼핑 리스트 (아웃바운드) -->
     <aside class="panel cart" aria-label="쇼핑 리스트">
       <div class="panel-head">
         <h2>담은 아이템 · 쇼핑 리스트</h2>
@@ -77,32 +86,33 @@
       </div>
       <ul class="cart-list" id="cart-list"></ul>
       <div class="cart-foot">
-        <div class="cart-total">
-          <span>예상가 합계</span>
-          <strong id="cart-total">0원</strong>
-        </div>
-        <button class="btn btn-primary btn-block" id="btn-copy" type="button">📋 쇼핑 리스트 복사 · 공유</button>
-        <p class="demo-note" id="outbound-stat">판매처 이동 0회 · 제휴 트래픽 데모</p>
+        <div class="cart-total"><span>예상가 합계</span><strong id="cart-total">0원</strong></div>
+        <button class="btn btn-primary btn-block" id="btn-post-2" type="button">✨ 피드에 올리기</button>
+        <button class="btn btn-ghost btn-block" id="btn-copy" type="button" style="margin-top:8px">📋 쇼핑 리스트 복사·공유</button>
       </div>
     </aside>
   </main>
 
-  <!-- 둘러보기: 다른 사람들이 꾸민 백꾸 피드 -->
-  <section class="gallery" id="view-gallery" hidden>
-    <div class="gallery-head">
-      <div>
-        <h2>✨ 다른 사람들의 백꾸 구경하기</h2>
-        <p class="hint">마음에 들면 「따라 꾸미기」로 불러오거나, 아이템을 바로 사러 갈 수 있어요</p>
-      </div>
-      <div class="gallery-actions">
-        <button id="btn-share-look" class="btn btn-ghost" type="button">＋ 내 백꾸 올리기</button>
-        <button id="btn-back-editor" class="btn btn-primary" type="button">🎨 꾸미러 가기</button>
+  <!-- ===== 핀 상세 모달 ===== -->
+  <div class="pin-backdrop" id="pin-modal" hidden>
+    <div class="pin" role="dialog" aria-modal="true">
+      <button class="pin-close" id="pin-close" type="button" aria-label="닫기">✕</button>
+      <div class="pin-img" id="pin-img"></div>
+      <div class="pin-side">
+        <div class="pin-author" id="pin-author"></div>
+        <div class="pin-stats">
+          <button class="pin-stat" id="pin-like" type="button">♡ <b id="pin-likes">0</b></button>
+          <button class="pin-stat" id="pin-save" type="button">🔖 <b id="pin-saves">0</b> 저장</button>
+        </div>
+        <h3 class="pin-h">이 백꾸에 쓰인 아이템</h3>
+        <ul class="pin-items" id="pin-items"></ul>
+        <button class="btn btn-primary btn-block" id="pin-follow" type="button">🎨 따라 꾸미기</button>
+        <p class="detail-note">아이템의 ‘사러 가기’는 실제 판매처(네이버쇼핑)로 이동해요</p>
       </div>
     </div>
-    <div class="gallery-grid" id="gallery-grid"></div>
-  </section>
+  </div>
 
-  <!-- 아이템 상세 정보 카드 (오늘의집형) -->
+  <!-- ===== 아이템 상세 카드 ===== -->
   <div class="detail-backdrop" id="detail-card" hidden>
     <div class="detail" role="dialog" aria-modal="true">
       <button class="detail-close" id="detail-close" type="button" aria-label="닫기">✕</button>
