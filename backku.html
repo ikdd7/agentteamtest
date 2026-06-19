@@ -75,7 +75,7 @@
  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
  .gtile{background:#fff;border-radius:14px;padding:12px 6px;text-align:center;cursor:pointer;box-shadow:0 2px 8px rgba(180,90,140,.07)}.gtile .e{font-size:30px;display:block}.gtile .n{font-size:12px;font-weight:700;margin-top:5px}.gtile .b{font-size:10px;color:var(--mut)}
  .empty{color:var(--mut);text-align:center;padding:40px 16px;font-size:14px;line-height:1.6}
- .nav{position:fixed;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;background:#fff;display:flex;box-shadow:0 -2px 14px rgba(180,90,140,.12)}
+ .nav{position:fixed;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;background:#fff;display:flex;box-shadow:0 -2px 14px rgba(180,90,140,.12);z-index:50}
  .nav button{flex:1;border:0;background:none;padding:9px 0 11px;font-size:11px;font-weight:700;color:#c0a9b5;cursor:pointer;position:relative}
  .nav button .i{font-size:21px;display:block;margin-bottom:2px} .nav button.on{color:var(--pk)}
  .nav .dot{position:absolute;top:7px;right:28%;width:7px;height:7px;background:var(--pk);border-radius:50%}
@@ -231,7 +231,7 @@ function renderNoti(){
 }
 /* 마이 */
 function renderMy(){
- const gtile=id=>{const c=CHARMS[id];return '<div class="gtile" data-charm="'+id+'"><span class="e">'+c.e+'</span><div class="n">'+c.nm+'</div><div class="b">'+c.br+'</div></div>'};
+ const gtile=id=>{const c=CHARMS[id];if(!c)return '';return '<div class="gtile" data-charm="'+id+'"><span class="e">'+c.e+'</span><div class="n">'+c.nm+'</div><div class="b">'+c.br+'</div></div>'};
  let html='<div class="seg">'+[["board","♥ 저장한 룩"],["mine","📷 내가 올린"],["wish","🛍️ 위시"]].map(s=>'<button class="'+(mySeg===s[0]?'on':'')+'" data-seg="'+s[0]+'">'+s[1]+'</button>').join('')+'</div>';
  if(mySeg==="board")html+=board.length?board.map(L=>lookCard(L)).join(''):'<div class="empty">저장한 룩이 없어요<br>홈/탐색에서 🔖 저장해보세요!</div>';
  else if(mySeg==="mine")html+=mine.length?mine.map(L=>lookCard(L)).join(''):'<div class="empty">올린 백꾸가 없어요<br>올리기에서 공유해보세요!</div>';
@@ -247,9 +247,11 @@ function go(scr){
  const back=scr==="detail";
  document.getElementById("bar").innerHTML=back?'<button class="back" id="bk">‹</button><span class="ttl" style="color:var(--ink);font-weight:800;font-size:17px">룩 상세</span>':'<span class="logo">백꾸</span><span class="ttl">'+(TITLES[scr]||"")+'</span>';
  if(back)document.getElementById("bk").onclick=()=>go("home");
- if(scr==="home")renderHome();if(scr==="explore")renderExplore("");if(scr==="post")renderPost();
- if(scr==="noti")renderNoti();if(scr==="my")renderMy();if(scr==="detail")renderDetail();
- window.scrollTo&&window.scrollTo(0,0);
+ try{
+  if(scr==="home")renderHome();else if(scr==="explore")renderExplore("");else if(scr==="post")renderPost();
+  else if(scr==="noti")renderNoti();else if(scr==="my")renderMy();else if(scr==="detail")renderDetail();
+ }catch(err){document.getElementById("scr-"+scr).innerHTML='<div class="empty">⚠️ 화면 오류(캡처해 보내줘):<br>'+(err&&err.message||err)+'</div>';}
+ try{window.scrollTo&&window.scrollTo(0,0)}catch(_){}
 }
 document.querySelectorAll(".nav button").forEach(b=>b.onclick=()=>go(b.getAttribute("data-go")));
 document.addEventListener("click",e=>{const t=e.target;
