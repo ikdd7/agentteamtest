@@ -41,12 +41,40 @@ const CHARMS = [
   { name: "무지개 참", price: 3000, priceMax: 7000, emoji: "🌈", img: "assets/rainbow.svg",
     brand: "큐트랩", material: "아크릴", tags: ["레인보우", "키즈"],
     desc: "알록달록 무지개 참. 발랄하고 캐주얼한 가방에 잘 어울려요." },
+  { name: "체인 참", price: 8000, priceMax: 16000, emoji: "⛓️", img: "assets/chain.svg",
+    brand: "메시걸", material: "메탈 체인", tags: ["체인", "트렌드"],
+    desc: "굵기 다른 체인을 레이어드하는 요즘 '메시 걸' 무드. 주렁주렁 대신 하나로 강하게." },
+  { name: "키티 키링", price: 11000, priceMax: 22000, emoji: "🐱", img: "assets/kitty.svg",
+    brand: "산리오", material: "PVC/퍼", tags: ["캐릭터", "러블리"],
+    desc: "폰·네일·가방까지 통일감 주는 캐릭터 백꾸의 정석. 한 캐릭터로 깔맞춤." },
+  { name: "미니 텀블러 키링", price: 9500, priceMax: 18000, emoji: "🥤", img: "assets/tumbler.svg",
+    brand: "굿즈 콜라보", material: "실리콘/메탈", tags: ["펀", "굿즈"],
+    desc: "'이거 뭐지?' 대화를 부르는 미니어처 굿즈 참. 위트 있는 펀 아이템." },
 ];
 const metaByName = {};
 CHARMS.forEach((c) => { metaByName[c.name] = c; });
 
 // 백꾸 핀(피드) — 다른 사람들이 꾸민 백꾸
+// 앞 5개: 2026 백꾸 레퍼런스(인형/코퀘트/메시걸 체인/캐릭터/굿즈펀)
 let LOOKS = [
+  { id: 101, author: "플러시러버 🧸", likes: 532, saves: 301, bag: "tote", tags: ["인형", "베스트"], items: [
+    { name: "곰돌이 인형 키링", x: 0.55, y: 0.40, size: 132, rot: -6 },
+    { name: "별 키링", x: 0.38, y: 0.30, size: 50, rot: 10 } ] },
+  { id: 102, author: "리본요정 🎀", likes: 489, saves: 277, bag: "pouch", tags: ["코퀘트", "러블리"], items: [
+    { name: "리본 참", x: 0.46, y: 0.36, size: 86, rot: -8 },
+    { name: "리본 참", x: 0.60, y: 0.50, size: 60, rot: 12 },
+    { name: "하트 키링", x: 0.40, y: 0.58, size: 48, rot: 0 } ] },
+  { id: 103, author: "citymood ⛓️", likes: 374, saves: 245, bag: "back", tags: ["체인", "트렌드"], items: [
+    { name: "체인 참", x: 0.40, y: 0.42, size: 130, rot: 4 },
+    { name: "별 키링", x: 0.62, y: 0.36, size: 72, rot: 8 } ] },
+  { id: 104, author: "산리오홀릭 🎀", likes: 611, saves: 402, bag: "tote", tags: ["캐릭터", "러블리"], items: [
+    { name: "키티 키링", x: 0.50, y: 0.40, size: 110, rot: 0 },
+    { name: "키티 키링", x: 0.66, y: 0.52, size: 64, rot: 10 },
+    { name: "하트 키링", x: 0.36, y: 0.54, size: 52, rot: -8 } ] },
+  { id: 105, author: "굿즈수집러 ☕", likes: 298, saves: 188, bag: "pouch", tags: ["펀", "트렌드"], items: [
+    { name: "미니 텀블러 키링", x: 0.48, y: 0.40, size: 96, rot: -6 },
+    { name: "체리 참", x: 0.64, y: 0.54, size: 56, rot: 10 },
+    { name: "별 키링", x: 0.36, y: 0.52, size: 48, rot: -10 } ] },
   { id: 1, author: "민지 🐰", likes: 248, saves: 120, bag: "tote", tags: ["인형", "러블리"], items: [
     { name: "곰돌이 인형 키링", x: 0.62, y: 0.36, size: 112, rot: -8 },
     { name: "리본 참", x: 0.40, y: 0.30, size: 72, rot: 10 },
@@ -85,7 +113,7 @@ let LOOKS = [
     { name: "체리 참", x: 0.60, y: 0.46, size: 64, rot: 10 },
     { name: "꽃 참", x: 0.50, y: 0.62, size: 56, rot: 0 } ] },
 ];
-const TAGS = ["전체", "인형", "코퀘트", "Y2K", "파스텔", "프루티", "러블리", "트렌드", "키치", "🔖 내 저장"];
+const TAGS = ["전체", "인형", "코퀘트", "캐릭터", "체인", "펀", "Y2K", "파스텔", "프루티", "러블리", "트렌드", "키치", "🔖 내 저장"];
 
 // ===== 상태 =====
 let placed = [];
