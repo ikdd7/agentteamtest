@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>백꾸 — 사진 속 그 키링, 어디 거예요?</title>
+<style>
+ *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+ :root{--pk:#ff4e74;--bg:#fafafa;--ink:#191919;--mut:#8a8a8a;--line:#ececec;--soft:#f4f4f5}
+ body{font-family:-apple-system,system-ui,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;background:var(--bg);color:var(--ink);line-height:1.5}
+ .wrap{max-width:480px;margin:0 auto;min-height:100vh;background:#fff}
+ .hero{padding:54px 24px 40px;text-align:center;background:linear-gradient(170deg,#fff 0%,#fff5f7 100%)}
+ .logo{font-size:24px;font-weight:900;color:var(--pk);letter-spacing:-.5px}
+ .badge{display:inline-block;margin-top:22px;background:#fff;border:1px solid #ffd3dd;color:var(--pk);font-size:12px;font-weight:800;padding:6px 13px;border-radius:999px}
+ h1{font-size:30px;font-weight:900;letter-spacing:-1px;margin-top:16px;word-break:keep-all}
+ h1 .hl{color:var(--pk)}
+ .sub{color:#555;font-size:15px;margin-top:14px;word-break:keep-all}
+ /* 웨이트리스트 폼 */
+ .form{margin-top:26px}
+ .form input{width:100%;padding:15px 16px;border:1px solid var(--line);border-radius:13px;font-size:16px;background:#fff}
+ .form button{width:100%;margin-top:10px;padding:16px;border:0;border-radius:13px;background:var(--pk);color:#fff;font-size:16px;font-weight:800;cursor:pointer}
+ .hint{font-size:12px;color:var(--mut);margin-top:10px}
+ .count{margin-top:18px;font-size:13px;color:#666;font-weight:600}
+ .count b{color:var(--pk)}
+ .ok{display:none;margin-top:22px;background:#fff5f7;border:1px solid #ffd3dd;border-radius:14px;padding:20px;text-align:center}
+ .ok .big{font-size:18px;font-weight:900}.ok .sm{font-size:13px;color:#666;margin-top:6px}
+ /* 섹션 */
+ section{padding:36px 24px;border-top:1px solid var(--line)}
+ .stit{font-size:12px;font-weight:800;color:var(--pk);letter-spacing:.5px}
+ .sh{font-size:21px;font-weight:900;margin-top:8px;word-break:keep-all}
+ .sp{color:#555;font-size:15px;margin-top:10px;word-break:keep-all}
+ /* 문제 카드 */
+ .pcard{background:var(--soft);border-radius:16px;padding:18px;margin-top:16px;font-size:15px}
+ .pcard .q{font-weight:800}.pcard .a{color:var(--mut);margin-top:6px;font-size:14px}
+ /* 3스텝 */
+ .step{display:flex;gap:14px;align-items:flex-start;margin-top:18px}
+ .step .n{flex:0 0 auto;width:34px;height:34px;border-radius:999px;background:var(--pk);color:#fff;font-weight:900;display:flex;align-items:center;justify-content:center;font-size:15px}
+ .step .t{font-weight:800;font-size:16px}.step .d{color:#666;font-size:14px;margin-top:2px}
+ /* 데모 */
+ .demo{margin-top:18px;border-radius:18px;overflow:hidden;border:1px solid var(--line);background:linear-gradient(160deg,#fdeef1,#fff6ec);position:relative;height:230px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;text-decoration:none;color:var(--ink)}
+ .demo .play{width:60px;height:60px;border-radius:999px;background:var(--pk);color:#fff;display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:0 6px 18px rgba(255,78,116,.4)}
+ .demo .dt{font-weight:800;margin-top:14px}.demo .dd{font-size:12px;color:#777;margin-top:4px}
+ /* 마무리 */
+ .foot{padding:30px 24px 48px;text-align:center;color:var(--mut);font-size:12px}
+ .why{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;margin-top:16px;text-align:left}
+ .why li{list-style:none;font-size:14px;color:#444;padding:7px 0 7px 24px;position:relative}
+ .why li:before{content:"✔";position:absolute;left:0;color:var(--pk);font-weight:900}
+</style></head>
+<body><div class="wrap">
+
+ <div class="hero">
+  <div class="logo">백꾸</div>
+  <div class="badge">🔓 사전 신청 오픈</div>
+  <h1>사진 속 그 키링,<br><span class="hl">어디 거예요?</span></h1>
+  <div class="sub">인스타에서 예쁜 백꾸를 봐도 어디서 사는지 못 찾죠.<br>백꾸는 사진 위 핀을 눌러 <b>바로 데려오는</b> 곳이에요.</div>
+
+  <div class="form" id="form">
+   <input id="inp" type="text" inputmode="email" placeholder="이메일 또는 인스타 @아이디" autocomplete="off">
+   <button id="join">먼저 초대받기 →</button>
+   <div class="hint">출시되면 가장 먼저 알려드려요. 스팸 없어요.</div>
+   <div class="count" id="count"></div>
+  </div>
+  <div class="ok" id="ok">
+   <div class="big">🎉 합류 완료!</div>
+   <div class="sm" id="okmsg"></div>
+  </div>
+ </div>
+
+ <section>
+  <div class="stit">왜 필요해?</div>
+  <div class="sh">발견은 인스타에서, 구매는 미궁 속에서.</div>
+  <div class="pcard">
+   <div class="q">“이 키링 어디서 샀어요?”</div>
+   <div class="a">— 댓글은 달리지만 답은 잘 안 와요. 작가 계정은 비공개거나 폐업, 역검색하다 30분 날리고, 짝퉁 잘못 사서 데이기도 하죠.</div>
+  </div>
+  <div class="sp">백꾸는 그 끊긴 길 — <b>발견 → 확인 → 데려오기</b> — 를 한 흐름으로 잇습니다.</div>
+ </section>
+
+ <section>
+  <div class="stit">어떻게 작동해?</div>
+  <div class="sh">사진 위 핀 하나면 끝.</div>
+  <div class="step"><div class="n">1</div><div><div class="t">📍 사진 위 핀</div><div class="d">가방 사진에 달린 키링·참 위치에 핀이 찍혀 있어요.</div></div></div>
+  <div class="step"><div class="n">2</div><div><div class="t">👀 아이템 확인</div><div class="d">핀을 누르면 이름·구매처·시세가 바로 떠요.</div></div></div>
+  <div class="step"><div class="n">3</div><div><div class="t">🛍️ 데려오기</div><div class="d">마음에 들면 한 번에 구매처로. “데려왔다”의 시작.</div></div></div>
+
+  <a class="demo" href="backku.html">
+   <div class="play">▶</div>
+   <div class="dt">30초 데모 미리보기</div>
+   <div class="dd">실제 프로토타입을 눌러보세요</div>
+  </a>
+ </section>
+
+ <section>
+  <div class="stit">우리의 약속</div>
+  <div class="sh">크게 말고, 정답게.</div>
+  <ul class="why">
+   <li>완전 무료로 시작해요</li>
+   <li>여러분 DM이 다음 기능을 정해요</li>
+   <li>“산다”가 아니라 “데려온다”를 아는 곳</li>
+   <li>같은 걸 좋아하는 사람들이 알아봐 주는 곳</li>
+  </ul>
+ </section>
+
+ <div class="foot">
+  백꾸 · 가방 꾸미기의 발견부터 데려오기까지<br>
+  © 2026 백꾸 — 사전 신청은 무료예요.
+ </div>
+
+</div>
+<script>
+ var MEM={};
+ function lsGet(k){try{return localStorage.getItem(k)}catch(e){return (k in MEM)?MEM[k]:null}}
+ function lsSet(k,v){try{localStorage.setItem(k,v)}catch(e){MEM[k]=v}}
+ var BASE=312; /* 시드 카운트(사회적 증거). 실제 집계는 폼서비스 연동 시 대체 */
+ function list(){try{return JSON.parse(lsGet("backku:waitlist")||"[]")}catch(e){return []}}
+ function renderCount(){var n=BASE+list().length;document.getElementById("count").innerHTML='지금 <b>'+n.toLocaleString()+'</b>명이 기다리는 중';}
+ function valid(v){return /@/.test(v)? true : /^[\w.+-]+@[\w-]+\.[\w.-]+$/.test(v) || /^@?[\w.]{2,}$/.test(v);}
+ renderCount();
+ document.getElementById("join").onclick=function(){
+  var inp=document.getElementById("inp");var v=(inp.value||"").trim();
+  if(!v||v.length<2){inp.focus();inp.style.borderColor="var(--pk)";return}
+  var arr=list();arr.push({v:v,t:Date.now()});lsSet("backku:waitlist",JSON.stringify(arr));
+  var pos=BASE+arr.length;
+  document.getElementById("form").style.display="none";
+  var ok=document.getElementById("ok");ok.style.display="block";
+  document.getElementById("okmsg").innerHTML='당신은 <b>'+pos.toLocaleString()+'번째</b> 백꾸러예요.<br>출시되면 이 계정/메일로 가장 먼저 초대할게요 💌';
+  try{window.scrollTo(0,0)}catch(e){}
+ };
+ document.getElementById("inp").addEventListener("keydown",function(e){if(e.key==="Enter")document.getElementById("join").click();});
+</script>
+</body></html>
