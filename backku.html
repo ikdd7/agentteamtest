@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="ko"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>백꾸 — 가방 꾸미기</title>
 <style>
  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -43,8 +43,16 @@
  .ptile .lk{position:absolute;top:8px;right:8px;background:rgba(0,0,0,.35);color:#fff;font-size:11px;padding:3px 7px;border-radius:999px}
  .search{width:100%;padding:13px 16px;border:1px solid var(--line);border-radius:13px;font-size:15px;background:#fff;margin-bottom:12px}
  /* 상세 */
- .dhero{height:300px;display:flex;align-items:center;justify-content:center;gap:8px;border-radius:0 0 24px 24px}
+ .dhero{height:300px;display:flex;align-items:center;justify-content:center;gap:8px;border-radius:0 0 24px 24px;position:relative}
  .dhero.photo{height:64vh;max-height:600px}
+ /* 사진 위 태그 핀 (오늘의집 시그니처) */
+ .pinwrap{position:relative;width:100%;border-radius:14px;overflow:hidden;background:var(--soft)}
+ .pinwrap img{width:100%;display:block;max-height:300px;object-fit:cover}
+ .pin{position:absolute;transform:translate(-50%,-50%);min-width:30px;height:30px;padding:0 8px;border-radius:999px;background:rgba(255,255,255,.96);border:2px solid var(--pk);color:var(--pk);font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 9px rgba(0,0,0,.35);z-index:2}
+ .pin::after{content:"";position:absolute;inset:-9px}/* 44pt 터치영역 */
+ .pin .pnm{font-size:12px;margin-left:5px;color:var(--ink);font-weight:700;white-space:nowrap}
+ .pinhintbar{position:absolute;left:12px;bottom:12px;z-index:2;background:rgba(0,0,0,.55);color:#fff;font-size:12px;font-weight:700;padding:7px 12px;border-radius:999px}
+ .pinhint{font-size:13px;color:var(--pk);font-weight:700;background:#fff5f7;border:1px solid #ffd3dd;border-radius:11px;padding:10px 12px;margin:6px 0}
  .dhero .em{font-size:74px;filter:drop-shadow(0 6px 8px rgba(0,0,0,.14))} .dhero .em.s{font-size:50px}
  .dhero img{width:100%;height:100%;object-fit:cover;border-radius:0 0 24px 24px}
  .selrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
@@ -55,7 +63,7 @@
  .crow{display:flex;align-items:center;gap:12px;background:#fff;border-radius:14px;padding:12px;margin-bottom:9px;box-shadow:0 2px 8px rgba(0,0,0,.04)}
  .crow .ce{font-size:30px} .crow .cn{font-weight:700;font-size:15px} .crow .cb{font-size:12px;color:var(--mut)}
  .crow .cbtns{margin-left:auto;display:flex;gap:6px}
- .crow a.buy,.crow button.w{border:0;border-radius:9px;padding:9px 12px;font-size:13px;font-weight:700;cursor:pointer;text-decoration:none;display:inline-block}
+ .crow a.buy,.crow button.w{border:0;border-radius:9px;padding:0 13px;min-height:44px;font-size:13px;font-weight:700;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center}
  .crow a.buy{background:var(--pk);color:#fff} .crow button.w{background:var(--soft);color:#666} .crow button.w.on{background:var(--ink);color:#fff}
  .dsave{width:100%;padding:14px;border:0;border-radius:13px;background:var(--ink);color:#fff;font-weight:800;font-size:16px;cursor:pointer;margin-top:18px} .dsave.on{background:var(--pk)}
  .pillrow{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;scrollbar-width:none}.pillrow::-webkit-scrollbar{display:none}
@@ -148,7 +156,7 @@ const SEED=[
  {id:"s1",ttl:"파스텔 큐티 백꾸",cr:"@bagbunny",vibe:"큐트",bagType:"크로스백",bagBrand:"마뗑킴",charms:["cinnamoroll","loopy","duck"],likes:312},
  {id:"s2",ttl:"블랙 체인 시크",cr:"@noir_",vibe:"시크",bagType:"토트백",bagBrand:"코치",charms:["kuromi","gold_chain"],likes:188},
  {id:"s3",ttl:"트윌리 원포인트",cr:"@less.is",vibe:"미니멀",bagType:"미니백",bagBrand:"이미스",charms:["twilly"],likes:241},
- {id:"s4",ttl:"맥시멀 플렉스",cr:"@maxim_b",vibe:"맥시멀",bagType:"토트백",bagBrand:"로에베",photo:"https://img.allurekorea.com/allure/2025/11/style_692a81034f0ef.jpg",charms:["labubu_s","crayon","mangbear"],likes:530},
+ {id:"s4",ttl:"맥시멀 플렉스",cr:"@maxim_b",vibe:"맥시멀",bagType:"토트백",bagBrand:"로에베",photo:"https://img.allurekorea.com/allure/2025/11/style_692a81034f0ef.jpg",charms:["labubu_s","crayon","mangbear"],pins:[{id:"labubu_s",x:60,y:52},{id:"crayon",x:45,y:67},{id:"mangbear",x:71,y:70}],likes:530},
  {id:"s5",ttl:"최애 덕질백",cr:"@my_fav",vibe:"덕질",bagType:"숄더백",bagBrand:"마리떼",charms:["chunsik","kitty","stitch"],likes:276},
  {id:"s6",ttl:"데님백 큐티 조합",cr:"@denim.day",vibe:"큐트",bagType:"에코백",bagBrand:"자라",charms:["bonecdo","smiski"],likes:154},
  {id:"s7",ttl:"라부부 + 펄체인",cr:"@popmart_kr",vibe:"맥시멀",bagType:"토트백",bagBrand:"분크",charms:["labubu","pearl_chain"],likes:402},
@@ -218,11 +226,13 @@ function renderExplore(q){
 function openDetail(id){cur=findLook(id);if(!cur)return;go("detail")}
 function renderDetail(){
  const L=cur;const saved=board.some(b=>b.id===L.id);
- const hero=L.photo?'<img src="'+L.photo+'">':heroInner(L);
- const rows=L.charms.map(id=>{const c=CHARMS[id];if(!c)return'';const w=wish.includes(id);
-  return '<div class="crow"><span class="ce">'+c.e+'</span><div><div class="cn">'+c.nm+'</div><div class="cb">'+c.cat+' · '+c.src+'</div></div>'+
-   '<div class="cbtns"><button class="w'+(w?' on':'')+'" data-wish="'+id+'">'+(w?'♥':'위시')+'</button>'+
-   '<a class="buy" href="'+shop(c.nm)+'" target="_blank" rel="noopener">구매</a></div></div>'}).join('');
+ const pins=(L.photo&&L.pins&&L.pins.length)?L.pins.map((p,i)=>{const c=CHARMS[p.id];if(!c)return'';
+  return '<button class="pin" data-charm="'+p.id+'" style="left:'+p.x+'%;top:'+p.y+'%">'+(i+1)+'</button>'}).join(''):'';
+ const hero=L.photo?('<img src="'+L.photo+'">'+pins+(pins?'<span class="pinhintbar">📍 핀을 눌러 아이템 보기</span>':'')):heroInner(L);
+ const rows=L.charms.map((id,i)=>{const c=CHARMS[id];if(!c)return'';const w=wish.includes(id);const pinNo=(L.pins||[]).findIndex(p=>p.id===id);
+  return '<div class="crow"><span class="ce">'+(pinNo>=0?'<b style="color:var(--pk)">'+(pinNo+1)+'</b>':c.e)+'</span><div><div class="cn">'+c.nm+'</div><div class="cb">'+c.cat+' · '+c.src+'</div></div>'+
+   '<div class="cbtns"><button class="w'+(w?' on':'')+'" data-wish="'+id+'">'+(w?'♥':'찜')+'</button>'+
+   '<a class="buy" href="'+shop(c.nm)+'" target="_blank" rel="noopener">데려오기</a></div></div>'}).join('');
  const sim=allLooks().filter(x=>x.vibe===L.vibe&&x.id!==L.id).slice(0,6)
   .map(x=>'<div class="pp" data-look="'+x.id+'"><div class="e">'+bagEmoji(x)+'</div><div class="n">'+x.ttl+'</div></div>').join('')||'<div class="cb" style="color:var(--mut)">준비 중</div>';
  document.getElementById("detail").innerHTML=
@@ -235,16 +245,17 @@ function renderDetail(){
 }
 /* 키링 시트 */
 function openCharm(id){const c=CHARMS[id];if(!c)return;const used=allLooks().filter(L=>L.charms.includes(id)).length;const w=wish.includes(id);
- document.body.insertAdjacentHTML("beforeend",'<div style="position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:20;display:flex;align-items:flex-end" id="ov"><div style="background:#fff;width:100%;max-width:480px;margin:0 auto;border-radius:22px 22px 0 0;padding:24px;text-align:center"><div style="font-size:54px">'+c.e+'</div><div style="font-size:20px;font-weight:800;margin-top:6px">'+c.nm+'</div><div style="font-size:13px;color:var(--mut)">'+c.cat+' · '+c.src+' · 룩 '+used+'개</div><a href="'+shop(c.nm)+'" target="_blank" rel="noopener" style="display:block;background:var(--pk);color:#fff;border-radius:12px;padding:14px;font-weight:800;margin-top:16px;text-decoration:none">구매처에서 보기 →</a><button id="ovw" style="display:block;width:100%;background:var(--soft);color:#666;border:0;border-radius:12px;padding:13px;font-weight:700;margin-top:8px;cursor:pointer">'+(w?'♥ 위시 담음':'위시리스트 담기')+'</button><button id="ovc" style="background:none;border:0;color:var(--mut);margin-top:10px;cursor:pointer">닫기</button></div></div>');
+ document.body.insertAdjacentHTML("beforeend",'<div style="position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:20;display:flex;align-items:flex-end" id="ov"><div style="background:#fff;width:100%;max-width:480px;margin:0 auto;border-radius:22px 22px 0 0;padding:24px;text-align:center"><div style="font-size:54px">'+c.e+'</div><div style="font-size:20px;font-weight:800;margin-top:6px">'+c.nm+'</div><div style="font-size:13px;color:var(--mut)">'+c.cat+' · '+c.src+' · 룩 '+used+'개</div><a href="'+shop(c.nm)+'" target="_blank" rel="noopener" style="display:block;background:var(--pk);color:#fff;border-radius:12px;padding:14px;font-weight:800;margin-top:16px;text-decoration:none">데려오기 (구매처로) →</a><button id="ovw" style="display:block;width:100%;background:var(--soft);color:#666;border:0;border-radius:12px;padding:13px;font-weight:700;margin-top:8px;cursor:pointer">'+(w?'♥ 찜함':'찜하기')+'</button><button id="ovc" style="background:none;border:0;color:var(--mut);margin-top:10px;cursor:pointer">닫기</button></div></div>');
  document.getElementById("ov").onclick=e=>{if(e.target.id==="ov")e.currentTarget.remove()};
  document.getElementById("ovc").onclick=()=>document.getElementById("ov").remove();
  document.getElementById("ovw").onclick=()=>{toggleWish(id);const o=document.getElementById("ov");if(o)o.remove()};
 }
 function toggleWish(id){const i=wish.indexOf(id);if(i>=0)wish.splice(i,1);else wish.push(id);save("wish",wish);if(curScreen==="detail")renderDetail();if(curScreen==="my")renderMy()}
 /* 올리기 */
-const post={photo:null,charms:[],mood:null,bagType:null,bagBrand:null};
+const post={photo:null,charms:[],pins:[],mood:null,bagType:null,bagBrand:null};
 function renderPost(){
- document.getElementById("post").innerHTML='<label>1. 내 가방 사진</label><div class="photo" id="pPhoto">'+(post.photo?'<img src="'+post.photo+'">':'사진을 올리면 미리보기 📷')+'</div><label class="upbtn" for="pFile">사진 올리기</label><input id="pFile" type="file" accept="image/*" style="display:none"><label>2. 내 가방 종류</label><div class="chips" id="pBag"></div><label>3. 가방 브랜드</label><div class="chips" id="pBrand"></div><label>4. 단 아이템 (검색으로 추가하거나 아래에서 선택)</label><div class="srch"><input id="pSearch" type="text" placeholder="키링·액세서리 이름 → 추가"><button id="pAddItem">추가</button></div><div class="selrow" id="pSel"></div><div id="pPick"></div><label>5. 무드</label><div class="chips" id="pMood"></div><label>6. 제목</label><input type="text" id="pTtl" placeholder="예: 파스텔 큐티 백꾸"><button class="go" id="pGo">피드에 올리기 →</button>';
+ post.pins=post.pins.filter(p=>post.charms.includes(p.id));
+ document.getElementById("post").innerHTML='<label>1. 내 가방 사진</label><div class="photo" id="pPhoto">'+(post.photo?'<img src="'+post.photo+'">':'사진을 올리면 미리보기 📷')+'</div><label class="upbtn" for="pFile">사진 올리기</label><input id="pFile" type="file" accept="image/*" style="display:none"><label>2. 내 가방 종류</label><div class="chips" id="pBag"></div><label>3. 가방 브랜드</label><div class="chips" id="pBrand"></div><label>4. 단 아이템 (검색으로 추가하거나 아래에서 선택)</label><div class="srch"><input id="pSearch" type="text" placeholder="키링·액세서리 이름 → 추가"><button id="pAddItem">추가</button></div><div class="selrow" id="pSel"></div><div id="pPick"></div><div id="pPinBlock"></div><label>6. 무드</label><div class="chips" id="pMood"></div><label>7. 제목</label><input type="text" id="pTtl" placeholder="예: 파스텔 큐티 백꾸"><button class="go" id="pGo">피드에 올리기 →</button>';
  const bg=document.getElementById("pBag");BAGS.forEach(t=>{const b=document.createElement("button");b.className="chip"+(post.bagType===t?" on":"");b.textContent=BAGEMO[t]+" "+t;b.setAttribute("data-pbag",t);bg.appendChild(b)});
  const brd=document.getElementById("pBrand");BAGBRANDS.forEach(t=>{const b=document.createElement("button");b.className="chip"+(post.bagBrand===t?" on":"");b.textContent=t;b.setAttribute("data-pbrand",t);brd.appendChild(b)});
  const pg=document.getElementById("pPick");
@@ -255,9 +266,24 @@ function renderPost(){
   pg.appendChild(grid);});
  const sel=document.getElementById("pSel");sel.innerHTML=post.charms.map(id=>{const c=CHARMS[id];return c?'<button class="selchip" data-unpick="'+id+'">'+c.e+' '+c.nm+' ✕</button>':''}).join('');
  const addBtn=document.getElementById("pAddItem");if(addBtn)addBtn.onclick=()=>{const inp=document.getElementById("pSearch");const v=inp.value.trim();if(!v)return;const id="c"+Date.now();CUSTOM[id]={nm:v,e:"🔗",cat:"기타",src:"검색",br:""};CHARMS[id]=CUSTOM[id];save("custom",CUSTOM);post.charms.push(id);renderPost()};
+ /* 5. 사진 위 핀 찍기 — 사진+아이템이 있을 때만 */
+ const pb=document.getElementById("pPinBlock");
+ if(pb&&post.photo&&post.charms.length){
+  const next=post.charms.find(id=>!post.pins.some(p=>p.id===id));
+  const pinsH=post.pins.map((p,i)=>{const c=CHARMS[p.id];return '<button class="pin" data-rmpin="'+p.id+'" style="left:'+p.x+'%;top:'+p.y+'%">'+(i+1)+'<span class="pnm">'+(c?c.nm:'')+' ✕</span></button>'}).join('');
+  const hint=next?('📍 <b>'+CHARMS[next].nm+'</b> 위치를 사진에서 탭하세요 ('+post.pins.length+'/'+post.charms.length+')'):('✓ 핀 '+post.pins.length+'개 완료 — 상세에서 누르면 구매로 이어져요. 핀을 누르면 삭제');
+  pb.innerHTML='<label>5. 사진 위에 핀 찍기 <span style="color:#bbb;font-weight:600">(오늘의집式 · 선택)</span></label><div class="pinhint">'+hint+'</div><div class="pinwrap" id="pinStage"><img src="'+post.photo+'">'+pinsH+'</div>';
+  const stage=document.getElementById("pinStage");
+  if(stage)stage.onclick=e=>{
+   if(e.target.closest("[data-rmpin]")){const id=e.target.closest("[data-rmpin]").getAttribute("data-rmpin");post.pins=post.pins.filter(p=>p.id!==id);renderPost();return}
+   const nx=post.charms.find(id=>!post.pins.some(p=>p.id===id));if(!nx)return;
+   const r=stage.getBoundingClientRect();const x=Math.round((e.clientX-r.left)/r.width*100),y=Math.round((e.clientY-r.top)/r.height*100);
+   post.pins.push({id:nx,x:Math.max(4,Math.min(96,x)),y:Math.max(5,Math.min(95,y))});renderPost();
+  };
+ }else if(pb){pb.innerHTML='';}
  const mg=document.getElementById("pMood");MOODS.forEach(m=>{const b=document.createElement("button");b.className="chip"+(post.mood===m?" on":"");b.textContent=m;b.setAttribute("data-pmood",m);mg.appendChild(b)});
  document.getElementById("pFile").onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{post.photo=rd.result;renderPost()};rd.readAsDataURL(f)};
- document.getElementById("pGo").onclick=()=>{if(post.charms.length===0){alert("키링을 하나 이상 골라줘!");return}const ttl=document.getElementById("pTtl").value.trim()||((post.mood||"나의")+" 백꾸");mine.unshift({id:"u"+Date.now(),ttl:ttl,cr:"@나",vibe:post.mood||"큐트",bagType:post.bagType||"토트백",bagBrand:post.bagBrand||"기타",charms:post.charms.slice(),photo:post.photo,likes:0});save("mine",mine);post.photo=null;post.charms=[];post.mood=null;post.bagType=null;post.bagBrand=null;go("home");alert("피드에 올렸어! 🎉")};
+ document.getElementById("pGo").onclick=()=>{if(!post.photo){alert("백꾸는 사진이 주인공! 가방 사진을 먼저 올려줘 📷");return}if(post.charms.length===0){alert("단 아이템을 하나 이상 골라줘!");return}const ttl=document.getElementById("pTtl").value.trim()||((post.mood||"나의")+" 백꾸");mine.unshift({id:"u"+Date.now(),ttl:ttl,cr:"@나",vibe:post.mood||"큐트",bagType:post.bagType||"토트백",bagBrand:post.bagBrand||"기타",charms:post.charms.slice(),pins:post.pins.slice(),photo:post.photo,likes:0});save("mine",mine);post.photo=null;post.charms=[];post.pins=[];post.mood=null;post.bagType=null;post.bagBrand=null;go("home");alert("피드에 올렸어! 🎉")};
 }
 /* 알림 */
 function renderNoti(){
