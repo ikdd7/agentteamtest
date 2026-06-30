@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="description" content="음성으로 말하면 날짜별·행동별 투두리스트를 만들어 주는 나만의 음성 비서" />
+  <title>말로 하는 투두 · Voice To-Do</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <!-- ===== Header ===== -->
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark">🎙️</span>
+        <div>
+          <h1>말로 하는 투두</h1>
+          <p class="brand-sub">말하면 정리되는 나만의 할 일 비서</p>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <button id="ttsToggle" class="icon-btn" title="음성 읽어주기 켜기/끄기" aria-pressed="true">🔊</button>
+        <button id="helpBtn" class="icon-btn" title="사용법 / 명령어">❔</button>
+      </div>
+    </header>
+
+    <!-- ===== Goals (always visible) ===== -->
+    <section class="goals-card" aria-label="내 목표">
+      <div class="goals-head">
+        <h2>🌱 오늘도 향하는 나의 목표</h2>
+        <button id="addGoalBtn" class="ghost-btn">+ 목표</button>
+      </div>
+      <ul id="goalList" class="goal-list"></ul>
+      <p id="goalEmpty" class="muted small">아직 목표가 없어요. 작은 목표 하나를 적어두면 볼 때마다 힘이 됩니다.</p>
+    </section>
+
+    <!-- ===== Mic / live transcript ===== -->
+    <section class="mic-card">
+      <button id="micBtn" class="mic-btn" aria-label="음성 입력 시작/중지">
+        <span class="mic-ring"></span>
+        <span class="mic-ico">🎤</span>
+      </button>
+      <p id="micHint" class="mic-hint">버튼을 누르고 말해보세요</p>
+      <div id="liveBox" class="live-box" hidden>
+        <span id="liveText"></span><span class="caret">▍</span>
+      </div>
+      <div id="lastResult" class="last-result" hidden></div>
+    </section>
+
+    <!-- ===== Manual quick add (fallback) ===== -->
+    <section class="manual-add">
+      <input id="manualInput" type="text" placeholder="직접 입력: 예) 내일 오후 3시 회의 준비하기" autocomplete="off" />
+      <button id="manualAddBtn" class="primary-btn">추가</button>
+    </section>
+
+    <!-- ===== Filters ===== -->
+    <section class="filters">
+      <div class="seg" id="statusFilter">
+        <button data-f="all" class="active">전체</button>
+        <button data-f="active">할 일</button>
+        <button data-f="done">완료</button>
+      </div>
+      <div class="seg" id="groupMode">
+        <button data-g="date" class="active">날짜별</button>
+        <button data-g="category">행동별</button>
+      </div>
+    </section>
+
+    <!-- ===== Todo list ===== -->
+    <main id="board" class="board"></main>
+    <p id="boardEmpty" class="muted center" hidden>할 일이 없어요. 마이크를 누르고 "오늘 운동하기"처럼 말해보세요 🙂</p>
+
+    <footer class="foot muted small center">
+      데이터는 이 브라우저에만 저장됩니다 · <a href="#" id="exportBtn">내보내기</a> · <a href="#" id="clearDoneBtn">완료 항목 정리</a>
+    </footer>
+  </div>
+
+  <!-- ===== Help modal ===== -->
+  <div id="helpModal" class="modal" hidden>
+    <div class="modal-box">
+      <button class="modal-close" id="helpClose">✕</button>
+      <h2>🎙️ 이렇게 말해보세요</h2>
+      <div class="help-grid">
+        <div>
+          <h3>➕ 할 일 추가</h3>
+          <ul>
+            <li>"오늘 운동하기"</li>
+            <li>"내일 오후 3시 회의 준비할 거야"</li>
+            <li>"모레 장보기 그리고 청소하기"</li>
+            <li>"금요일까지 보고서 제출"</li>
+          </ul>
+        </div>
+        <div>
+          <h3>✅ 완료 처리</h3>
+          <ul>
+            <li>"운동 완료"</li>
+            <li>"회의 준비 다 했어"</li>
+            <li>"장보기 끝냈어"</li>
+          </ul>
+        </div>
+        <div>
+          <h3>🔎 스케줄 확인 (음성으로 읽어줌)</h3>
+          <ul>
+            <li>"오늘 할 일 뭐야"</li>
+            <li>"내일 스케줄 알려줘"</li>
+            <li>"내 목표 읽어줘"</li>
+          </ul>
+        </div>
+        <div>
+          <h3>🌱 목표</h3>
+          <ul>
+            <li>"목표 추가 매일 책 읽기"</li>
+            <li>상단 +목표 버튼으로도 추가</li>
+          </ul>
+        </div>
+      </div>
+      <p class="muted small">팁: 크롬/엣지/사파리 최신 버전에서 음성 인식이 가장 잘 됩니다. 처음 사용 시 마이크 권한을 허용해 주세요.</p>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
