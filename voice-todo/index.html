@@ -3,23 +3,23 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="theme-color" content="#0f172a" />
-  <meta name="description" content="음성으로 말하면 날짜별·행동별 투두리스트를 만들어 주는 나만의 음성 비서" />
+  <meta name="theme-color" content="#ffffff" />
+  <meta name="description" content="음성으로 말하면 날짜별·행동별 투두리스트를 만들어 주고 달력으로 한눈에 보는 나만의 음성 비서" />
   <title>말로 하는 투두 · Voice To-Do</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=3" />
+  <link rel="stylesheet" href="styles.css?v=4" />
 </head>
 <body>
   <div class="app">
     <!-- ===== Header ===== -->
     <header class="topbar">
       <div class="brand">
-        <span class="brand-mark">🎙️</span>
+        <span class="brand-mark">🐣</span>
         <div>
           <h1>말로 하는 투두</h1>
-          <p class="brand-sub">말하면 정리되는 나만의 할 일 비서</p>
+          <p class="brand-sub">말하면 정리되는 나의 귀여운 할 일 비서</p>
         </div>
       </div>
       <div class="topbar-actions">
@@ -28,51 +28,90 @@
       </div>
     </header>
 
-    <!-- ===== Goals (always visible) ===== -->
-    <section class="goals-card" aria-label="내 목표">
-      <div class="goals-head">
-        <h2>🌱 오늘도 향하는 나의 목표</h2>
-        <button id="addGoalBtn" class="ghost-btn">+ 목표</button>
-      </div>
-      <ul id="goalList" class="goal-list"></ul>
-      <p id="goalEmpty" class="muted small">아직 목표가 없어요. 작은 목표 하나를 적어두면 볼 때마다 힘이 됩니다.</p>
+    <!-- ===== Tabs ===== -->
+    <nav class="tabbar" id="tabbar">
+      <button data-tab="home" class="active">🎙️ 할 일</button>
+      <button data-tab="calendar">📅 달력</button>
+    </nav>
+
+    <!-- ============================================================ -->
+    <!-- HOME TAB                                                     -->
+    <!-- ============================================================ -->
+    <section id="homeTab">
+      <!-- Mic / live transcript -->
+      <section class="mic-card">
+        <button id="micBtn" class="mic-btn" aria-label="음성 입력 시작/중지">
+          <span class="mic-ring"></span>
+          <span class="mic-ico">🎤</span>
+        </button>
+        <p id="micHint" class="mic-hint">버튼을 누르고 말해보세요</p>
+        <div id="liveBox" class="live-box" hidden>
+          <span id="liveText"></span><span class="caret">▍</span>
+        </div>
+        <div id="lastResult" class="last-result" hidden></div>
+      </section>
+
+      <!-- Manual quick add -->
+      <section class="manual-add">
+        <input id="manualInput" type="text" placeholder="직접 입력: 예) 내일 오후 3시 회의 준비하기" autocomplete="off" />
+        <button id="manualAddBtn" class="primary-btn">추가</button>
+      </section>
+
+      <!-- Goals -->
+      <section class="goals-card" aria-label="내 목표">
+        <div class="goals-head">
+          <h2>🌱 오늘도 향하는 나의 목표</h2>
+          <button id="addGoalBtn" class="ghost-btn">+ 목표</button>
+        </div>
+        <ul id="goalList" class="goal-list"></ul>
+        <p id="goalEmpty" class="muted small">아직 목표가 없어요. 작은 목표 하나를 적어두면 볼 때마다 힘이 됩니다.</p>
+      </section>
+
+      <!-- Filters -->
+      <section class="filters">
+        <div class="seg" id="statusFilter">
+          <button data-f="all" class="active">전체</button>
+          <button data-f="active">할 일</button>
+          <button data-f="done">완료</button>
+        </div>
+        <div class="seg" id="groupMode">
+          <button data-g="date" class="active">날짜별</button>
+          <button data-g="category">행동별</button>
+        </div>
+      </section>
+
+      <!-- Todo list -->
+      <main id="board" class="board"></main>
+      <p id="boardEmpty" class="muted center" hidden>할 일이 없어요. 마이크를 누르고 "오늘 운동하기"처럼 말해보세요 🙂</p>
     </section>
 
-    <!-- ===== Mic / live transcript ===== -->
-    <section class="mic-card">
-      <button id="micBtn" class="mic-btn" aria-label="음성 입력 시작/중지">
-        <span class="mic-ring"></span>
-        <span class="mic-ico">🎤</span>
-      </button>
-      <p id="micHint" class="mic-hint">버튼을 누르고 말해보세요</p>
-      <div id="liveBox" class="live-box" hidden>
-        <span id="liveText"></span><span class="caret">▍</span>
+    <!-- ============================================================ -->
+    <!-- CALENDAR TAB                                                 -->
+    <!-- ============================================================ -->
+    <section id="calendarTab" hidden>
+      <div class="cal-toolbar">
+        <div class="seg cal-views" id="calViews">
+          <button data-v="year">연간</button>
+          <button data-v="month" class="active">월간</button>
+          <button data-v="week">주간</button>
+          <button data-v="day">일간</button>
+        </div>
       </div>
-      <div id="lastResult" class="last-result" hidden></div>
-    </section>
-
-    <!-- ===== Manual quick add (fallback) ===== -->
-    <section class="manual-add">
-      <input id="manualInput" type="text" placeholder="직접 입력: 예) 내일 오후 3시 회의 준비하기" autocomplete="off" />
-      <button id="manualAddBtn" class="primary-btn">추가</button>
-    </section>
-
-    <!-- ===== Filters ===== -->
-    <section class="filters">
-      <div class="seg" id="statusFilter">
-        <button data-f="all" class="active">전체</button>
-        <button data-f="active">할 일</button>
-        <button data-f="done">완료</button>
+      <div class="cal-nav">
+        <button class="nav-btn" id="calPrev" aria-label="이전">‹</button>
+        <div class="cal-period" id="calPeriod"></div>
+        <button class="nav-btn" id="calNext" aria-label="다음">›</button>
       </div>
-      <div class="seg" id="groupMode">
-        <button data-g="date" class="active">날짜별</button>
-        <button data-g="category">행동별</button>
+      <div class="cal-today-row">
+        <button class="today-btn" id="calToday">오늘로 이동</button>
+        <span class="cal-legend">
+          <span class="lg lg-pending"></span>할 일
+          <span class="lg lg-done"></span>완료
+        </span>
       </div>
+      <div id="calBody" class="cal-body"></div>
+      <div id="calDetail" class="cal-detail"></div>
     </section>
-
-    <!-- ===== Todo list ===== -->
-    <main id="board" class="board"></main>
-    <p id="boardEmpty" class="muted center" hidden>할 일이 없어요. 마이크를 누르고 "오늘 운동하기"처럼 말해보세요 🙂</p>
 
     <footer class="foot muted small center">
       데이터는 이 브라우저에만 저장됩니다 · <a href="#" id="exportBtn">내보내기</a> · <a href="#" id="clearDoneBtn">완료 항목 정리</a>
@@ -90,8 +129,8 @@
           <ul>
             <li>"오늘 운동하기"</li>
             <li>"내일 오후 3시 회의 준비할 거야"</li>
+            <li>"내일 아침 여섯 시에 일어나기"</li>
             <li>"모레 장보기 그리고 청소하기"</li>
-            <li>"금요일까지 보고서 제출"</li>
           </ul>
         </div>
         <div>
@@ -111,10 +150,10 @@
           </ul>
         </div>
         <div>
-          <h3>🌱 목표</h3>
+          <h3>📅 달력</h3>
           <ul>
-            <li>"목표 추가 매일 책 읽기"</li>
-            <li>상단 +목표 버튼으로도 추가</li>
+            <li>위 "달력" 탭에서 연·월·주·일 보기</li>
+            <li>날짜를 누르면 그날 할 일이 보여요</li>
           </ul>
         </div>
       </div>
@@ -124,6 +163,6 @@
 
   <div id="toast" class="toast" hidden></div>
 
-  <script src="app.js?v=3"></script>
+  <script src="app.js?v=4"></script>
 </body>
 </html>
