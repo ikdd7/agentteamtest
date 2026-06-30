@@ -241,6 +241,8 @@ html, body {
 
 /* ===== Modal ===== */
 .modal { position: fixed; inset: 0; background: rgba(2,6,16,.7); display: grid; place-items: center; padding: 20px; z-index: 50; }
+/* hidden 속성이 display:grid보다 우선하도록 (안 그러면 팝업이 항상 떠 있고 X로 안 닫힘) */
+.modal[hidden] { display: none; }
 .modal-box {
   position: relative;
   background: var(--card); border: 1px solid var(--line);
