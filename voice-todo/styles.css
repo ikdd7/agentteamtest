@@ -21,9 +21,7 @@
 html, body {
   margin: 0;
   padding: 0;
-  background: radial-gradient(1200px 600px at 70% -10%, #1a2342 0%, transparent 60%),
-              linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);
-  background-attachment: fixed;
+  background: var(--bg);
   color: var(--text);
   font-family: "Pretendard", "Noto Sans KR", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -63,10 +61,10 @@ html, body {
 
 /* ===== Goals ===== */
 .goals-card {
-  background: linear-gradient(135deg, rgba(124,156,255,.14), rgba(167,139,250,.10));
+  background: var(--card);
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  padding: 16px;
+  padding: 16px 18px;
   margin-bottom: 16px;
 }
 .goals-head { display: flex; align-items: center; justify-content: space-between; }
@@ -98,22 +96,23 @@ html, body {
 /* ===== Mic ===== */
 .mic-card {
   display: flex; flex-direction: column; align-items: center;
-  padding: 20px 16px 8px;
+  padding: 28px 16px 12px;
 }
 .mic-btn {
   position: relative;
-  width: 96px; height: 96px;
+  width: 148px; height: 148px;
   border-radius: 50%;
   border: none;
   cursor: pointer;
   background: linear-gradient(135deg, var(--brand), var(--brand2));
   color: white;
-  box-shadow: var(--shadow);
+  box-shadow: 0 16px 40px rgba(124, 156, 255, 0.32);
   display: grid; place-items: center;
-  transition: transform .12s;
+  transition: transform .12s, box-shadow .12s;
 }
+.mic-btn:hover { box-shadow: 0 20px 48px rgba(124, 156, 255, 0.42); }
 .mic-btn:active { transform: scale(.95); }
-.mic-ico { font-size: 38px; }
+.mic-ico { font-size: 60px; }
 .mic-ring {
   position: absolute; inset: 0;
   border-radius: 50%;
@@ -126,7 +125,7 @@ html, body {
   0% { transform: scale(1); opacity: .7; }
   100% { transform: scale(1.7); opacity: 0; }
 }
-.mic-hint { margin: 12px 0 0; color: var(--muted); font-size: 13.5px; min-height: 18px; }
+.mic-hint { margin: 16px 0 0; color: var(--text); font-size: 15.5px; font-weight: 600; min-height: 20px; }
 
 .live-box {
   margin-top: 12px;

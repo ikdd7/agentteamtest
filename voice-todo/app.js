@@ -172,25 +172,36 @@
     return { key, rest: t, consumed };
   }
 
+  // 한글 숫자 → 시(時) 값
+  const KO_HOUR = { "열두": 12, "열한": 11, "열": 10, "아홉": 9, "여덟": 8, "일곱": 7, "여섯": 6, "다섯": 5, "네": 4, "세": 3, "두": 2, "한": 1 };
+  const KO_HOUR_RE = "(열두|열한|열|아홉|여덟|일곱|여섯|다섯|네|세|두|한)";
+
+  function buildTimeLabel(hour, ampm, min) {
+    if ((ampm === "오후" || ampm === "저녁" || ampm === "밤") && hour < 12) hour += 12;
+    if ((ampm === "오전" || ampm === "아침" || ampm === "새벽") && hour === 12) hour = 0;
+    return `${hour < 12 ? "오전" : "오후"} ${((hour + 11) % 12) + 1}시${min ? " " + min + "분" : ""}`;
+  }
+
   // 시간 표현 추출 → 표시용 문자열
   function extractTime(text) {
     let t = text;
     let time = null;
 
-    const hm = t.match(/(오전|오후|아침|점심|저녁|밤|새벽)?\s*(\d{1,2})\s*시\s*(반|(\d{1,2})\s*분)?/);
+    // 1) 숫자 시각: (오전) 3시 (반|30분) (에)
+    const hm = t.match(/(오전|오후|아침|점심|저녁|밤|새벽)?\s*(\d{1,2})\s*시\s*(반|(\d{1,2})\s*분)?\s*(에)?/);
+    // 2) 한글 시각: (저녁) 여섯 시 (반) (에)
+    const km = t.match(new RegExp("(오전|오후|아침|점심|저녁|밤|새벽)?\\s*" + KO_HOUR_RE + "\\s*시\\s*(반)?\\s*(에)?"));
+
     if (hm) {
-      let hour = Number(hm[2]);
-      const ampm = hm[1];
-      let min = 0;
-      if (hm[3] === "반") min = 30;
-      else if (hm[4]) min = Number(hm[4]);
-      if ((ampm === "오후" || ampm === "저녁" || ampm === "밤") && hour < 12) hour += 12;
-      if ((ampm === "오전" || ampm === "아침" || ampm === "새벽") && hour === 12) hour = 0;
-      const label = `${hour < 12 ? "오전" : "오후"} ${((hour + 11) % 12) + 1}시${min ? " " + min + "분" : ""}`;
-      time = label;
+      let min = hm[3] === "반" ? 30 : (hm[4] ? Number(hm[4]) : 0);
+      time = buildTimeLabel(Number(hm[2]), hm[1], min);
       t = t.replace(hm[0], " ");
+    } else if (km) {
+      let min = km[3] === "반" ? 30 : 0;
+      time = buildTimeLabel(KO_HOUR[km[2]], km[1], min);
+      t = t.replace(km[0], " ");
     } else {
-      const word = t.match(/(아침|점심|저녁|오전|오후|밤|새벽)/);
+      const word = t.match(/(아침|점심|저녁|오전|오후|밤|새벽|정오|자정)/);
       if (word) { time = word[0]; t = t.replace(word[0], " "); }
     }
     return { time, rest: t };
