@@ -10,6 +10,13 @@
   // ----------------------------------------------------------------------
   const STORE_KEY = "voice-todo.v1";
   const state = load();
+  // UI 상태 기본값 보강 (예전 저장본 호환)
+  state.ui = state.ui || {};
+  if (!state.ui.status) state.ui.status = "all";
+  if (!state.ui.group) state.ui.group = "date";
+  if (!state.ui.tab) state.ui.tab = "home";
+  if (!state.ui.calView) state.ui.calView = "month";
+  if (!state.ui.calCursor) state.ui.calCursor = todayKey();
 
   function load() {
     try {
@@ -369,6 +376,7 @@
   function render() {
     renderGoals();
     renderBoard();
+    renderCalendar();
   }
 
   function renderGoals() {
@@ -489,13 +497,185 @@
     li.querySelector(".check").onclick = () => {
       t.done = !t.done;
       t.completedAt = t.done ? Date.now() : null;
-      save(); renderBoard();
+      save(); render();
     };
     li.querySelector(".t-del").onclick = () => {
       state.todos = state.todos.filter((x) => x.id !== t.id);
-      save(); renderBoard();
+      save(); render();
     };
     return li;
+  }
+
+  // ----------------------------------------------------------------------
+  // 달력 (연 / 월 / 주 / 일)
+  // ----------------------------------------------------------------------
+  function calCursorDate() { return keyToDate(state.ui.calCursor); }
+  function setCursor(d) { state.ui.calCursor = dateKey(d); save(); }
+  function todosOn(key) { return state.todos.filter((t) => t.date === key); }
+  function dayStat(key) {
+    const items = todosOn(key);
+    const done = items.filter((t) => t.done).length;
+    return { total: items.length, done, pending: items.length - done };
+  }
+  function isTodayKey(key) { return key === todayKey(); }
+
+  function renderCalendar() {
+    const tab = document.querySelector("#calendarTab");
+    if (!tab) return;
+    document.querySelectorAll("#calViews button").forEach((b) => b.classList.toggle("active", b.dataset.v === state.ui.calView));
+    const body = document.querySelector("#calBody");
+    const detail = document.querySelector("#calDetail");
+    body.innerHTML = ""; detail.innerHTML = "";
+    const v = state.ui.calView;
+    if (v === "year") renderYearView(body);
+    else if (v === "week") renderWeekView(body);
+    else if (v === "day") renderDayView(body);
+    else renderMonthView(body, detail);
+  }
+
+  function setPeriod(label) { document.querySelector("#calPeriod").textContent = label; }
+
+  // 선택된 날짜의 할 일 목록 카드
+  function dayDetailCard(key) {
+    const card = document.createElement("div");
+    card.className = "detail-card";
+    const head = document.createElement("div");
+    head.className = "detail-head" + (isTodayKey(key) ? " today" : "");
+    head.textContent = humanDate(key);
+    card.appendChild(head);
+    const items = todosOn(key).sort((a, b) => (a.done - b.done) || (a.time || "").localeCompare(b.time || "") || a.createdAt - b.createdAt);
+    if (!items.length) {
+      const e = document.createElement("div"); e.className = "cal-empty"; e.textContent = "이 날은 할 일이 없어요 🍃";
+      card.appendChild(e);
+    } else {
+      const ul = document.createElement("ul"); ul.className = "todo-list";
+      items.forEach((t) => ul.appendChild(todoEl(t)));
+      card.appendChild(ul);
+    }
+    return card;
+  }
+
+  // --- 월간 ---
+  function renderMonthView(body, detail) {
+    const cur = calCursorDate();
+    const y = cur.getFullYear(), m = cur.getMonth();
+    setPeriod(`${y}년 ${m + 1}월`);
+
+    const grid = document.createElement("div"); grid.className = "cal-grid";
+    ["일", "월", "화", "수", "목", "금", "토"].forEach((d, i) => {
+      const h = document.createElement("div");
+      h.className = "cal-dow" + (i === 0 ? " sun" : i === 6 ? " sat" : "");
+      h.textContent = d; grid.appendChild(h);
+    });
+
+    const first = new Date(y, m, 1);
+    const startBlanks = first.getDay();
+    const daysInMonth = new Date(y, m + 1, 0).getDate();
+    for (let i = 0; i < startBlanks; i++) { const c = document.createElement("div"); c.className = "cal-cell empty"; grid.appendChild(c); }
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const d = new Date(y, m, day);
+      const key = dateKey(d);
+      const st = dayStat(key);
+      const dow = d.getDay();
+      const cell = document.createElement("div");
+      cell.className = "cal-cell" + (dow === 0 ? " sun" : dow === 6 ? " sat" : "") +
+        (isTodayKey(key) ? " today" : "") + (key === state.ui.calCursor ? " selected" : "");
+      const dn = document.createElement("div"); dn.className = "d"; dn.textContent = day; cell.appendChild(dn);
+      const dots = document.createElement("div"); dots.className = "cal-dots";
+      const total = st.pending + Math.min(st.done, 4);
+      if (st.total > 4) {
+        const cnt = document.createElement("span"); cnt.className = "cal-count"; cnt.textContent = st.total; dots.appendChild(cnt);
+      } else {
+        for (let i = 0; i < st.pending; i++) { const o = document.createElement("span"); o.className = "dot pending"; dots.appendChild(o); }
+        for (let i = 0; i < st.done; i++) { const o = document.createElement("span"); o.className = "dot done"; dots.appendChild(o); }
+      }
+      cell.appendChild(dots);
+      cell.onclick = () => { setCursor(d); renderCalendar(); };
+      grid.appendChild(cell);
+    }
+    body.appendChild(grid);
+    detail.appendChild(dayDetailCard(state.ui.calCursor));
+  }
+
+  // --- 주간 ---
+  function renderWeekView(body) {
+    const cur = calCursorDate();
+    const sunday = addDays(cur, -cur.getDay());
+    const sat = addDays(sunday, 6);
+    setPeriod(`${sunday.getMonth() + 1}.${sunday.getDate()} ~ ${sat.getMonth() + 1}.${sat.getDate()}`);
+
+    const wrap = document.createElement("div"); wrap.className = "cal-week";
+    for (let i = 0; i < 7; i++) {
+      const d = addDays(sunday, i);
+      const key = dateKey(d);
+      const st = dayStat(key);
+      const block = document.createElement("div");
+      block.className = "week-day" + (isTodayKey(key) ? " today" : "");
+      const head = document.createElement("div"); head.className = "week-day-head";
+      const title = document.createElement("span");
+      title.textContent = `${d.getMonth() + 1}월 ${d.getDate()}일 (${WEEKDAYS[d.getDay()]})${isTodayKey(key) ? " · 오늘" : ""}`;
+      const cnt = document.createElement("span"); cnt.className = "wd-count";
+      cnt.textContent = st.total ? `${st.pending}개 남음 · 총 ${st.total}` : "없음";
+      head.appendChild(title); head.appendChild(cnt); block.appendChild(head);
+      const items = todosOn(key).sort((a, b) => (a.done - b.done) || (a.time || "").localeCompare(b.time || "") || a.createdAt - b.createdAt);
+      if (items.length) {
+        const ul = document.createElement("ul"); ul.className = "todo-list";
+        items.forEach((t) => ul.appendChild(todoEl(t)));
+        block.appendChild(ul);
+      }
+      wrap.appendChild(block);
+    }
+    body.appendChild(wrap);
+  }
+
+  // --- 일간 ---
+  function renderDayView(body) {
+    const key = state.ui.calCursor;
+    const d = keyToDate(key);
+    setPeriod(`${d.getMonth() + 1}월 ${d.getDate()}일 (${WEEKDAYS[d.getDay()]})`);
+    body.appendChild(dayDetailCard(key));
+  }
+
+  // --- 연간 ---
+  function renderYearView(body) {
+    const cur = calCursorDate();
+    const y = cur.getFullYear();
+    setPeriod(`${y}년`);
+    const wrap = document.createElement("div"); wrap.className = "cal-year";
+    for (let m = 0; m < 12; m++) {
+      const mini = document.createElement("div"); mini.className = "mini";
+      const h = document.createElement("h4"); h.textContent = `${m + 1}월`; mini.appendChild(h);
+      const g = document.createElement("div"); g.className = "mini-grid";
+      const startBlanks = new Date(y, m, 1).getDay();
+      const daysInMonth = new Date(y, m + 1, 0).getDate();
+      for (let i = 0; i < startBlanks; i++) { const c = document.createElement("div"); c.className = "mini-cell"; g.appendChild(c); }
+      for (let day = 1; day <= daysInMonth; day++) {
+        const key = dateKey(new Date(y, m, day));
+        const st = dayStat(key);
+        const c = document.createElement("div");
+        let cls = "mini-cell";
+        if (st.pending > 0) cls += " has-pending";
+        else if (st.done > 0) cls += " has-done";
+        if (isTodayKey(key)) cls += " today";
+        c.className = cls; c.textContent = day;
+        g.appendChild(c);
+      }
+      mini.appendChild(g);
+      mini.onclick = () => { setCursor(new Date(y, m, 1)); state.ui.calView = "month"; save(); renderCalendar(); };
+      wrap.appendChild(mini);
+    }
+    body.appendChild(wrap);
+  }
+
+  function calNav(dir) {
+    const d = calCursorDate();
+    const v = state.ui.calView;
+    if (v === "year") d.setFullYear(d.getFullYear() + dir);
+    else if (v === "month") d.setMonth(d.getMonth() + dir);
+    else if (v === "week") d.setDate(d.getDate() + dir * 7);
+    else d.setDate(d.getDate() + dir);
+    setCursor(d); renderCalendar();
   }
 
   // ----------------------------------------------------------------------
@@ -637,6 +817,28 @@
     save(); renderBoard();
   });
 
+  // 탭 전환
+  function switchTab(tab) {
+    state.ui.tab = tab; save();
+    $("#homeTab").hidden = tab !== "home";
+    $("#calendarTab").hidden = tab !== "calendar";
+    document.querySelectorAll("#tabbar button").forEach((b) => b.classList.toggle("active", b.dataset.tab === tab));
+    if (tab === "calendar") renderCalendar();
+  }
+  $("#tabbar").addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    switchTab(b.dataset.tab);
+  });
+
+  // 달력 보기 전환 / 네비게이션
+  $("#calViews").addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    state.ui.calView = b.dataset.v; save(); renderCalendar();
+  });
+  $("#calPrev").onclick = () => calNav(-1);
+  $("#calNext").onclick = () => calNav(1);
+  $("#calToday").onclick = () => { setCursor(new Date()); renderCalendar(); };
+
   // TTS 토글
   const ttsToggle = $("#ttsToggle");
   function syncTts() {
@@ -682,6 +884,7 @@
   // ----------------------------------------------------------------------
   initRecognition();
   syncTts();
+  switchTab(state.ui.tab);
   render();
 
   // 디버그/테스트용 노출
