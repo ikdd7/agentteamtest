@@ -1,0 +1,45 @@
+name: Deploy Voice To-Do to GitHub Pages
+
+on:
+  push:
+    branches:
+      - claude/voice-todo-list-app-ia73q8
+      - main
+    paths:
+      - "voice-todo/**"
+      - ".github/workflows/deploy-pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 동시 배포 1개만
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Upload artifact (voice-todo/)
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: voice-todo
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
