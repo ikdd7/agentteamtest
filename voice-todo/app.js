@@ -491,7 +491,6 @@
   function renderGoals() {
     const list = $("#goalList");
     list.innerHTML = "";
-    $("#goalEmpty").hidden = state.goals.length > 0;
     for (const g of state.goals) {
       const li = document.createElement("li");
       li.className = "goal-item";
@@ -519,10 +518,13 @@
       boardEmpty.hidden = true;
       renderByCategory(todos);
     }
-    // 첫 사용 안내 칩: 아직 아무것도 없을 때만
-    const sug = document.querySelector("#suggestRow");
-    if (sug) sug.hidden = state.todos.length > 0;
+    // 필터는 거를 것이 생겼을 때만 보여준다
+    const filters = document.querySelector("#filtersRow");
+    if (filters) filters.hidden = state.todos.length === 0;
   }
+
+  // 첫 사용 예시 — 히어로 빈 상태 안에서만 안내한다 (안내 메시지는 화면에 하나만)
+  const SUGGESTS = ["오늘 오후 세시에 운동하기", "내일 아침 여섯시에 일어나기", "목표 추가 매일 책 10분 읽기"];
 
   // '오늘' 히어로 — 앱을 열면 가장 먼저 보여야 하는 것
   function heroEl(items) {
@@ -543,8 +545,21 @@
       empty.className = "hero-empty";
       empty.textContent = allToday.length
         ? "오늘 몫은 다 끝냈어요. 멋져요 ✨"
-        : "오늘은 가벼운 날이에요. 아래 말하기를 눌러 추가해 보세요";
+        : "아직 할 일이 없어요";
       el.appendChild(empty);
+      // 완전 첫 사용이라면 여기에서만, 짧게 안내한다
+      if (!state.todos.length) {
+        const chips = document.createElement("div");
+        chips.className = "suggest-chips";
+        SUGGESTS.forEach((s) => {
+          const b = document.createElement("button");
+          b.className = "suggest-chip";
+          b.textContent = s;
+          b.onclick = () => process(s);
+          chips.appendChild(b);
+        });
+        el.appendChild(chips);
+      }
     } else {
       const ul = document.createElement("ul");
       ul.className = "todo-list";
@@ -983,11 +998,6 @@
   }
   if (quoteCard) quoteCard.onclick = () => showQuote(true);
   showQuote(false);
-
-  // 첫 사용 예시 칩 — 누르면 그대로 실행해 보여준다
-  document.querySelectorAll(".suggest-chip").forEach((b) => {
-    b.onclick = () => process(b.dataset.say);
-  });
 
   // 목표 버튼
   $("#addGoalBtn").onclick = () => {
