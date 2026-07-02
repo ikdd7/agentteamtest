@@ -51,6 +51,25 @@ html, body {
 }
 .tabbar button.active { background: var(--bg); color: var(--text); box-shadow: var(--shadow); }
 
+/* ===== Daily quote (motivation, always on top) ===== */
+.quote-card {
+  position: relative; display: block; width: 100%; text-align: left;
+  border: none; cursor: pointer; font-family: inherit;
+  background: linear-gradient(135deg, #f0f6ff 0%, #f6f3ff 100%);
+  border-radius: 16px; padding: 18px 40px 16px 20px; margin: 0 0 18px;
+  transition: opacity .18s ease, transform .12s;
+}
+.quote-card:active { transform: scale(.99); }
+.quote-card.q-fade { opacity: 0; }
+.q-text {
+  margin: 0; font-size: 15.5px; line-height: 1.6; font-weight: 600; color: var(--text);
+  word-break: keep-all;
+}
+.q-text::before { content: "\201C"; color: var(--accent); font-weight: 800; margin-right: 3px; }
+.q-text::after { content: "\201D"; color: var(--accent); font-weight: 800; margin-left: 3px; }
+.q-author { margin: 8px 0 0; font-size: 12.5px; color: var(--muted); font-weight: 600; }
+.q-refresh { position: absolute; top: 14px; right: 15px; color: #b7c8e8; font-size: 15px; }
+
 /* ===== Goals (compact) ===== */
 .goals-card { margin-bottom: 4px; }
 .goals-head { display: flex; align-items: center; justify-content: space-between; margin: 2px 2px 4px; }

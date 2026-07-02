@@ -964,6 +964,26 @@
     inp.value = "";
   }
 
+  // 명언 카드 — 열 때마다 랜덤, 탭하면 다음 명언
+  const quoteCard = $("#quoteCard");
+  let quoteIdx = -1;
+  function showQuote(animate) {
+    const list = window.QUOTES || [];
+    if (!quoteCard || !list.length) return;
+    let i;
+    do { i = Math.floor(Math.random() * list.length); } while (list.length > 1 && i === quoteIdx);
+    quoteIdx = i;
+    const apply = () => {
+      $("#quoteText").textContent = list[i].t;
+      $("#quoteAuthor").textContent = "— " + list[i].a;
+      quoteCard.classList.remove("q-fade");
+    };
+    if (animate) { quoteCard.classList.add("q-fade"); setTimeout(apply, 180); }
+    else apply();
+  }
+  if (quoteCard) quoteCard.onclick = () => showQuote(true);
+  showQuote(false);
+
   // 첫 사용 예시 칩 — 누르면 그대로 실행해 보여준다
   document.querySelectorAll(".suggest-chip").forEach((b) => {
     b.onclick = () => process(b.dataset.say);
