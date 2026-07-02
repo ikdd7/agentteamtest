@@ -97,6 +97,7 @@
   // 한국어 명령 파서
   // ----------------------------------------------------------------------
   const COMPLETE_MARKERS = ["완료", "끝냈", "끝났", "끝나", "다했", "다 했", "처리했", "처리 했", "마쳤", "마침", "했어", "했음", "끝", "done"];
+  const RESCHEDULE_MARKERS = ["미뤄", "미루", "미뤘", "옮겨", "옮기", "연기해", "연기", "바꿔", "변경해"];
   const QUERY_MARKERS = ["알려줘", "알려 줘", "읽어줘", "읽어 줘", "보여줘", "보여 줘", "들려줘", "뭐야", "뭐 있", "뭐있", "뭐 남", "확인해", "확인 해", "어때", "정리해줘"];
   const ADD_TAILS = ["해야 해", "해야해", "해야 돼", "해야돼", "해야지", "해야됨", "할 거야", "할거야", "할거", "할게", "할래", "하기로", "하기", "할 일", "할일", "예정", "등록해줘", "등록해", "추가해줘", "추가해", "추가", "넣어줘", "넣어", "줘"];
   const GOAL_PREFIX = ["목표 추가", "목표추가", "목표 등록", "목표등록", "목표로", "목표는", "목표"];
@@ -247,6 +248,7 @@
     if (GOAL_PREFIX.some((p) => t.replace(/\s+/g, "").startsWith(p.replace(/\s+/g, "")))) {
       return { intent: "goal_add" };
     }
+    if (hasAny(t, RESCHEDULE_MARKERS)) return { intent: "reschedule" };
     if (hasAny(t, QUERY_MARKERS)) return { intent: "query" };
     if (hasAny(t, COMPLETE_MARKERS)) return { intent: "complete" };
     return { intent: "add" };
@@ -274,6 +276,7 @@
     const { intent } = classify(text);
     if (intent === "empty") return { type: "warn", msg: "잘 못 들었어요. 다시 말해 주세요." };
     if (intent === "goal_add") return doGoalAdd(text);
+    if (intent === "reschedule") return doReschedule(text);
     if (intent === "query") return doQuery(text);
     if (intent === "complete") return doComplete(text);
     return doAdd(text);
@@ -289,7 +292,8 @@
       const body = cleanTaskText(tm.rest);
       if (!body) continue;
       const cat = inferCategory(part);
-      const dateK = d.key || lastDate; // 앞 절의 날짜 이어받기
+      // 날짜 언급이 없으면 '오늘'로 — 말로 던지는 앱의 자연스러운 기본값
+      const dateK = d.key || lastDate || todayKey();
       lastDate = dateK;
       const todo = {
         id: uid(), text: body, date: dateK, time: tm.time || null,
@@ -300,20 +304,25 @@
     }
     if (!added.length) return { type: "warn", msg: "할 일 내용을 알아듣지 못했어요." };
     save();
+    // 인식 결과를 구조적으로 보여줘 "제대로 알아들었다"는 신뢰를 준다
+    const lines = added.map((a) => {
+      const bits = [`"${a.text}"`, spokenDate(a.date)];
+      if (a.time) bits.push(a.time);
+      if (a.category !== "기타") bits.push(`${a.icon} ${a.category}`);
+      return bits.join(" · ");
+    });
     const names = added.map((a) => a.text).join(", ");
     const whenSet = [...new Set(added.map((a) => spokenDate(a.date)))].join(", ");
     return {
       type: "ok",
-      msg: `📝 ${added.length}개 추가: ${names} (${whenSet})`,
+      msg: `✓ 추가됨  ${lines.join("  /  ")}`,
       speak: `${whenSet} 할 일에 ${names} 추가했어요.`,
     };
   }
 
-  function doComplete(text) {
-    const tokens = contentTokens(text);
+  // 발화 토큰과 가장 잘 맞는 미완료 할 일 찾기 (완료/미루기 공용)
+  function matchTodo(tokens) {
     const open = state.todos.filter((t) => !t.done);
-    if (!open.length) return { type: "warn", msg: "완료할 할 일이 없어요." };
-
     let best = null, bestScore = 0;
     for (const t of open) {
       const tt = contentTokens(t.text);
@@ -321,17 +330,45 @@
       for (const tok of tokens) {
         if (tt.some((x) => x.includes(tok) || tok.includes(x))) score += 1;
       }
-      // 카테고리명 직접 언급도 가산
       if (tokens.includes(t.category)) score += 0.5;
       if (score > bestScore) { bestScore = score; best = t; }
     }
-    if (!best || bestScore === 0) {
+    return bestScore > 0 ? best : null;
+  }
+
+  function doComplete(text) {
+    if (!state.todos.some((t) => !t.done)) return { type: "warn", msg: "완료할 할 일이 없어요." };
+    const best = matchTodo(contentTokens(text));
+    if (!best) {
       return { type: "warn", msg: `"${cleanTaskText(text)}"와(과) 맞는 할 일을 못 찾았어요.` };
     }
     best.done = true;
     best.completedAt = Date.now();
     save();
     return { type: "ok", msg: `✅ 완료: ${best.text}`, speak: `${best.text} 완료 처리했어요. 잘하셨어요!` };
+  }
+
+  // "운동 내일로 미뤄줘" — 날짜를 뽑고, 나머지 토큰으로 할 일을 찾아 옮긴다
+  function doReschedule(text) {
+    if (!state.todos.some((t) => !t.done)) return { type: "warn", msg: "옮길 할 일이 없어요." };
+    const d = extractDate(text);
+    const targetKey = d.key || dateKey(addDays(new Date(), 1)); // 날짜 없으면 내일로
+    let rest = d.rest;
+    for (const m of [...RESCHEDULE_MARKERS].sort((a, b) => b.length - a.length)) {
+      rest = rest.split(m).join(" ");
+    }
+    rest = rest.replace(/(으로|로)\s/g, " ").replace(/(으로|로)$/g, " ");
+    const best = matchTodo(contentTokens(rest));
+    if (!best) {
+      return { type: "warn", msg: `"${cleanTaskText(rest)}"와(과) 맞는 할 일을 못 찾았어요.` };
+    }
+    best.date = targetKey;
+    save();
+    return {
+      type: "ok",
+      msg: `⏭ "${best.text}" → ${spokenDate(targetKey)}(으)로 옮겼어요`,
+      speak: `${best.text}, ${spokenDate(targetKey)}로 옮겼어요.`,
+    };
   }
 
   function doQuery(text) {
@@ -405,11 +442,49 @@
   function renderBoard() {
     board.innerHTML = "";
     const todos = visibleTodos();
-    if (!todos.length) { boardEmpty.hidden = false; return; }
-    boardEmpty.hidden = true;
+    if (state.ui.group === "date") {
+      // 날짜별 보기는 '오늘' 히어로가 빈 상태까지 책임진다
+      boardEmpty.hidden = true;
+      renderByDate(todos);
+    } else {
+      if (!todos.length) { boardEmpty.hidden = false; return; }
+      boardEmpty.hidden = true;
+      renderByCategory(todos);
+    }
+    // 첫 사용 안내 칩: 아직 아무것도 없을 때만
+    const sug = document.querySelector("#suggestRow");
+    if (sug) sug.hidden = state.todos.length > 0;
+  }
 
-    if (state.ui.group === "date") renderByDate(todos);
-    else renderByCategory(todos);
+  // '오늘' 히어로 — 앱을 열면 가장 먼저 보여야 하는 것
+  function heroEl(items) {
+    const allToday = state.todos.filter((t) => t.date === todayKey());
+    const done = allToday.filter((t) => t.done).length;
+    const now = new Date();
+    const el = document.createElement("section");
+    el.className = "hero";
+    el.innerHTML = `<div class="hero-head"><h2>오늘</h2><span class="hero-date"></span><span class="hero-progress" hidden></span></div>`;
+    el.querySelector(".hero-date").textContent = `${now.getMonth() + 1}월 ${now.getDate()}일 ${WEEKDAYS[now.getDay()]}요일`;
+    if (allToday.length) {
+      const p = el.querySelector(".hero-progress");
+      p.hidden = false;
+      p.textContent = `${done}/${allToday.length} 완료`;
+    }
+    if (!items.length) {
+      const empty = document.createElement("p");
+      empty.className = "hero-empty";
+      empty.textContent = allToday.length
+        ? "오늘 몫은 다 끝냈어요. 멋져요 ✨"
+        : "오늘은 가벼운 날이에요. 아래 말하기를 눌러 추가해 보세요";
+      el.appendChild(empty);
+    } else {
+      const ul = document.createElement("ul");
+      ul.className = "todo-list";
+      items.sort((a, b) => (a.done - b.done) || a.createdAt - b.createdAt);
+      items.forEach((t) => ul.appendChild(todoEl(t)));
+      el.appendChild(ul);
+    }
+    return el;
   }
 
   function groupHeadClass(key) {
@@ -421,9 +496,12 @@
   }
 
   function renderByDate(todos) {
+    const tk = todayKey();
+    board.appendChild(heroEl(todos.filter((t) => t.date === tk)));
     const groups = {};
     for (const t of todos) {
       const k = t.date || "none";
+      if (k === tk) continue; // 오늘은 히어로가 담당
       (groups[k] = groups[k] || []).push(t);
     }
     const keys = Object.keys(groups).sort((a, b) => {
@@ -709,12 +787,13 @@
 
   const micBtn = $("#micBtn");
   const micHint = $("#micHint");
+  const micLabel = $("#micLabel");
   const liveBox = $("#liveBox");
   const liveText = $("#liveText");
 
   function initRecognition() {
     if (!SR) {
-      micHint.textContent = "이 브라우저는 음성 인식을 지원하지 않아요. 아래에 직접 입력하세요.";
+      micHint.textContent = "이 브라우저는 음성 인식을 지원하지 않아요. 위 입력칸을 사용하세요.";
       micBtn.style.opacity = 0.5;
       return;
     }
@@ -727,7 +806,8 @@
     recog.onstart = () => {
       listening = true;
       micBtn.classList.add("listening");
-      micHint.textContent = "듣고 있어요… 말씀하세요";
+      if (micLabel) micLabel.textContent = "듣는 중…";
+      micHint.textContent = "";
       liveBox.hidden = false;
       liveText.textContent = "";
     };
@@ -739,8 +819,8 @@
     recog.onend = () => {
       listening = false;
       micBtn.classList.remove("listening");
+      if (micLabel) micLabel.textContent = "말하기";
       liveBox.hidden = true;
-      if (micHint.textContent.startsWith("듣고")) micHint.textContent = "버튼을 누르고 말해보세요";
     };
     recog.onresult = (e) => {
       let interim = "", final = "";
@@ -776,6 +856,9 @@
     lastResult.hidden = false;
     lastResult.className = "last-result" + (res.type === "warn" ? " warn" : res.type === "err" ? " err" : "");
     lastResult.textContent = res.msg;
+    // 확인할 시간을 준 뒤 스스로 사라진다 (경고는 조금 더 길게)
+    clearTimeout(lastResult._t);
+    lastResult._t = setTimeout(() => (lastResult.hidden = true), res.type === "ok" ? 6000 : 9000);
   }
 
   function toast(msg) {
@@ -800,6 +883,11 @@
     process(v);
     inp.value = "";
   }
+
+  // 첫 사용 예시 칩 — 누르면 그대로 실행해 보여준다
+  document.querySelectorAll(".suggest-chip").forEach((b) => {
+    b.onclick = () => process(b.dataset.say);
+  });
 
   // 목표 버튼
   $("#addGoalBtn").onclick = () => {
@@ -892,5 +980,5 @@
   render();
 
   // 디버그/테스트용 노출
-  window.__voiceTodo = { handleUtterance, classify, extractDate, extractTime, cleanTaskText, inferCategory, state };
+  window.__voiceTodo = { handleUtterance, classify, extractDate, extractTime, cleanTaskText, inferCategory, doReschedule, state };
 })();
