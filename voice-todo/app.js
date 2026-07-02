@@ -96,10 +96,12 @@
   // ----------------------------------------------------------------------
   // 한국어 명령 파서
   // ----------------------------------------------------------------------
-  const COMPLETE_MARKERS = ["완료", "끝냈", "끝났", "끝나", "다했", "다 했", "처리했", "처리 했", "마쳤", "마침", "했어", "했음", "끝", "done"];
-  const RESCHEDULE_MARKERS = ["미뤄", "미루", "미뤘", "옮겨", "옮기", "연기해", "연기", "바꿔", "변경해"];
+  // 주의: 너무 짧은 표현("끝", "끝나")은 "끝내기/끝나고" 같은 추가 문장을 완료로 오인시킨다
+  const COMPLETE_MARKERS = ["완료", "끝냈", "끝났", "다했", "다 했", "처리했", "처리 했", "마쳤", "했어", "했음", "done"];
+  const RESCHEDULE_MARKERS = ["미뤄", "미루", "미뤘", "옮겨", "옮기", "연기해", "연기", "바꿔", "변경해", "수정해", "수정"];
+  const DELETE_MARKERS = ["삭제", "지워", "지우", "없애", "빼줘", "빼 줘", "취소해", "취소"];
   const QUERY_MARKERS = ["알려줘", "알려 줘", "읽어줘", "읽어 줘", "보여줘", "보여 줘", "들려줘", "뭐야", "뭐 있", "뭐있", "뭐 남", "확인해", "확인 해", "어때", "정리해줘"];
-  const ADD_TAILS = ["해야 해", "해야해", "해야 돼", "해야돼", "해야지", "해야됨", "할 거야", "할거야", "할거", "할게", "할래", "하기로", "하기", "할 일", "할일", "예정", "등록해줘", "등록해", "추가해줘", "추가해", "추가", "넣어줘", "넣어", "줘"];
+  const ADD_TAILS = ["해야 해", "해야해", "해야 돼", "해야돼", "해야지", "해야됨", "할 거야", "할거야", "할거", "할게", "할래", "하기로", "하기", "할 일", "할일", "예정", "등록해줘", "등록해", "추가해줘", "추가해", "추가", "넣어줘", "넣어", "줘", "끝내기", "끝내야 해", "끝내야", "마치기"];
   const GOAL_PREFIX = ["목표 추가", "목표추가", "목표 등록", "목표등록", "목표로", "목표는", "목표"];
 
   // 날짜 표현 → 기준일로부터 오프셋(일) 혹은 절대 날짜키
@@ -248,6 +250,7 @@
     if (GOAL_PREFIX.some((p) => t.replace(/\s+/g, "").startsWith(p.replace(/\s+/g, "")))) {
       return { intent: "goal_add" };
     }
+    if (hasAny(t, DELETE_MARKERS)) return { intent: "delete" };
     if (hasAny(t, RESCHEDULE_MARKERS)) return { intent: "reschedule" };
     if (hasAny(t, QUERY_MARKERS)) return { intent: "query" };
     if (hasAny(t, COMPLETE_MARKERS)) return { intent: "complete" };
@@ -265,7 +268,8 @@
   function contentTokens(text) {
     return cleanTaskText(text)
       .split(/\s+/)
-      .map((w) => w.replace(/[은는이가을를에서로으로와과의도만]$/g, ""))
+      // 조사 제거는 3글자 이상일 때만 — "요가", "치과" 같은 단어의 끝 글자를 지우면 안 된다
+      .map((w) => (w.length >= 3 ? w.replace(/[은는이가을를에서로으로와과의도만]$/g, "") : w))
       .filter((w) => w.length >= 2);
   }
 
@@ -276,6 +280,7 @@
     const { intent } = classify(text);
     if (intent === "empty") return { type: "warn", msg: "잘 못 들었어요. 다시 말해 주세요." };
     if (intent === "goal_add") return doGoalAdd(text);
+    if (intent === "delete") return doDelete(text);
     if (intent === "reschedule") return doReschedule(text);
     if (intent === "query") return doQuery(text);
     if (intent === "complete") return doComplete(text);
@@ -320,11 +325,17 @@
     };
   }
 
-  // 발화 토큰과 가장 잘 맞는 미완료 할 일 찾기 (완료/미루기 공용)
-  function matchTodo(tokens) {
-    const open = state.todos.filter((t) => !t.done);
+  // 발화 토큰과 가장 잘 맞는 할 일 찾기 (완료/미루기/삭제/수정 공용)
+  // 같은 점수면 오늘 → 지난 → 미래 순으로 우선한다
+  function datePriority(t) {
+    if (!t.date) return 3;
+    if (t.date === todayKey()) return 0;
+    return t.date < todayKey() ? 1 : 2;
+  }
+  function matchTodo(tokens, pool) {
+    const ordered = [...pool].sort((a, b) => datePriority(a) - datePriority(b) || (a.date || "9").localeCompare(b.date || "9"));
     let best = null, bestScore = 0;
-    for (const t of open) {
+    for (const t of ordered) {
       const tt = contentTokens(t.text);
       let score = 0;
       for (const tok of tokens) {
@@ -335,30 +346,87 @@
     }
     return bestScore > 0 ? best : null;
   }
+  // 날짜를 언급했으면 그 날짜부터 찾고, 없으면 전체에서 찾는다
+  function findTarget(text, pool) {
+    const d = extractDate(text);
+    const tokens = contentTokens(d.rest);
+    let best = null;
+    if (d.key) best = matchTodo(tokens, pool.filter((t) => t.date === d.key));
+    if (!best) best = matchTodo(tokens, pool);
+    return { best, tokens, dateKeyMentioned: d.key, rest: d.rest };
+  }
 
   function doComplete(text) {
-    if (!state.todos.some((t) => !t.done)) return { type: "warn", msg: "완료할 할 일이 없어요." };
-    const best = matchTodo(contentTokens(text));
+    const open = state.todos.filter((t) => !t.done);
+    if (!open.length) return { type: "warn", msg: "완료할 할 일이 없어요." };
+    const { best } = findTarget(text, open);
     if (!best) {
       return { type: "warn", msg: `"${cleanTaskText(text)}"와(과) 맞는 할 일을 못 찾았어요.` };
     }
     best.done = true;
     best.completedAt = Date.now();
     save();
-    return { type: "ok", msg: `✅ 완료: ${best.text}`, speak: `${best.text} 완료 처리했어요. 잘하셨어요!` };
+    // 오늘이 아닌 할 일을 완료했다면 어떤 날짜의 것인지 분명히 알려준다
+    const when = best.date && best.date !== todayKey() ? ` (${spokenDate(best.date)})` : "";
+    return { type: "ok", msg: `✅ 완료: ${best.text}${when}`, speak: `${best.text} 완료 처리했어요. 잘하셨어요!` };
+  }
+
+  // "운동 삭제해줘", "약속 취소해줘" — 완료가 아니라 없애고 싶을 때
+  function doDelete(text) {
+    if (!state.todos.length) return { type: "warn", msg: "삭제할 할 일이 없어요." };
+    let rest = text;
+    for (const m of [...DELETE_MARKERS].sort((a, b) => b.length - a.length)) {
+      rest = rest.split(m).join(" ");
+    }
+    const { best } = findTarget(rest, state.todos);
+    if (!best) {
+      return { type: "warn", msg: `"${cleanTaskText(rest)}"와(과) 맞는 할 일을 못 찾았어요.` };
+    }
+    state.todos = state.todos.filter((t) => t.id !== best.id);
+    save();
+    return {
+      type: "ok",
+      msg: `🗑 삭제: "${best.text}" (${spokenDate(best.date)})`,
+      speak: `${best.text} 삭제했어요.`,
+    };
+  }
+
+  // "운동을 요가로 바꿔줘" — 내용 수정
+  function doRename(text) {
+    const open = state.todos.filter((t) => !t.done);
+    if (!open.length) return { type: "warn", msg: "수정할 할 일이 없어요." };
+    let m = text.match(/(.+?)(?:을|를)\s*(.+?)(?:으로|로)\s*(?:바꿔|변경|수정)/);
+    if (!m) m = text.match(/(.+?)\s+(\S+?)(?:으로|로)\s*(?:바꿔|변경|수정)/);
+    if (!m) return { type: "warn", msg: `「운동을 요가로 바꿔줘」처럼 말해 주세요.` };
+    const best = matchTodo(contentTokens(m[1]), open);
+    if (!best) {
+      return { type: "warn", msg: `"${cleanTaskText(m[1])}"와(과) 맞는 할 일을 못 찾았어요.` };
+    }
+    const oldText = best.text;
+    const newText = cleanTaskText(m[2]);
+    if (!newText) return { type: "warn", msg: "무엇으로 바꿀지 못 알아들었어요." };
+    best.text = newText;
+    const cat = inferCategory(newText);
+    best.category = cat.name;
+    best.icon = cat.icon;
+    save();
+    return { type: "ok", msg: `✏️ 수정: "${oldText}" → "${newText}"`, speak: `${oldText}를 ${newText}로 바꿨어요.` };
   }
 
   // "운동 내일로 미뤄줘" — 날짜를 뽑고, 나머지 토큰으로 할 일을 찾아 옮긴다
+  // 날짜 없이 "바꿔/수정"이면 내용 수정으로 처리
   function doReschedule(text) {
-    if (!state.todos.some((t) => !t.done)) return { type: "warn", msg: "옮길 할 일이 없어요." };
     const d = extractDate(text);
+    if (!d.key && /(바꿔|변경|수정)/.test(text)) return doRename(text);
+    const open = state.todos.filter((t) => !t.done);
+    if (!open.length) return { type: "warn", msg: "옮길 할 일이 없어요." };
     const targetKey = d.key || dateKey(addDays(new Date(), 1)); // 날짜 없으면 내일로
     let rest = d.rest;
     for (const m of [...RESCHEDULE_MARKERS].sort((a, b) => b.length - a.length)) {
       rest = rest.split(m).join(" ");
     }
     rest = rest.replace(/(으로|로)\s/g, " ").replace(/(으로|로)$/g, " ");
-    const best = matchTodo(contentTokens(rest));
+    const best = matchTodo(contentTokens(rest), open);
     if (!best) {
       return { type: "warn", msg: `"${cleanTaskText(rest)}"와(과) 맞는 할 일을 못 찾았어요.` };
     }
@@ -563,7 +631,19 @@
         <div class="t-sub"></div>
       </div>
       <button class="t-del" title="삭제">🗑</button>`;
-    li.querySelector(".t-text").textContent = t.text;
+    const textEl = li.querySelector(".t-text");
+    textEl.textContent = t.text;
+    textEl.title = "눌러서 수정";
+    textEl.onclick = () => {
+      const v = prompt("내용 수정", t.text);
+      if (v && v.trim() && v.trim() !== t.text) {
+        t.text = v.trim();
+        const cat = inferCategory(t.text);
+        t.category = cat.name;
+        t.icon = cat.icon;
+        save(); render();
+      }
+    };
 
     const sub = li.querySelector(".t-sub");
     if (state.ui.group === "category" && t.date) {
