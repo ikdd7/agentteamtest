@@ -7,7 +7,7 @@
   <meta name="description" content="음성으로 말하면 날짜별·행동별 투두리스트를 만들어 주고 달력으로 한눈에 보는 나만의 음성 비서" />
   <title>말로 하는 투두 · Voice To-Do</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
-  <link rel="stylesheet" href="styles.css?v=9" />
+  <link rel="stylesheet" href="styles.css?v=10" />
 </head>
 <body>
   <div class="app">
@@ -46,27 +46,16 @@
           <button id="addGoalBtn" class="ghost-btn">+ 추가</button>
         </div>
         <ul id="goalList" class="goal-list"></ul>
-        <p id="goalEmpty" class="muted small">작은 목표 하나를 적어두면 볼 때마다 힘이 됩니다.</p>
       </section>
 
       <!-- Manual quick add -->
       <section class="manual-add">
-        <input id="manualInput" type="text" placeholder="직접 입력: 예) 내일 오후 3시 회의" autocomplete="off" />
+        <input id="manualInput" type="text" placeholder="할 일 입력 · 예) 내일 오후 3시 회의" autocomplete="off" />
         <button id="manualAddBtn" class="primary-btn">추가</button>
       </section>
 
-      <!-- First-run suggestions -->
-      <div id="suggestRow" class="suggest-row" hidden>
-        <p class="suggest-label">처음이세요? 눌러서 바로 해보세요</p>
-        <div class="suggest-chips">
-          <button class="suggest-chip" data-say="오늘 오후 세시에 운동하기">"오늘 오후 세시에 운동하기"</button>
-          <button class="suggest-chip" data-say="내일 아침 여섯시에 일어나기">"내일 아침 여섯시에 일어나기"</button>
-          <button class="suggest-chip" data-say="목표 추가 매일 책 10분 읽기">"목표 추가 매일 책 10분 읽기"</button>
-        </div>
-      </div>
-
-      <!-- Filters -->
-      <section class="filters">
+      <!-- Filters (할 일이 있을 때만 표시) -->
+      <section class="filters" id="filtersRow" hidden>
         <div class="seg" id="statusFilter">
           <button data-f="all" class="active">전체</button>
           <button data-f="active">할 일</button>
@@ -178,6 +167,6 @@
   <div id="toast" class="toast" hidden></div>
 
   <script src="quotes.js?v=1"></script>
-  <script src="app.js?v=9"></script>
+  <script src="app.js?v=10"></script>
 </body>
 </html>
