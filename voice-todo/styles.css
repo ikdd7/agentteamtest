@@ -280,6 +280,13 @@ html, body {
 .bubble.user { align-self: flex-end; background: var(--accent); color: #fff; border-bottom-right-radius: 6px; }
 .bubble.bot { align-self: flex-start; background: var(--bg); border: 1px solid var(--line-strong); color: var(--text); border-bottom-left-radius: 6px; }
 .bubble.bot.warn { color: #a9791a; border-color: #f3e0b6; }
+.chat-close {
+  position: sticky; top: 0; align-self: flex-end; z-index: 1;
+  width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--line-strong);
+  background: var(--bg); color: var(--muted); font-size: 12px; cursor: pointer;
+  box-shadow: 0 2px 8px rgba(20, 20, 40, 0.10);
+}
+.chat-close:hover { color: var(--text); }
 
 /* ===== Calendar ===== */
 .cal-toolbar { display: flex; justify-content: center; margin-bottom: 16px; }

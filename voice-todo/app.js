@@ -300,7 +300,7 @@
           pendingAction = null;
           return commitAdd({ ...p.draft, date: dd.key || p.draft.date, time: tm.time });
         }
-        if (!tm.time && t.length <= 10 && /없|몰라|모르|나중|안\s*정|패스|스킵|아무때/.test(t)) { pendingAction = null; return commitAdd({ ...p.draft, time: null }); }
+        if (!tm.time && t.length <= 10 && /없|몰라|모르|나중|미정|안\s*정|패스|스킵|아무\s*때/.test(t)) { pendingAction = null; return commitAdd({ ...p.draft, time: null }); }
         pendingAction = null; // 시간 답이 아니면 새 명령으로 처리
       }
       // 2) "무엇을 하실 건가요?" 에 대한 답
@@ -1285,20 +1285,39 @@
   const chatLog = $("#chatLog");
   let chatHideTimer = null;
 
+  function hideChat() {
+    clearTimeout(chatHideTimer);
+    if (chatLog) { chatLog.hidden = true; chatLog.innerHTML = ""; }
+  }
+  // 대화가 끝나면 8초 뒤 접는다. 되묻는 중이면 끝날 때까지 기다렸다가 접는다.
+  function armChatHide() {
+    clearTimeout(chatHideTimer);
+    chatHideTimer = setTimeout(() => {
+      if (pendingAction) armChatHide();
+      else hideChat();
+    }, 8000);
+  }
+
   function appendBubble(role, text, warn) {
     if (!chatLog) return;
+    // 닫기 버튼(✕)은 항상 첫 요소로 유지
+    if (!chatLog.querySelector(".chat-close")) {
+      const x = document.createElement("button");
+      x.className = "chat-close";
+      x.textContent = "✕";
+      x.title = "대화 닫기";
+      x.onclick = () => { pendingAction = null; hideChat(); };
+      chatLog.appendChild(x);
+    }
     const d = document.createElement("div");
     d.className = "bubble " + role + (warn ? " warn" : "");
     d.textContent = text;
     chatLog.appendChild(d);
-    while (chatLog.children.length > 10) chatLog.firstChild.remove();
+    // 말풍선은 최근 6개까지만 (닫기 버튼 제외)
+    while (chatLog.querySelectorAll(".bubble").length > 6) chatLog.querySelector(".bubble").remove();
     chatLog.hidden = false;
     chatLog.scrollTop = chatLog.scrollHeight;
-    // 되묻는 중이면 계속 띄워두고, 아니면 잠시 후 접는다
-    clearTimeout(chatHideTimer);
-    chatHideTimer = setTimeout(() => {
-      if (!pendingAction) { chatLog.hidden = true; chatLog.innerHTML = ""; }
-    }, 12000);
+    armChatHide();
   }
 
   function process(text) {
