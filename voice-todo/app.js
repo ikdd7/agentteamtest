@@ -899,6 +899,7 @@
   function todoEl(t, opts) {
     opts = opts || {};
     const li = document.createElement("li");
+    li.dataset.cat = t.category; // 카테고리별 색상용
     li.className = "todo" + (t.done ? " done" : "");
     li.innerHTML = `
       <button class="check" title="완료 토글">✓</button>

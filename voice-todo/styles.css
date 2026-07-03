@@ -166,10 +166,20 @@ html, body {
 .hg-slot { flex: 1; min-width: 0; padding: 3px 0; position: relative; }
 .hg-slot.empty { cursor: pointer; border-radius: 8px; transition: background .12s; }
 .hg-slot.empty:hover { background: var(--accent-soft); }
-/* 슬롯 안 일정은 캘린더 이벤트 블록처럼 */
-.hg-slot .todo { border-bottom: none; background: var(--accent-soft); border-radius: 10px; padding: 8px 10px; margin: 2px 0; border-left: 3px solid var(--accent); }
-.hg-slot .todo:hover { background: #ddebfc; }
-.hg-slot .todo.done { background: var(--bg-soft); border-left-color: var(--done); }
+/* 슬롯 안 일정은 캘린더 이벤트 블록처럼 — 카테고리별 색상 */
+.hg-slot .todo { border-bottom: none; border-radius: 10px; padding: 8px 10px; margin: 2px 0; background: var(--bg-soft); }
+.hg-slot .todo:hover { filter: brightness(.97); background: inherit; }
+.hg-slot .todo[data-cat="업무"]   { background: #e8f1fe; }
+.hg-slot .todo[data-cat="운동"]   { background: #e3f7f1; }
+.hg-slot .todo[data-cat="공부"]   { background: #f1ecfe; }
+.hg-slot .todo[data-cat="쇼핑"]   { background: #fff0e1; }
+.hg-slot .todo[data-cat="집안일"] { background: #fcf4d7; }
+.hg-slot .todo[data-cat="약속"]   { background: #fdeaf2; }
+.hg-slot .todo[data-cat="건강"]   { background: #ffecec; }
+.hg-slot .todo[data-cat="금융"]   { background: #e9f6e2; }
+.hg-slot .todo[data-cat="연락"]   { background: #e2f5fa; }
+.hg-slot .todo[data-cat="기타"]   { background: #f2f4f6; }
+.hg-slot .todo.done { background: var(--bg-soft); opacity: .75; }
 /* 현재 시각 표시선 */
 .hg-now { position: absolute; left: 58px; right: 0; height: 2px; background: #f04452; z-index: 2; pointer-events: none; }
 .hg-now::before { content: ""; position: absolute; left: -4px; top: -3px; width: 8px; height: 8px; border-radius: 50%; background: #f04452; }
