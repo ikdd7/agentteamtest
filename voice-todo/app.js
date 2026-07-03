@@ -19,6 +19,7 @@
   if (!state.ui.calCursor) state.ui.calCursor = todayKey();
   if (!Array.isArray(state.favQuotes)) state.favQuotes = []; // ♥ 즐겨찾기 명언
   if (!Array.isArray(state.myQuotes)) state.myQuotes = [];   // ✍️ 나만의 명언
+  if (state.myPledge === undefined) state.myPledge = null;   // 💗 나의 다짐 {t, date}
 
   function load() {
     try {
@@ -863,6 +864,7 @@
       const slot = document.createElement("div");
       slot.className = "hg-slot";
       const tasks = (byHour[h] || []).sort((a, b) => timeLabelToHHMM(a.time).localeCompare(timeLabelToHHMM(b.time)) || a.createdAt - b.createdAt);
+      if (tasks.length) slot.classList.add("has");
       // 30분 단위: 정시(:00~:29)와 반(:30~:59) 두 칸으로 나눈다
       const firstHalf = tasks.filter((t) => Number(timeLabelToHHMM(t.time).split(":")[1]) < 30);
       const secondHalf = tasks.filter((t) => Number(timeLabelToHHMM(t.time).split(":")[1]) >= 30);
@@ -1446,8 +1448,30 @@
   };
   showQuote(false);
 
+  // 💗 나의 다짐 — 명언 아래 분홍 카드로 항상 표시
+  function renderPledge() {
+    const card = $("#pledgeCard");
+    if (!card) return;
+    if (state.myPledge && state.myPledge.t) {
+      $("#pledgeCardText").textContent = state.myPledge.t;
+      const d = keyToDate(state.myPledge.date);
+      $("#pledgeCardDate").textContent = `${d.getFullYear()}. ${d.getMonth() + 1}. ${d.getDate()}.`;
+      card.hidden = false;
+    } else {
+      card.hidden = true;
+    }
+  }
+  renderPledge();
+  $("#pledgeSave").onclick = () => {
+    const v = $("#pledgeInput").value.trim();
+    state.myPledge = v ? { t: v, date: todayKey() } : null;
+    save(); renderPledge();
+    toast(v ? "💗 다짐을 새겼어요" : "다짐을 지웠어요");
+  };
+
   // ⚙ 명언 설정: 즐겨찾기 목록 + 나만의 명언 관리
   function renderQuoteModal() {
+    $("#pledgeInput").value = state.myPledge ? state.myPledge.t : "";
     const favList = $("#favQuoteList");
     favList.innerHTML = "";
     if (!state.favQuotes.length) {

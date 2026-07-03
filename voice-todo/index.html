@@ -7,7 +7,7 @@
   <meta name="description" content="음성으로 말하면 날짜별·행동별 투두리스트를 만들어 주고 달력으로 한눈에 보는 나만의 음성 비서" />
   <title>말로 하는 투두 · Voice To-Do</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
-  <link rel="stylesheet" href="styles.css?v=24" />
+  <link rel="stylesheet" href="styles.css?v=25" />
 </head>
 <body>
   <div class="app">
@@ -17,6 +17,7 @@
         <h1>말로 하는 투두</h1>
       </div>
       <div class="topbar-actions">
+        <button id="quoteSettingBtn" class="icon-btn" title="명언·다짐 설정">⚙</button>
         <button id="ttsToggle" class="icon-btn" title="음성 읽어주기 켜기/끄기" aria-pressed="true">🔊</button>
         <button id="helpBtn" class="icon-btn" title="사용법 / 명령어">?</button>
       </div>
@@ -38,8 +39,13 @@
         <p id="quoteAuthor" class="q-author"></p>
         <div class="q-actions">
           <button id="quoteFav" class="q-btn" type="button" title="즐겨찾기">♡</button>
-          <button id="quoteSettingBtn" class="q-btn" type="button" title="명언 설정">⚙</button>
         </div>
+      </div>
+
+      <!-- 나의 다짐 (설정에서 작성, 항상 표시) -->
+      <div id="pledgeCard" class="pledge-card" hidden>
+        <p id="pledgeCardText" class="p-text"></p>
+        <span id="pledgeCardDate" class="p-date"></span>
       </div>
 
       <hr class="divider" />
@@ -195,7 +201,13 @@
   <div id="quoteModal" class="modal" hidden>
     <div class="modal-box">
       <button class="modal-close" id="quoteModalClose">✕</button>
-      <h2>💬 명언 설정</h2>
+      <h2>💬 명언 · 다짐 설정</h2>
+      <h3 class="qm-head">💗 나의 다짐</h3>
+      <div class="qm-add pledge-edit">
+        <textarea id="pledgeInput" rows="2" maxlength="120" placeholder="스스로에게 하는 약속을 적어보세요"></textarea>
+        <button id="pledgeSave" class="primary-btn sm">저장</button>
+      </div>
+      <p class="muted small">명언 카드 아래에 항상 보여요. 비우고 저장하면 사라져요.</p>
       <h3 class="qm-head">♥ 즐겨찾기한 명언</h3>
       <ul id="favQuoteList" class="qm-list"></ul>
       <h3 class="qm-head">✍️ 나만의 명언</h3>
@@ -212,6 +224,6 @@
   <div id="toast" class="toast" hidden></div>
 
   <script src="quotes.js?v=2"></script>
-  <script src="app.js?v=24"></script>
+  <script src="app.js?v=25"></script>
 </body>
 </html>
