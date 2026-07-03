@@ -907,50 +907,92 @@
       if (now.getHours() > end) end = now.getHours();
     }
 
+    // ---- 배경 그리드: 모든 행이 같은 높이(HOUR_H), 빈 반 칸은 탭해서 추가 ----
+    const HOUR_H = 48; // px, 1시간
+    const gridStartMin = start * 60;
     for (let h = start; h <= end; h++) {
       const row = document.createElement("div");
       row.className = "hg-row";
+      row.style.height = HOUR_H + "px";
       const timeCol = document.createElement("div");
       timeCol.className = "hg-time";
       timeCol.textContent = hourLabel(h);
       const slot = document.createElement("div");
       slot.className = "hg-slot";
-      const tasks = (byHour[h] || []).sort((a, b) => timeLabelToHHMM(a.time).localeCompare(timeLabelToHHMM(b.time)) || a.createdAt - b.createdAt);
-      if (tasks.length) slot.classList.add("has");
-      // 30분 단위: 정시(:00~:29)와 반(:30~:59) 두 칸으로 나눈다
-      const firstHalf = tasks.filter((t) => Number(timeLabelToHHMM(t.time).split(":")[1]) < 30);
-      const secondHalf = tasks.filter((t) => Number(timeLabelToHHMM(t.time).split(":")[1]) >= 30);
-      [firstHalf, secondHalf].forEach((half, idx) => {
+      [0, 1].forEach((idx) => {
         const halfEl = document.createElement("div");
-        halfEl.className = "hg-half" + (idx === 1 ? " h30" : "");
-        if (half.length) {
-          const ul = document.createElement("ul");
-          ul.className = "todo-list";
-          half.forEach((t) => ul.appendChild(todoEl(t)));
-          halfEl.appendChild(ul);
-        } else {
-          // 빈 반 칸을 누르면 그 시각으로 바로 추가
-          halfEl.classList.add("empty");
-          halfEl.title = "눌러서 이 시간에 추가";
-          halfEl.onclick = () => {
-            const inp = $("#manualInput");
-            inp.value = `${dayWord(key)} ${hourLabel(h)}${idx === 1 ? " 반" : ""}에 `;
-            inp.focus();
-          };
-        }
+        halfEl.className = "hg-half empty";
+        halfEl.title = "눌러서 이 시간에 추가";
+        halfEl.onclick = () => {
+          const inp = $("#manualInput");
+          inp.value = `${dayWord(key)} ${hourLabel(h)}${idx === 1 ? " 반" : ""}에 `;
+          inp.focus();
+        };
         slot.appendChild(halfEl);
       });
-      // 현재 시각 표시선 (오늘 + 해당 시간대)
-      if (isToday && now.getHours() === h) {
-        const line = document.createElement("div");
-        line.className = "hg-now";
-        line.style.top = `${Math.round((now.getMinutes() / 60) * 100)}%`;
-        row.appendChild(line);
-      }
       row.appendChild(timeCol);
       row.appendChild(slot);
       wrap.appendChild(row);
     }
+
+    // ---- 이벤트 오버레이: 시작~종료 시각 그대로 시간축 위에 걸친다 (5분 단위) ----
+    const snap5 = (m) => Math.round(m / 5) * 5;
+    const timed = items.filter((t) => timeLabelToHHMM(t.time));
+    const evs = timed.map((t) => {
+      const [sh, sm] = timeLabelToHHMM(t.time).split(":").map(Number);
+      let s = snap5(sh * 60 + sm);
+      const eHH = timeLabelToHHMM(t.timeEnd);
+      let e2 = eHH ? snap5(Number(eHH.split(":")[0]) * 60 + Number(eHH.split(":")[1])) : s + 60;
+      if (e2 <= s) e2 = s + 60; // 종료가 이상하면 1시간짜리로
+      return { t, s, e: e2 };
+    }).sort((a, b) => a.s - b.s || a.e - b.e);
+
+    // 겹치는 이벤트는 가로로 나눠 배치
+    const clusters = [];
+    for (const ev of evs) {
+      const c = clusters[clusters.length - 1];
+      if (c && ev.s < c.maxEnd) { c.list.push(ev); c.maxEnd = Math.max(c.maxEnd, ev.e); }
+      else clusters.push({ list: [ev], maxEnd: ev.e });
+    }
+    const overlay = document.createElement("div");
+    overlay.className = "hg-events";
+    const gridEndMin = (end + 1) * 60;
+    for (const c of clusters) {
+      const cols = [];
+      for (const ev of c.list) {
+        let col = cols.findIndex((endAt) => endAt <= ev.s);
+        if (col === -1) { col = cols.length; cols.push(0); }
+        cols[col] = ev.e;
+        ev.col = col;
+      }
+      const n = cols.length;
+      for (const ev of c.list) {
+        const el = document.createElement("div");
+        const top = ((ev.s - gridStartMin) / 60) * HOUR_H;
+        const height = ((Math.min(ev.e, gridEndMin) - ev.s) / 60) * HOUR_H;
+        el.className = "hg-event" + (height < 42 ? " slim" : "");
+        el.style.top = top + "px";
+        el.style.height = Math.max(height, 22) + "px";
+        el.style.left = `${(ev.col / n) * 100}%`;
+        el.style.width = `calc(${100 / n}% - 4px)`;
+        const ul = document.createElement("ul");
+        ul.className = "todo-list";
+        ul.appendChild(todoEl(ev.t));
+        el.appendChild(ul);
+        overlay.appendChild(el);
+      }
+    }
+    // 현재 시각 빨간 선 — 타임라인 전체 기준으로 정확하게
+    if (isToday) {
+      const nowMin = now.getHours() * 60 + now.getMinutes();
+      if (nowMin >= gridStartMin && nowMin <= gridEndMin) {
+        const line = document.createElement("div");
+        line.className = "hg-now";
+        line.style.top = ((nowMin - gridStartMin) / 60) * HOUR_H + "px";
+        overlay.appendChild(line);
+      }
+    }
+    wrap.appendChild(overlay);
     return wrap;
   }
 
