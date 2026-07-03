@@ -679,28 +679,27 @@
     }
     if (!meta.children.length) meta.remove();
 
-    // 그날의 목록
+    // 그날의 목록 — 아워 그리드는 비어 있어도 항상 보여준다 (빈 칸 눌러 추가)
     const items = todos.filter((t) => t.date === key);
-    if (!items.length) {
+    if (!items.length && diff === 0 && !state.todos.length) {
+      // 완전 첫 사용 안내
+      const chips = document.createElement("div");
+      chips.className = "suggest-chips";
+      SUGGESTS.forEach((s) => {
+        const b = document.createElement("button");
+        b.className = "suggest-chip";
+        b.textContent = s;
+        b.onclick = () => process(s);
+        chips.appendChild(b);
+      });
+      el.appendChild(chips);
+    } else if (!items.length && allDay.length) {
       const empty = document.createElement("p");
       empty.className = "hero-empty";
-      empty.textContent = allDay.length ? "이 날 몫은 다 끝냈어요. 멋져요 ✨" : "이 날은 할 일이 없어요";
+      empty.textContent = "이 날 몫은 다 끝냈어요. 멋져요 ✨";
       el.appendChild(empty);
-      if (diff === 0 && !state.todos.length) {
-        const chips = document.createElement("div");
-        chips.className = "suggest-chips";
-        SUGGESTS.forEach((s) => {
-          const b = document.createElement("button");
-          b.className = "suggest-chip";
-          b.textContent = s;
-          b.onclick = () => process(s);
-          chips.appendChild(b);
-        });
-        el.appendChild(chips);
-      }
-    } else {
-      el.appendChild(timelineEl(items));
     }
+    el.appendChild(timelineEl(items, key));
     board.appendChild(el);
 
     // 날짜 미정 항목(예전 데이터)은 아래에 별도 표시
@@ -713,59 +712,88 @@
     }
   }
 
-  // 세로 타임라인 — 시간이 있는 항목은 시간순으로 축 위에, 없는 항목은 아래 "시간 미정"
-  function timelineEl(items) {
+  // 구글 캘린더식 아워 그리드 — 매 시간을 나열하고 할 일을 해당 칸에 배치
+  function hourLabel(h) { return `${h < 12 ? "오전" : "오후"} ${((h + 11) % 12) + 1}시`; }
+  function dayWord(key) {
+    const diff = Math.round((startOfDay(keyToDate(key)) - startOfDay(new Date())) / 86400000);
+    if (diff === 0) return "오늘";
+    if (diff === 1) return "내일";
+    if (diff === 2) return "모레";
+    const d = keyToDate(key);
+    return `${d.getMonth() + 1}월 ${d.getDate()}일`;
+  }
+
+  function timelineEl(items, key) {
     const wrap = document.createElement("div");
     wrap.className = "timeline";
-    const timed = items
-      .filter((t) => timeLabelToHHMM(t.time))
-      .sort((a, b) => timeLabelToHHMM(a.time).localeCompare(timeLabelToHHMM(b.time)) || a.createdAt - b.createdAt);
+
+    // 시간 미정 — 종일 일정처럼 맨 위에
     const untimed = items
       .filter((t) => !timeLabelToHHMM(t.time))
       .sort((a, b) => (a.done - b.done) || a.createdAt - b.createdAt);
-
-    timed.forEach((t) => wrap.appendChild(tlRow(t, true)));
     if (untimed.length) {
-      if (timed.length) {
-        const lb = document.createElement("div");
-        lb.className = "tl-label";
-        lb.textContent = "시간 미정";
-        wrap.appendChild(lb);
+      const lb = document.createElement("div");
+      lb.className = "tl-label";
+      lb.textContent = "시간 미정";
+      wrap.appendChild(lb);
+      const ul = document.createElement("ul");
+      ul.className = "todo-list";
+      untimed.forEach((t) => ul.appendChild(todoEl(t)));
+      wrap.appendChild(ul);
+    }
+
+    // 시간별 묶기
+    const byHour = {};
+    items.filter((t) => timeLabelToHHMM(t.time)).forEach((t) => {
+      const h = Number(timeLabelToHHMM(t.time).split(":")[0]);
+      (byHour[h] = byHour[h] || []).push(t);
+    });
+    // 기본 오전 6시~오후 10시. 일정이 있거나(오늘은) 현재 시각이 벗어나면 범위 자동 확장
+    const isToday = key === todayKey();
+    const now = new Date();
+    let start = 6, end = 22;
+    Object.keys(byHour).map(Number).forEach((h) => { if (h < start) start = h; if (h > end) end = h; });
+    if (isToday) {
+      if (now.getHours() < start) start = now.getHours();
+      if (now.getHours() > end) end = now.getHours();
+    }
+
+    for (let h = start; h <= end; h++) {
+      const row = document.createElement("div");
+      row.className = "hg-row";
+      const timeCol = document.createElement("div");
+      timeCol.className = "hg-time";
+      timeCol.textContent = hourLabel(h);
+      const slot = document.createElement("div");
+      slot.className = "hg-slot";
+      const tasks = (byHour[h] || []).sort((a, b) => timeLabelToHHMM(a.time).localeCompare(timeLabelToHHMM(b.time)) || a.createdAt - b.createdAt);
+      if (tasks.length) {
+        const ul = document.createElement("ul");
+        ul.className = "todo-list";
+        tasks.forEach((t) => ul.appendChild(todoEl(t)));
+        slot.appendChild(ul);
+      } else {
+        // 빈 칸을 누르면 그 시간으로 바로 추가할 수 있게 입력을 채워준다
+        slot.classList.add("empty");
+        slot.title = "눌러서 이 시간에 추가";
+        slot.onclick = () => {
+          const inp = $("#manualInput");
+          inp.value = `${dayWord(key)} ${hourLabel(h)}에 `;
+          inp.focus();
+        };
       }
-      untimed.forEach((t) => wrap.appendChild(tlRow(t, false)));
+      // 현재 시각 표시선 (오늘 + 해당 시간대)
+      if (isToday && now.getHours() === h) {
+        const line = document.createElement("div");
+        line.className = "hg-now";
+        line.style.top = `${Math.round((now.getMinutes() / 60) * 100)}%`;
+        row.appendChild(line);
+      }
+      row.appendChild(timeCol);
+      row.appendChild(slot);
+      wrap.appendChild(row);
     }
     return wrap;
-  }
-
-  function tlRow(t, hasTime) {
-    const row = document.createElement("div");
-    row.className = "tl-row" + (t.done ? " done" : "");
-    const timeCol = document.createElement("div");
-    timeCol.className = "tl-time";
-    if (hasTime) {
-      timeCol.textContent = t.time;
-      timeCol.title = "눌러서 시간 변경";
-      timeCol.onclick = () => {
-        const inp = document.createElement("input");
-        inp.type = "time";
-        inp.className = "chip-edit tl-time-edit";
-        inp.value = timeLabelToHHMM(t.time) || "09:00";
-        timeCol.replaceWith(inp);
-        inp.focus();
-        inp.onchange = () => { t.time = inp.value ? hhmmToLabel(inp.value) : null; inp.onblur = null; save(); render(); };
-        inp.onblur = () => render();
-      };
-    }
-    const axis = document.createElement("div");
-    axis.className = "tl-axis";
-    axis.innerHTML = `<span class="tl-dot"></span>`;
-    const body = document.createElement("ul");
-    body.className = "todo-list tl-body";
-    body.appendChild(todoEl(t, { hideTime: hasTime }));
-    row.appendChild(timeCol);
-    row.appendChild(axis);
-    row.appendChild(body);
-    return row;
   }
 
   // 모바일 스와이프로 하루씩 넘기기
