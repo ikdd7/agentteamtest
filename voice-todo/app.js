@@ -1688,16 +1688,6 @@
   // ----------------------------------------------------------------------
   micBtn.onclick = toggleMic;
 
-  $("#manualAddBtn").onclick = submitManual;
-  $("#manualInput").addEventListener("keydown", (e) => { if (e.key === "Enter") submitManual(); });
-  function submitManual() {
-    const inp = $("#manualInput");
-    const v = inp.value.trim();
-    if (!v) return;
-    process(v);
-    inp.value = "";
-  }
-
   // 명언 카드 — 열 때마다 랜덤(나만의 명언 포함), 탭하면 다음, ♥로 즐겨찾기
   const quoteCard = $("#quoteCard");
   let quoteIdx = -1;
@@ -1875,5 +1865,5 @@
   render();
 
   // 디버그/테스트용 노출
-  window.__voiceTodo = { handleUtterance, classify, extractDate, extractTime, cleanTaskText, inferCategory, doReschedule, state };
+  window.__voiceTodo = { handleUtterance, classify, extractDate, extractTime, cleanTaskText, inferCategory, doReschedule, process, state };
 })();
