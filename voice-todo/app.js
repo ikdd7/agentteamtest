@@ -286,14 +286,41 @@
 
   function handleUtterance(text) {
     const t = text.trim();
-    // 제안에 대한 답변부터 처리
+    // 비서가 던진 질문/제안에 대한 답변부터 처리
     if (pendingAction) {
-      if (CONFIRM_RE.test(t)) return applyPending();
-      if (CANCEL_RE.test(t)) {
-        pendingAction = null;
-        return { type: "ok", msg: "👌 알겠어요, 그대로 둘게요.", speak: "알겠어요, 그대로 둘게요." };
+      // 1) "몇 시로 할까요?" 에 대한 답
+      if (pendingAction.kind === "ask-time") {
+        const p = pendingAction;
+        if (CANCEL_RE.test(t)) { pendingAction = null; return { type: "ok", msg: "👌 알겠어요, 등록하지 않을게요.", speak: "알겠어요." }; }
+        const dd = extractDate(t);
+        const tm = extractTime(dd.rest);
+        const leftover = cleanTaskText(extractPlace(tm.rest).rest);
+        // 시간만 답했을 때만 초안에 채운다 ("오늘 9시에 회의"처럼 내용이 있으면 새 명령)
+        if (tm.time && !leftover) {
+          pendingAction = null;
+          return commitAdd({ ...p.draft, date: dd.key || p.draft.date, time: tm.time });
+        }
+        if (!tm.time && t.length <= 10 && /없|몰라|모르|나중|안\s*정|패스|스킵|아무때/.test(t)) { pendingAction = null; return commitAdd({ ...p.draft, time: null }); }
+        pendingAction = null; // 시간 답이 아니면 새 명령으로 처리
       }
-      pendingAction = null; // 다른 말을 하면 제안은 조용히 접는다
+      // 2) "무엇을 하실 건가요?" 에 대한 답
+      else if (pendingAction.kind === "ask-text") {
+        const p = pendingAction;
+        if (CANCEL_RE.test(t)) { pendingAction = null; return { type: "ok", msg: "👌 알겠어요, 등록하지 않을게요.", speak: "알겠어요." }; }
+        const body = cleanTaskText(extractTime(extractDate(t).rest).rest);
+        pendingAction = null;
+        if (body) return commitAdd({ ...p.draft, text: body });
+        return { type: "warn", msg: "🤔 무슨 일인지 잘 못 알아들었어요. 처음부터 다시 말해 주세요." };
+      }
+      // 3) 정리 제안(옮기기)에 대한 응/아니
+      else {
+        if (CONFIRM_RE.test(t)) return applyPending();
+        if (CANCEL_RE.test(t)) {
+          pendingAction = null;
+          return { type: "ok", msg: "👌 알겠어요, 그대로 둘게요.", speak: "알겠어요, 그대로 둘게요." };
+        }
+        pendingAction = null; // 다른 말을 하면 제안은 조용히 접는다
+      }
     }
     const { intent } = classify(t);
     if (intent === "empty") return { type: "warn", msg: "잘 못 들었어요. 다시 말해 주세요." };
@@ -380,21 +407,76 @@
     };
   }
 
+  // 장소는 선택 사항 — "강남역에서 저녁 약속"처럼 말하면 뽑아둔다
+  function extractPlace(text) {
+    const m = text.match(/([가-힣A-Za-z0-9]{2,})에서(?=\s|$)/);
+    if (m) return { place: m[1], rest: text.replace(m[0], " ") };
+    return { place: null, rest: text };
+  }
+
+  function commitAdd(draft) {
+    const cat = inferCategory(draft.text);
+    const todo = {
+      id: uid(), text: draft.text, date: draft.date, time: draft.time || null,
+      place: draft.place || null,
+      category: cat.name, icon: cat.icon, done: false, createdAt: Date.now(),
+    };
+    state.todos.push(todo);
+    save();
+    const bits = [`"${todo.text}"`, spokenDate(todo.date)];
+    if (todo.time) bits.push(todo.time);
+    if (todo.place) bits.push(`📍${todo.place}`);
+    if (todo.category !== "기타") bits.push(`${todo.icon} ${todo.category}`);
+    return {
+      type: "ok",
+      msg: `✓ 추가됨  ${bits.join(" · ")}`,
+      speak: `${spokenDate(todo.date)}${todo.time ? " " + todo.time : ""}에 ${todo.text} 추가했어요.`,
+    };
+  }
+
   function doAdd(text) {
     const parts = splitTasks(text);
+
+    // 한 건이면 비서처럼 빠진 정보를 되묻는다
+    if (parts.length === 1) {
+      const d = extractDate(parts[0]);
+      const tm = extractTime(d.rest);
+      const pl = extractPlace(tm.rest);
+      const body = cleanTaskText(pl.rest);
+      const dateK = d.key || todayKey();
+      if (!body) {
+        pendingAction = { kind: "ask-text", draft: { date: dateK, time: tm.time || null, place: pl.place } };
+        return {
+          type: "ok",
+          msg: `🤔 ${spokenDate(dateK)}${tm.time ? ` ${tm.time}` : ""}에 무엇을 하실 건가요?`,
+          speak: "무엇을 하실 건가요?",
+        };
+      }
+      if (!tm.time) {
+        pendingAction = { kind: "ask-time", draft: { text: body, date: dateK, place: pl.place } };
+        return {
+          type: "ok",
+          msg: `⏰ ${spokenDate(dateK)} "${body}", 몇 시로 할까요?  예) "오후 3시" · 시간이 없으면 "시간 없어"`,
+          speak: `${body}, 몇 시로 할까요? 시간이 없으면 없다고 말해 주세요.`,
+        };
+      }
+      return commitAdd({ text: body, date: dateK, time: tm.time, place: pl.place });
+    }
+
+    // 여러 건("그리고")이면 되묻지 않고 한 번에 등록한다
     const added = [];
     let lastDate = null;
     for (const part of parts) {
       const d = extractDate(part);
       const tm = extractTime(d.rest);
-      const body = cleanTaskText(tm.rest);
+      const pl = extractPlace(tm.rest);
+      const body = cleanTaskText(pl.rest);
       if (!body) continue;
       const cat = inferCategory(part);
-      // 날짜 언급이 없으면 '오늘'로 — 말로 던지는 앱의 자연스러운 기본값
       const dateK = d.key || lastDate || todayKey();
       lastDate = dateK;
       const todo = {
-        id: uid(), text: body, date: dateK, time: tm.time || null,
+        id: uid(), text: body, date: dateK, time: tm.time || null, place: pl.place || null,
         category: cat.name, icon: cat.icon, done: false, createdAt: Date.now(),
       };
       state.todos.push(todo);
@@ -402,10 +484,10 @@
     }
     if (!added.length) return { type: "warn", msg: "할 일 내용을 알아듣지 못했어요." };
     save();
-    // 인식 결과를 구조적으로 보여줘 "제대로 알아들었다"는 신뢰를 준다
     const lines = added.map((a) => {
       const bits = [`"${a.text}"`, spokenDate(a.date)];
       if (a.time) bits.push(a.time);
+      if (a.place) bits.push(`📍${a.place}`);
       if (a.category !== "기타") bits.push(`${a.icon} ${a.category}`);
       return bits.join(" · ");
     });
@@ -925,6 +1007,12 @@
     const sub = li.querySelector(".t-sub");
     sub.appendChild(categoryChip(t));
     if (!opts.hideTime) sub.appendChild(timeChip(t)); // 타임라인에선 왼쪽 시간축이 대신한다
+    if (t.place) {
+      const pc = document.createElement("span");
+      pc.className = "chip";
+      pc.textContent = `📍 ${t.place}`;
+      sub.appendChild(pc);
+    }
 
     li.querySelector(".check").onclick = () => {
       t.done = !t.done;
@@ -1193,22 +1281,32 @@
   // ----------------------------------------------------------------------
   // 입력 처리 (음성/수동 공통)
   // ----------------------------------------------------------------------
-  const lastResult = $("#lastResult");
+  // 챗봇 말풍선 — 내 말(파랑)과 비서의 답(흰색)을 대화로 보여준다
+  const chatLog = $("#chatLog");
+  let chatHideTimer = null;
 
-  function process(text) {
-    const res = handleUtterance(text);
-    showResult(res);
-    if (res.speak) speak(res.speak);
-    render();
+  function appendBubble(role, text, warn) {
+    if (!chatLog) return;
+    const d = document.createElement("div");
+    d.className = "bubble " + role + (warn ? " warn" : "");
+    d.textContent = text;
+    chatLog.appendChild(d);
+    while (chatLog.children.length > 10) chatLog.firstChild.remove();
+    chatLog.hidden = false;
+    chatLog.scrollTop = chatLog.scrollHeight;
+    // 되묻는 중이면 계속 띄워두고, 아니면 잠시 후 접는다
+    clearTimeout(chatHideTimer);
+    chatHideTimer = setTimeout(() => {
+      if (!pendingAction) { chatLog.hidden = true; chatLog.innerHTML = ""; }
+    }, 12000);
   }
 
-  function showResult(res) {
-    lastResult.hidden = false;
-    lastResult.className = "last-result" + (res.type === "warn" ? " warn" : res.type === "err" ? " err" : "");
-    lastResult.textContent = res.msg;
-    // 확인할 시간을 준 뒤 스스로 사라진다 (경고는 조금 더 길게)
-    clearTimeout(lastResult._t);
-    lastResult._t = setTimeout(() => (lastResult.hidden = true), res.type === "ok" ? 6000 : 9000);
+  function process(text) {
+    appendBubble("user", text);
+    const res = handleUtterance(text);
+    appendBubble("bot", res.msg, res.type !== "ok");
+    if (res.speak) speak(res.speak);
+    render();
   }
 
   function toast(msg) {
