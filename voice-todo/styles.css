@@ -88,6 +88,7 @@ input[type="text"], textarea { font-size: 16px; }
   background: linear-gradient(135deg, #ffeef5 0%, #fde7f0 100%);
   border-radius: 16px; padding: 16px 20px 24px; margin: 10px 0 0;
 }
+.pledge-card[hidden] { display: none; }
 .p-text { margin: 0; font-size: 14.5px; line-height: 1.55; font-weight: 600; color: #7a3b56; word-break: keep-all; }
 .p-text::before { content: "💗"; margin-right: 6px; font-size: 12.5px; }
 .p-date { position: absolute; right: 14px; bottom: 9px; font-size: 10.5px; color: #b3a0aa; font-weight: 600; }

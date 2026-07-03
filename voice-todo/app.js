@@ -963,40 +963,18 @@
   const boardEmpty = $("#boardEmpty");
 
   function render() {
-    renderGoals();
     renderBoard();
     renderCalendar();
-  }
-
-  function renderGoals() {
-    const list = $("#goalList");
-    list.innerHTML = "";
-    for (const g of state.goals) {
-      const li = document.createElement("li");
-      li.className = "goal-item";
-      li.innerHTML = `<span class="goal-star">★</span><span class="g-text"></span><button class="g-del" title="삭제">✕</button>`;
-      li.querySelector(".g-text").textContent = g.text;
-      li.querySelector(".g-del").onclick = () => { state.goals = state.goals.filter((x) => x.id !== g.id); save(); renderGoals(); };
-      list.appendChild(li);
-    }
-  }
-
-  function visibleTodos() {
-    const s = state.ui.status;
-    return state.todos.filter((t) => s === "all" ? true : s === "done" ? t.done : !t.done);
   }
 
   function renderBoard() {
     board.innerHTML = "";
     boardEmpty.hidden = true;
-    renderDayPager(visibleTodos());
-    // 필터는 거를 것이 생겼을 때만 보여준다
-    const filters = document.querySelector("#filtersRow");
-    if (filters) filters.hidden = state.todos.length === 0;
+    renderDayPager(state.todos);
   }
 
   // 첫 사용 예시 — 빈 상태 안에서만 안내한다 (안내 메시지는 화면에 하나만)
-  const SUGGESTS = ["오늘 오후 세시에 운동하기", "내일 아침 여섯시에 일어나기", "목표 추가 매일 책 10분 읽기"];
+  const SUGGESTS = ["오늘 오후 세시에 운동하기", "내일 아침 여섯시에 일어나기", "저녁 9시에 러닝할 건데 뭐 챙겨야 해?"];
 
   // ----------------------------------------------------------------------
   // 데이 페이저 — ‹ › 로 하루씩 넘겨보는 홈 보드 (모바일은 스와이프)
@@ -1168,11 +1146,7 @@
         const halfEl = document.createElement("div");
         halfEl.className = "hg-half empty";
         halfEl.title = "눌러서 이 시간에 추가";
-        halfEl.onclick = () => {
-          const inp = $("#manualInput");
-          inp.value = `${dayWord(key)} ${hourLabel(h)}${idx === 1 ? " 반" : ""}에 `;
-          inp.focus();
-        };
+        halfEl.onclick = () => openNewTaskModal(key, h, idx === 1 ? 30 : 0);
         slot.appendChild(halfEl);
       });
       row.appendChild(timeCol);
@@ -1322,20 +1296,25 @@
   // 일정 상세·메모 팝업
   // ----------------------------------------------------------------------
   let modalTaskId = null;
-  function openTaskModal(t) {
-    modalTaskId = t.id;
-    $("#taskTitle").value = t.text;
-    $("#taskMemo").value = t.memo || "";
-    // 카테고리 선택
+  let modalDraft = null; // 새 일정 모드: { date }
+  function fillCatSelect(selected) {
     const sel = $("#taskCat");
     sel.innerHTML = "";
     ALL_CATEGORIES.forEach((c) => {
       const o = document.createElement("option");
       o.value = c.name;
       o.textContent = `${c.icon} ${c.name}`;
-      if (c.name === t.category) o.selected = true;
+      if (c.name === selected) o.selected = true;
       sel.appendChild(o);
     });
+  }
+  function openTaskModal(t) {
+    modalTaskId = t.id;
+    modalDraft = null;
+    $("#taskModal .modal-box h2").textContent = "📝 일정 메모";
+    $("#taskTitle").value = t.text;
+    $("#taskMemo").value = t.memo || "";
+    fillCatSelect(t.category);
     // 시간 (시작 ~ 종료, 5분 단위)
     $("#taskStart").value = timeLabelToHHMM(t.time) || "";
     $("#taskEnd").value = timeLabelToHHMM(t.timeEnd) || "";
@@ -1343,8 +1322,41 @@
     $("#taskMeta").textContent = meta;
     $("#taskModal").hidden = false;
   }
-  function closeTaskModal() { $("#taskModal").hidden = true; modalTaskId = null; }
+  // 시간대(빈 칸)를 눌렀을 때 — 그 시각이 미리 채워진 새 일정 팝업
+  function openNewTaskModal(dateK, hour, min) {
+    modalTaskId = null;
+    modalDraft = { date: dateK };
+    $("#taskModal .modal-box h2").textContent = "➕ 새 일정";
+    $("#taskTitle").value = "";
+    $("#taskMemo").value = "";
+    fillCatSelect("기타");
+    const hh = (n) => String(n).padStart(2, "0");
+    $("#taskStart").value = `${hh(hour)}:${hh(min)}`;
+    $("#taskEnd").value = `${hh(Math.min(hour + 1, 23))}:${hh(min)}`;
+    $("#taskMeta").textContent = `${spokenDate(dateK)} · ${hourLabel(hour)}${min ? " 30분" : ""}`;
+    $("#taskModal").hidden = false;
+    $("#taskTitle").focus();
+  }
+  function closeTaskModal() { $("#taskModal").hidden = true; modalTaskId = null; modalDraft = null; }
   function saveTaskModal() {
+    if (modalDraft) {
+      // 새 일정 생성
+      const v = $("#taskTitle").value.trim();
+      if (!v) { toast("무엇을 할지 입력해 주세요"); return; }
+      let cat = ALL_CATEGORIES.find((c) => c.name === $("#taskCat").value) || { name: "기타", icon: "📌" };
+      if (cat.name === "기타") cat = inferCategory(v); // 직접 고르지 않았으면 내용으로 추론
+      const s = $("#taskStart").value;
+      const e2 = $("#taskEnd").value;
+      state.todos.push({
+        id: uid(), text: v, date: modalDraft.date,
+        time: s ? hhmmToLabel(s) : null,
+        timeEnd: s && e2 ? hhmmToLabel(e2) : null,
+        place: null, memo: $("#taskMemo").value.trim() || null,
+        category: cat.name, icon: cat.icon, done: false, createdAt: Date.now(),
+      });
+      save(); render(); closeTaskModal();
+      return;
+    }
     const t = state.todos.find((x) => x.id === modalTaskId);
     if (t) {
       const v = $("#taskTitle").value.trim();
@@ -1796,13 +1808,6 @@
   $("#taskSave").onclick = saveTaskModal;
   $("#taskModal").addEventListener("click", (e) => { if (e.target.id === "taskModal") closeTaskModal(); });
 
-  // 필터
-  $("#statusFilter").addEventListener("click", (e) => {
-    const b = e.target.closest("button"); if (!b) return;
-    state.ui.status = b.dataset.f;
-    [...e.currentTarget.children].forEach((c) => c.classList.toggle("active", c === b));
-    save(); renderBoard();
-  });
   // 탭 전환
   function switchTab(tab) {
     state.ui.tab = tab; save();
@@ -1857,9 +1862,6 @@
       save(); renderBoard(); toast("완료 항목을 정리했어요.");
     }
   };
-
-  // 초기 필터 UI 상태 반영
-  document.querySelectorAll("#statusFilter button").forEach((b) => b.classList.toggle("active", b.dataset.f === state.ui.status));
 
   // 음성 목록 미리 로딩 (일부 브라우저)
   if ("speechSynthesis" in window) window.speechSynthesis.onvoiceschanged = () => {};
