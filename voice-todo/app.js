@@ -1038,74 +1038,7 @@
 
   const ALL_CATEGORIES = [...CATEGORIES, { name: "기타", icon: "📌" }];
 
-  // 카테고리 칩 — 누르면 그 자리에서 선택 목록으로 바뀐다
-  function categoryChip(t) {
-    const c = document.createElement("button");
-    c.type = "button";
-    c.className = "chip chip-btn";
-    c.title = "눌러서 카테고리 변경";
-    c.textContent = t.category; // 칸에는 이름만 딱
-    c.onclick = (e) => {
-      e.stopPropagation();
-      const sel = document.createElement("select");
-      sel.className = "chip-edit";
-      ALL_CATEGORIES.forEach((cat) => {
-        const o = document.createElement("option");
-        o.value = cat.name;
-        o.textContent = `${cat.icon} ${cat.name}`;
-        if (cat.name === t.category) o.selected = true;
-        sel.appendChild(o);
-      });
-      c.replaceWith(sel);
-      sel.focus();
-      sel.onchange = () => {
-        const cat = ALL_CATEGORIES.find((x) => x.name === sel.value);
-        t.category = cat.name;
-        t.icon = cat.icon;
-        sel.onblur = null;
-        save(); render();
-      };
-      sel.onblur = () => render(); // 선택 없이 벗어나면 원상 복구
-    };
-    return c;
-  }
-
-  // 시간 칩 — 누르면 시작~종료를 함께 설정. 시간이 없으면 "+ 시간" 칩
-  function timeChip(t) {
-    const c = document.createElement("button");
-    c.type = "button";
-    c.className = "chip chip-btn" + (t.time ? " time" : " ghost");
-    c.title = t.time ? "눌러서 시간 변경 (시작~종료)" : "시간 추가";
-    c.textContent = t.time ? `⏰ ${timeRangeText(t)}` : "+ 시간";
-    c.onclick = (e) => {
-      e.stopPropagation();
-      const wrap = document.createElement("span");
-      wrap.className = "chip-range";
-      wrap.onclick = (ev) => ev.stopPropagation();
-      const s = document.createElement("input");
-      s.type = "time"; s.className = "chip-edit";
-      s.value = timeLabelToHHMM(t.time) || "09:00";
-      const tilde = document.createElement("span");
-      tilde.className = "chip-tilde"; tilde.textContent = "~";
-      const en = document.createElement("input");
-      en.type = "time"; en.className = "chip-edit";
-      en.value = timeLabelToHHMM(t.timeEnd) || "";
-      en.title = "종료 시각 (비우면 없음)";
-      const ok = document.createElement("button");
-      ok.type = "button"; ok.className = "chip-ok"; ok.textContent = "✓"; ok.title = "저장";
-      ok.onclick = (ev) => {
-        ev.stopPropagation();
-        t.time = s.value ? hhmmToLabel(s.value) : null;
-        t.timeEnd = t.time && en.value ? hhmmToLabel(en.value) : null;
-        save(); render();
-      };
-      wrap.append(s, tilde, en, ok);
-      c.replaceWith(wrap);
-      s.focus();
-    };
-    return c;
-  }
-
+  // 블록은 [완료 체크] [카테고리 이모지] [제목]만 — 나머지 편집은 팝업에서
   function todoEl(t, opts) {
     opts = opts || {};
     const li = document.createElement("li");
@@ -1114,34 +1047,17 @@
     li.innerHTML = `
       <button class="check" title="완료 토글">✓</button>
       <div class="t-main">
-        <div class="t-text"></div>
-        <div class="t-sub"></div>
+        <div class="t-text"><span class="t-ico"></span><span class="t-label"></span></div>
       </div>
       <button class="t-del" title="삭제">🗑</button>`;
-    const textEl = li.querySelector(".t-text");
-    textEl.textContent = t.text;
-    li.title = "눌러서 상세·메모";
-    // 블록을 누르면 상세/메모 팝업 (버튼·칩·입력은 각자 동작)
+    li.querySelector(".t-ico").textContent = t.icon;
+    li.querySelector(".t-label").textContent = t.text;
+    li.title = "눌러서 시간·카테고리·메모 수정";
+    // 블록을 누르면 상세 팝업 (버튼은 각자 동작)
     li.onclick = (e) => {
-      if (e.target.closest("button, select, input, .chip-btn")) return;
+      if (e.target.closest("button, select, input")) return;
       openTaskModal(t);
     };
-
-    const sub = li.querySelector(".t-sub");
-    sub.appendChild(categoryChip(t));
-    if (!opts.hideTime) sub.appendChild(timeChip(t)); // 타임라인에선 왼쪽 시간축이 대신한다
-    if (t.place) {
-      const pc = document.createElement("span");
-      pc.className = "chip";
-      pc.textContent = `📍 ${t.place}`;
-      sub.appendChild(pc);
-    }
-    if (t.memo) {
-      const mc = document.createElement("span");
-      mc.className = "chip memo";
-      mc.textContent = "📝 메모";
-      sub.appendChild(mc);
-    }
 
     li.querySelector(".check").onclick = (e) => {
       e.stopPropagation();
@@ -1165,22 +1081,35 @@
     modalTaskId = t.id;
     $("#taskTitle").value = t.text;
     $("#taskMemo").value = t.memo || "";
-    const meta = [spokenDate(t.date), timeRangeText(t), t.place && `📍${t.place}`, `${t.icon} ${t.category}`].filter(Boolean).join(" · ");
+    // 카테고리 선택
+    const sel = $("#taskCat");
+    sel.innerHTML = "";
+    ALL_CATEGORIES.forEach((c) => {
+      const o = document.createElement("option");
+      o.value = c.name;
+      o.textContent = `${c.icon} ${c.name}`;
+      if (c.name === t.category) o.selected = true;
+      sel.appendChild(o);
+    });
+    // 시간 (시작 ~ 종료, 5분 단위)
+    $("#taskStart").value = timeLabelToHHMM(t.time) || "";
+    $("#taskEnd").value = timeLabelToHHMM(t.timeEnd) || "";
+    const meta = [spokenDate(t.date), t.place && `📍${t.place}`].filter(Boolean).join(" · ");
     $("#taskMeta").textContent = meta;
     $("#taskModal").hidden = false;
-    $("#taskMemo").focus();
   }
   function closeTaskModal() { $("#taskModal").hidden = true; modalTaskId = null; }
   function saveTaskModal() {
     const t = state.todos.find((x) => x.id === modalTaskId);
     if (t) {
       const v = $("#taskTitle").value.trim();
-      if (v && v !== t.text) {
-        t.text = v;
-        const cat = inferCategory(v);
-        t.category = cat.name;
-        t.icon = cat.icon;
-      }
+      if (v) t.text = v;
+      const cat = ALL_CATEGORIES.find((c) => c.name === $("#taskCat").value);
+      if (cat) { t.category = cat.name; t.icon = cat.icon; }
+      const s = $("#taskStart").value;
+      const e2 = $("#taskEnd").value;
+      t.time = s ? hhmmToLabel(s) : null;
+      t.timeEnd = t.time && e2 ? hhmmToLabel(e2) : null;
       t.memo = $("#taskMemo").value.trim() || null;
       save(); render();
     }
