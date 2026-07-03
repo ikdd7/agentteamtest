@@ -491,6 +491,9 @@
   function renderGoals() {
     const list = $("#goalList");
     list.innerHTML = "";
+    // 목표가 없으면 섹션 자체를 보이지 않는다 — 빈 헤더도 노이즈다
+    const card = $("#goalsCard");
+    if (card) card.hidden = state.goals.length === 0;
     for (const g of state.goals) {
       const li = document.createElement("li");
       li.className = "goal-item";
@@ -1072,12 +1075,6 @@
   }
   if (quoteCard) quoteCard.onclick = () => showQuote(true);
   showQuote(false);
-
-  // 목표 버튼
-  $("#addGoalBtn").onclick = () => {
-    const v = prompt("작은 목표를 적어주세요 (예: 매일 10분 책 읽기)");
-    if (v && v.trim()) { state.goals.push({ id: uid(), text: v.trim(), createdAt: Date.now() }); save(); renderGoals(); }
-  };
 
   // 필터
   $("#statusFilter").addEventListener("click", (e) => {
