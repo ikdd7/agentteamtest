@@ -508,47 +508,92 @@
 
   function renderBoard() {
     board.innerHTML = "";
-    const todos = visibleTodos();
-    if (state.ui.group === "date") {
-      // 날짜별 보기는 '오늘' 히어로가 빈 상태까지 책임진다
-      boardEmpty.hidden = true;
-      renderByDate(todos);
-    } else {
-      if (!todos.length) { boardEmpty.hidden = false; return; }
-      boardEmpty.hidden = true;
-      renderByCategory(todos);
-    }
+    boardEmpty.hidden = true;
+    renderDayPager(visibleTodos());
     // 필터는 거를 것이 생겼을 때만 보여준다
     const filters = document.querySelector("#filtersRow");
     if (filters) filters.hidden = state.todos.length === 0;
   }
 
-  // 첫 사용 예시 — 히어로 빈 상태 안에서만 안내한다 (안내 메시지는 화면에 하나만)
+  // 첫 사용 예시 — 빈 상태 안에서만 안내한다 (안내 메시지는 화면에 하나만)
   const SUGGESTS = ["오늘 오후 세시에 운동하기", "내일 아침 여섯시에 일어나기", "목표 추가 매일 책 10분 읽기"];
 
-  // '오늘' 히어로 — 앱을 열면 가장 먼저 보여야 하는 것
-  function heroEl(items) {
-    const allToday = state.todos.filter((t) => t.date === todayKey());
-    const done = allToday.filter((t) => t.done).length;
-    const now = new Date();
+  // ----------------------------------------------------------------------
+  // 데이 페이저 — ‹ › 로 하루씩 넘겨보는 홈 보드 (모바일은 스와이프)
+  // ----------------------------------------------------------------------
+  let homeDay = todayKey(); // 세션 동안만 유지, 열 때는 항상 오늘
+  let dayDir = 0;           // 넘김 방향 (슬라이드 애니메이션용)
+
+  function shiftDay(n) {
+    dayDir = n;
+    homeDay = dateKey(addDays(keyToDate(homeDay), n));
+    renderBoard();
+  }
+  function goToday() { dayDir = 0; homeDay = todayKey(); renderBoard(); }
+
+  function renderDayPager(todos) {
+    const key = homeDay;
+    const d = keyToDate(key);
+    const diff = Math.round((startOfDay(d) - startOfDay(new Date())) / 86400000);
+
     const el = document.createElement("section");
-    el.className = "hero";
-    el.innerHTML = `<div class="hero-head"><h2>오늘</h2><span class="hero-date"></span><span class="hero-progress" hidden></span></div>`;
-    el.querySelector(".hero-date").textContent = `${now.getMonth() + 1}월 ${now.getDate()}일 ${WEEKDAYS[now.getDay()]}요일`;
-    if (allToday.length) {
-      const p = el.querySelector(".hero-progress");
-      p.hidden = false;
-      p.textContent = `${done}/${allToday.length} 완료`;
+    el.className = "hero" + (dayDir > 0 ? " slide-next" : dayDir < 0 ? " slide-prev" : "");
+    dayDir = 0;
+    el.innerHTML = `
+      <div class="day-head">
+        <button class="day-nav" aria-label="이전 날">‹</button>
+        <div class="day-center">
+          <h2 class="day-title"></h2>
+          <span class="day-sub"></span>
+        </div>
+        <button class="day-nav" aria-label="다음 날">›</button>
+      </div>
+      <div class="day-meta"></div>`;
+
+    const title = diff === 0 ? "오늘" : diff === 1 ? "내일" : diff === 2 ? "모레" : diff === -1 ? "어제" : `${d.getMonth() + 1}월 ${d.getDate()}일`;
+    const titleEl = el.querySelector(".day-title");
+    titleEl.textContent = title;
+    titleEl.classList.add(diff === 0 ? "today" : diff < 0 ? "past" : "future");
+    el.querySelector(".day-sub").textContent = `${d.getMonth() + 1}월 ${d.getDate()}일 ${WEEKDAYS[d.getDay()]}요일`;
+    const navs = el.querySelectorAll(".day-nav");
+    navs[0].onclick = () => shiftDay(-1);
+    navs[1].onclick = () => shiftDay(1);
+
+    // 메타 줄: 진행률 · 오늘로 복귀 · 지난 미완료 알림
+    const meta = el.querySelector(".day-meta");
+    const allDay = state.todos.filter((t) => t.date === key);
+    if (allDay.length) {
+      const p = document.createElement("span");
+      p.className = "hero-progress";
+      p.textContent = `${allDay.filter((t) => t.done).length}/${allDay.length} 완료`;
+      meta.appendChild(p);
     }
+    if (diff !== 0) {
+      const b = document.createElement("button");
+      b.className = "today-btn";
+      b.textContent = "오늘로";
+      b.onclick = goToday;
+      meta.appendChild(b);
+    } else {
+      const overdue = state.todos.filter((t) => !t.done && t.date && t.date < todayKey());
+      if (overdue.length) {
+        const b = document.createElement("button");
+        b.className = "overdue-pill";
+        b.textContent = `지난 미완료 ${overdue.length}개 보기`;
+        b.onclick = () => { homeDay = overdue.map((t) => t.date).sort().pop(); dayDir = -1; renderBoard(); };
+        meta.appendChild(b);
+      }
+    }
+    if (!meta.children.length) meta.remove();
+
+    // 그날의 목록
+    const items = todos.filter((t) => t.date === key);
     if (!items.length) {
       const empty = document.createElement("p");
       empty.className = "hero-empty";
-      empty.textContent = allToday.length
-        ? "오늘 몫은 다 끝냈어요. 멋져요 ✨"
-        : "아직 할 일이 없어요";
+      empty.textContent = allDay.length ? "이 날 몫은 다 끝냈어요. 멋져요 ✨" : "이 날은 할 일이 없어요";
       el.appendChild(empty);
-      // 완전 첫 사용이라면 여기에서만, 짧게 안내한다
-      if (!state.todos.length) {
+      if (diff === 0 && !state.todos.length) {
         const chips = document.createElement("div");
         chips.className = "suggest-chips";
         SUGGESTS.forEach((s) => {
@@ -567,61 +612,27 @@
       items.forEach((t) => ul.appendChild(todoEl(t)));
       el.appendChild(ul);
     }
-    return el;
-  }
+    board.appendChild(el);
 
-  function groupHeadClass(key) {
-    if (!key) return "";
-    const diff = Math.round((startOfDay(keyToDate(key)) - startOfDay(new Date())) / 86400000);
-    if (diff === 0) return "today";
-    if (diff < 0) return "overdue";
-    return "";
-  }
-
-  function renderByDate(todos) {
-    const tk = todayKey();
-    board.appendChild(heroEl(todos.filter((t) => t.date === tk)));
-    const groups = {};
-    for (const t of todos) {
-      const k = t.date || "none";
-      if (k === tk) continue; // 오늘은 히어로가 담당
-      (groups[k] = groups[k] || []).push(t);
-    }
-    const keys = Object.keys(groups).sort((a, b) => {
-      if (a === "none") return 1;
-      if (b === "none") return -1;
-      return a < b ? -1 : 1;
-    });
-    for (const k of keys) {
-      const items = groups[k];
-      const openCount = items.filter((t) => !t.done).length;
-      const sec = makeGroup(
-        k === "none" ? "날짜 미정" : humanDate(k),
-        `${openCount}개 남음 · 총 ${items.length}`,
-        groupHeadClass(k === "none" ? null : k)
-      );
-      // 시간 → 생성순 정렬
-      items.sort((a, b) => (a.done - b.done) || a.createdAt - b.createdAt);
-      items.forEach((t) => sec.list.appendChild(todoEl(t)));
+    // 날짜 미정 항목(예전 데이터)은 아래에 별도 표시
+    const none = todos.filter((t) => !t.date);
+    if (none.length) {
+      const sec = makeGroup("날짜 미정", `${none.filter((t) => !t.done).length}개 남음`, "");
+      none.sort((a, b) => (a.done - b.done) || a.createdAt - b.createdAt);
+      none.forEach((t) => sec.list.appendChild(todoEl(t)));
       board.appendChild(sec.el);
     }
   }
 
-  function renderByCategory(todos) {
-    const groups = {};
-    for (const t of todos) (groups[t.category] = groups[t.category] || []).push(t);
-    const order = [...CATEGORIES.map((c) => c.name), "기타"];
-    const keys = Object.keys(groups).sort((a, b) => order.indexOf(a) - order.indexOf(b));
-    for (const k of keys) {
-      const items = groups[k];
-      const icon = (items[0] && items[0].icon) || "📌";
-      const openCount = items.filter((t) => !t.done).length;
-      const sec = makeGroup(`${icon} ${k}`, `${openCount}개 남음 · 총 ${items.length}`, "");
-      items.sort((a, b) => (a.done - b.done) || (a.date || "9").localeCompare(b.date || "9") || a.createdAt - b.createdAt);
-      items.forEach((t) => sec.list.appendChild(todoEl(t)));
-      board.appendChild(sec.el);
-    }
-  }
+  // 모바일 스와이프로 하루씩 넘기기
+  let swipeX = null;
+  board.addEventListener("touchstart", (e) => { swipeX = e.touches[0].clientX; }, { passive: true });
+  board.addEventListener("touchend", (e) => {
+    if (swipeX === null) return;
+    const dx = e.changedTouches[0].clientX - swipeX;
+    swipeX = null;
+    if (Math.abs(dx) > 60) shiftDay(dx < 0 ? 1 : -1);
+  }, { passive: true });
 
   function makeGroup(title, meta, cls) {
     const el = document.createElement("section");
@@ -737,12 +748,7 @@
     };
 
     const sub = li.querySelector(".t-sub");
-    if (state.ui.group === "category" && t.date) {
-      const c = document.createElement("span"); c.className = "chip"; c.textContent = spokenDate(t.date); sub.appendChild(c);
-    }
-    if (state.ui.group === "date") {
-      sub.appendChild(categoryChip(t));
-    }
+    sub.appendChild(categoryChip(t));
     sub.appendChild(timeChip(t));
 
     li.querySelector(".check").onclick = () => {
@@ -1080,13 +1086,6 @@
     [...e.currentTarget.children].forEach((c) => c.classList.toggle("active", c === b));
     save(); renderBoard();
   });
-  $("#groupMode").addEventListener("click", (e) => {
-    const b = e.target.closest("button"); if (!b) return;
-    state.ui.group = b.dataset.g;
-    [...e.currentTarget.children].forEach((c) => c.classList.toggle("active", c === b));
-    save(); renderBoard();
-  });
-
   // 탭 전환
   function switchTab(tab) {
     state.ui.tab = tab; save();
@@ -1144,7 +1143,6 @@
 
   // 초기 필터 UI 상태 반영
   document.querySelectorAll("#statusFilter button").forEach((b) => b.classList.toggle("active", b.dataset.f === state.ui.status));
-  document.querySelectorAll("#groupMode button").forEach((b) => b.classList.toggle("active", b.dataset.g === state.ui.group));
 
   // 음성 목록 미리 로딩 (일부 브라우저)
   if ("speechSynthesis" in window) window.speechSynthesis.onvoiceschanged = () => {};
