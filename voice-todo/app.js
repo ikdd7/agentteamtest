@@ -10,7 +10,10 @@
   // ----------------------------------------------------------------------
   const STORE_KEY = "voice-todo.v1";
   const state = load();
-  // UI 상태 기본값 보강 (예전 저장본 호환)
+  // UI 상태 기본값 보강 (예전/부분 저장본 호환 — 키가 없어도 초기화가 죽지 않게)
+  if (!Array.isArray(state.todos)) state.todos = [];
+  if (!Array.isArray(state.goals)) state.goals = [];
+  state.settings = state.settings || { tts: true };
   state.ui = state.ui || {};
   if (!state.ui.status) state.ui.status = "all";
   if (!state.ui.group) state.ui.group = "date";
@@ -96,6 +99,30 @@
     }
     return { name: "기타", icon: "📌", kw: [] };
   }
+
+  // 활동별 준비물 지식 — "러닝할 건데 뭐 챙겨야 해?" 같은 질문에 비서처럼 답한다
+  const PREP_KB = [
+    { kw: ["러닝", "조깅", "달리기", "마라톤"], items: ["러닝화", "운동복", "물", "이어폰", "땀수건"] },
+    { kw: ["헬스", "웨이트", "피티", "PT"], items: ["운동복", "실내 운동화", "물통", "수건", "장갑"] },
+    { kw: ["수영"], items: ["수영복", "수모", "물안경", "수건", "세면도구"] },
+    { kw: ["등산", "트레킹"], items: ["등산화", "배낭", "물", "간식", "모자", "바람막이"] },
+    { kw: ["요가", "필라테스"], items: ["요가매트", "편한 옷", "수건", "물"] },
+    { kw: ["자전거", "라이딩"], items: ["헬멧", "장갑", "물", "라이트"] },
+    { kw: ["축구", "풋살"], items: ["축구화", "유니폼", "물", "수건"] },
+    { kw: ["골프"], items: ["골프백", "골프화", "장갑", "모자", "선크림"] },
+    { kw: ["회의", "미팅"], items: ["노트북", "회의 자료", "펜", "노트"] },
+    { kw: ["발표", "프레젠테이션"], items: ["발표 자료", "노트북", "충전기", "포인터"] },
+    { kw: ["시험"], items: ["신분증", "수험표", "컴퓨터용 사인펜", "지우개", "아날로그 시계"] },
+    { kw: ["면접"], items: ["이력서", "정장", "신분증", "포트폴리오"] },
+    { kw: ["여행"], items: ["신분증", "충전기", "세면도구", "갈아입을 옷", "상비약"] },
+    { kw: ["출장"], items: ["노트북", "충전기", "명함", "세면도구"] },
+    { kw: ["캠핑"], items: ["텐트", "침낭", "랜턴", "버너", "먹을거리"] },
+    { kw: ["낚시"], items: ["낚싯대", "미끼", "아이스박스", "모자"] },
+    { kw: ["병원", "진료", "검진"], items: ["신분증", "진료 카드", "보험 서류"] },
+    { kw: ["장보기", "마트"], items: ["장바구니", "살 것 목록", "할인 쿠폰"] },
+    { kw: ["피크닉", "소풍"], items: ["돗자리", "간식", "물", "물티슈", "쓰레기봉투"] },
+    { kw: ["이사"], items: ["박스", "테이프", "매직", "장갑"] },
+  ];
 
   // ----------------------------------------------------------------------
   // 한국어 명령 파서
@@ -195,6 +222,7 @@
   function buildTimeLabel(hour, ampm, min) {
     if ((ampm === "오후" || ampm === "저녁" || ampm === "밤") && hour < 12) hour += 12;
     if ((ampm === "오전" || ampm === "아침" || ampm === "새벽") && hour === 12) hour = 0;
+    if ((ampm === "밤" || ampm === "새벽") && hour === 12) hour = 0; // "밤 12시"는 자정이지 정오가 아니다
     // 오전/오후 없이 말한 1~6시는 낮 시간(오후)으로 해석 — "3시 미팅"은 보통 15시다
     if (!ampm && hour >= 1 && hour <= 6) hour += 12;
     return `${hour < 12 ? "오전" : "오후"} ${((hour + 11) % 12) + 1}시${min ? " " + min + "분" : ""}`;
@@ -309,6 +337,9 @@
     if (GOAL_PREFIX.some((p) => t.replace(/\s+/g, "").startsWith(p.replace(/\s+/g, "")))) {
       return { intent: "goal_add" };
     }
+    // "러닝할 건데 어떤 준비물이 필요할까?" — 준비물 상담
+    if (/(준비물|챙겨야|챙길)/.test(t) && /(뭐|무엇|어떤|필요|알려)/.test(t)) return { intent: "prep" };
+    if (/필요할까|뭐가\s*필요|뭐\s*필요|무엇이\s*필요/.test(t)) return { intent: "prep" };
     if (hasAny(t, DELETE_MARKERS)) return { intent: "delete" };
     if (hasAny(t, RESCHEDULE_MARKERS)) return { intent: "reschedule" };
     if (hasAny(t, CONSULT_MARKERS)) return { intent: "consult" };
@@ -369,7 +400,26 @@
         if (body) return commitAdd({ ...p.draft, text: body });
         return { type: "warn", msg: "🤔 무슨 일인지 잘 못 알아들었어요. 처음부터 다시 말해 주세요." };
       }
-      // 3) 정리 제안(옮기기)에 대한 응/아니
+      // 3) 준비물 제안에 대한 답 ("전부 준비해줘" / "물이랑 이어폰만")
+      else if (pendingAction.kind === "prep") {
+        const p = pendingAction;
+        if (CANCEL_RE.test(t)) { pendingAction = null; return { type: "ok", msg: "👌 알겠어요, 등록하지 않을게요.", speak: "알겠어요." }; }
+        let items = [];
+        if (/전부|모두|다\s*(준비|챙겨|넣어|적어|해)/.test(t) || CONFIRM_RE.test(t)) {
+          items = [...p.items];
+        } else if (/(준비|챙겨|넣어|적어|추가|등록|메모)/.test(t) || p.items.some((it) => t.replace(/\s+/g, "").includes(it.replace(/\s+/g, "")))) {
+          items = parsePrepItems(t, p.items);
+        }
+        if (items.length) {
+          pendingAction = null;
+          const res = commitAdd({ ...p.draft, memo: "준비물: " + items.join(", ") });
+          res.msg += `  📝 준비물 ${items.length}개를 메모에 적어뒀어요 (블록을 누르면 보여요)`;
+          res.speak = (res.speak || "") + ` 준비물 ${items.join(", ")}, 메모에 적어뒀어요.`;
+          return res;
+        }
+        pendingAction = null; // 준비물 답이 아니면 새 명령으로 처리
+      }
+      // 4) 정리 제안(옮기기)에 대한 응/아니
       else {
         if (CONFIRM_RE.test(t)) return applyPending();
         if (CANCEL_RE.test(t)) {
@@ -384,6 +434,7 @@
     if (intent === "goal_add") return doGoalAdd(t);
     if (intent === "delete") return doDelete(t);
     if (intent === "reschedule") return doReschedule(t);
+    if (intent === "prep") return doPrepQuery(t);
     if (intent === "consult") return doConsult(t);
     if (intent === "query") return doQuery(t);
     if (intent === "complete") return doComplete(t);
@@ -423,7 +474,8 @@
       return { type: "ok", msg: "💡 " + msg, speak: msg };
     }
     // 2) 주간 요약
-    if (/주.*(요약|어때)|요약.*주|이번\s*주/.test(text)) {
+    // "이번 주 정리해줘"는 요약이 아니라 재배치 상담이므로 요약 표현이 있을 때만
+    if (/주.*(요약|어때)|요약.*주/.test(text)) {
       const parts = [];
       for (let i = 0; i < 7; i++) {
         const k = dateKey(addDays(new Date(), i));
@@ -477,6 +529,7 @@
       id: uid(), text: draft.text, date: draft.date, time: draft.time || null,
       timeEnd: draft.timeEnd || null,
       place: draft.place || null,
+      memo: draft.memo || null,
       category: cat.name, icon: cat.icon, done: false, createdAt: Date.now(),
     };
     state.todos.push(todo);
@@ -763,9 +816,11 @@
       return { type: "warn", msg: `"${cleanTaskText(rest)}"와(과) 맞는 할 일을 못 찾았어요.` };
     }
 
-    // 날짜/시간 중 말한 것만 바꾼다. 둘 다 없으면(그냥 "미뤄줘") 내일로
+    // 날짜/시간 중 말한 것만 바꾼다. 둘 다 없으면(그냥 "미뤄줘") 하루 미룬다
     if (!d.key && !newStart) {
-      best.date = dateKey(addDays(new Date(), 1));
+      // 미루기는 지연 — 미래 일정은 그 일정 기준 +1일, 오늘·과거 일정은 내일로
+      const base = best.date && best.date > todayKey() ? keyToDate(best.date) : new Date();
+      best.date = dateKey(addDays(base, 1));
     } else {
       if (d.key) best.date = d.key;
       if (newStart) {
@@ -799,6 +854,69 @@
       msg: `⏭ "${best.text}" → ${when}(으)로 옮겼어요`,
       speak: `${best.text}, ${when}로 옮겼어요.`,
     };
+  }
+
+  // "저녁 9시에 러닝할 건데 어떤 준비물이 필요할까?" — 비서가 추천하고,
+  // "전부 준비해줘"/"물이랑 이어폰만" 답을 받아 일정 + 준비물 메모를 만든다
+  function doPrepQuery(text) {
+    const d = extractDate(text);
+    const tm = extractTime(d.rest);
+    const flat = text.replace(/\s+/g, "");
+    let kb = null;
+    for (const e of PREP_KB) { if (e.kw.some((k) => flat.includes(k))) { kb = e; break; } }
+    // 활동명: 시각·질문 꼬리를 걷어낸 나머지
+    let r = tm.rest
+      .replace(/(어떤|무슨|뭐가|뭐를|뭐|무엇이|무엇을|무엇)\s*(준비물|필요|챙).*$/g, " ")
+      .replace(/(준비물|필요한\s*(게|것|거)|필요할까|챙겨야|챙길).*$/g, " ")
+      .replace(/(을|를)?\s*(할\s*거면은?|할\s*건데|할\s*껀데|하려는데|하려고요?|하려면|하는데|하면은?|가는데|갈\s*건데|갈\s*거면은?|간다면|인데|이면은?)\b.*$/g, " ");
+    let activity = cleanTaskText(r).trim();
+    if (activity.length >= 3) activity = activity.replace(/[은는이가을를]$/, "");
+    if (!activity && kb) activity = kb.kw[0];
+    if (!activity) {
+      return { type: "warn", msg: "🤔 무슨 일정의 준비물인지 못 알아들었어요. \"러닝할 건데 뭐 챙겨야 해?\"처럼 말해 주세요." };
+    }
+    const items = kb ? kb.items : [];
+    pendingAction = {
+      kind: "prep",
+      items,
+      draft: { text: activity, date: d.key || todayKey(), time: tm.time || null, timeEnd: tm.timeEnd || null },
+    };
+    const when = `${spokenDate(pendingAction.draft.date)}${tm.time ? " " + tm.time : ""}`;
+    if (items.length) {
+      return {
+        type: "ok",
+        msg: `🎒 ${activity} 준비물로는 ${items.join(", ")} 정도가 좋아요. 챙길 것만 말해 주세요 — "전부 준비해줘" 또는 "물이랑 이어폰 준비해줘"라고 하면 ${when} ${activity} 일정에 메모해 둘게요.`,
+        speak: `${activity} 준비물로는 ${items.join(", ")}가 좋아요. 어떤 걸 챙겨드릴까요? 전부 준비해달라고 해도 돼요.`,
+      };
+    }
+    return {
+      type: "ok",
+      msg: `🎒 ${activity}에 챙길 것들을 말해 주세요 — "물이랑 수건 준비해줘"라고 하면 ${when} ${activity} 일정에 메모해 둘게요.`,
+      speak: `${activity}에 챙길 것들을 말해 주시면 일정과 함께 메모해 둘게요.`,
+    };
+  }
+
+  // 답변에서 준비물 목록 추출 — 추천 목록과 맞으면 정식 명칭으로, 아니면 말한 그대로
+  function parsePrepItems(text, suggested) {
+    let body = text
+      .replace(/(만|은|는)?\s*(준비해|챙겨|넣어|적어|추가해|등록해|메모해)\s*(줘|주세요|주라|줄래)?[.!~\s]*$/g, " ")
+      .replace(/(부탁해|해줘|해\s*줘)[.!~\s]*$/g, " ");
+    const frags = body
+      .split(/이랑|랑|하고|그리고|와\s|과\s|,|、/)
+      .map((s) => s.trim().replace(/[.!~]+$/, ""))
+      .map((s) => (s.length >= 3 ? s.replace(/[은는이가을를도]$/, "") : s))
+      .filter((s) => s && !/^(전부|모두|다|그리고|것|거|좀|응|네|예|어|그래)$/.test(s));
+    const out = [];
+    for (const f of frags) {
+      const flat = f.replace(/\s+/g, "");
+      const hit = suggested.find((it) => {
+        const fi = it.replace(/\s+/g, "");
+        return fi.includes(flat) || flat.includes(fi);
+      });
+      const item = hit || f;
+      if (!out.includes(item)) out.push(item);
+    }
+    return out;
   }
 
   function doQuery(text) {
@@ -1022,6 +1140,13 @@
     const now = new Date();
     let start = 6, end = 22;
     Object.keys(byHour).map(Number).forEach((h) => { if (h < start) start = h; if (h > end) end = h; });
+    // 종료 시각이 그리드 아래로 잘리지 않게 끝나는 시각까지도 범위에 넣는다
+    items.forEach((t) => {
+      const eHH = timeLabelToHHMM(t.timeEnd);
+      if (!eHH) return;
+      const eh = Number(eHH.split(":")[0]) - (eHH.endsWith(":00") ? 1 : 0);
+      if (eh > end) end = eh;
+    });
     if (isToday) {
       if (now.getHours() < start) start = now.getHours();
       if (now.getHours() > end) end = now.getHours();
@@ -1063,7 +1188,7 @@
       let s = snap5(sh * 60 + sm);
       const eHH = timeLabelToHHMM(t.timeEnd);
       let e2 = eHH ? snap5(Number(eHH.split(":")[0]) * 60 + Number(eHH.split(":")[1])) : s + 60;
-      if (e2 <= s) e2 = s + 60; // 종료가 이상하면 1시간짜리로
+      if (e2 <= s) e2 = e2 === 0 ? 24 * 60 : s + 60; // 자정 종료는 하루 끝까지, 그 외 역전은 1시간짜리로
       return { t, s, e: e2 };
     }).sort((a, b) => a.s - b.s || a.e - b.e);
 
