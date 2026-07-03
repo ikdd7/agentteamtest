@@ -298,6 +298,15 @@
   }
 
   // "오후 1시 30분 ~ 3시" 표기 (종료가 같은 오전/오후면 접두 생략)
+  // 종료 시각을 말하지 않았으면 1시간짜리로 잡는다 ("3시에 회의" → 3시~4시)
+  function defaultEnd(timeLabel) {
+    if (!timeLabel || !/시/.test(timeLabel)) return null; // "아침" 같은 대략 시각은 제외
+    const s = timeLabelToHHMM(timeLabel);
+    if (!s) return null;
+    const m = Math.min(Number(s.slice(0, 2)) * 60 + Number(s.slice(3)) + 60, 23 * 60 + 55);
+    return hhmmToLabel(`${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`);
+  }
+
   function timeRangeText(t) {
     if (!t.time) return null;
     if (!t.timeEnd) return t.time;
@@ -533,7 +542,7 @@
     const cat = inferCategory(draft.text);
     const todo = {
       id: uid(), text: draft.text, date: draft.date, time: draft.time || null,
-      timeEnd: draft.timeEnd || null,
+      timeEnd: draft.timeEnd || (draft.time ? defaultEnd(draft.time) : null),
       place: draft.place || null,
       memo: draft.memo || null,
       category: cat.name, icon: cat.icon, done: false, createdAt: Date.now(),
@@ -593,7 +602,8 @@
       const dateK = d.key || lastDate || todayKey();
       lastDate = dateK;
       const todo = {
-        id: uid(), text: body, date: dateK, time: tm.time || null, timeEnd: tm.timeEnd || null, place: pl.place || null,
+        id: uid(), text: body, date: dateK, time: tm.time || null,
+        timeEnd: tm.timeEnd || (tm.time ? defaultEnd(tm.time) : null), place: pl.place || null,
         category: cat.name, icon: cat.icon, done: false, createdAt: Date.now(),
       };
       state.todos.push(todo);
@@ -905,7 +915,8 @@
       if (!body) continue;
       const cat = inferCategory(body);
       made.push({
-        id: uid(), text: body, date: d.key || target.date, time: tm.time || null, timeEnd: tm.timeEnd || null,
+        id: uid(), text: body, date: d.key || target.date, time: tm.time || null,
+        timeEnd: tm.timeEnd || (tm.time ? defaultEnd(tm.time) : null),
         place: null, memo: null, category: cat.name, icon: cat.icon, done: false, createdAt: Date.now(),
       });
     }
@@ -1324,9 +1335,13 @@
     li.innerHTML = `
       <button class="check" title="완료 토글">✓</button>
       <div class="t-main">
-        <div class="t-text"><span class="t-ico"></span><span class="t-label"></span></div>
+        <div class="t-text"><span class="t-time"></span><span class="t-ico"></span><span class="t-label"></span></div>
       </div>
       <button class="t-del" title="삭제">🗑</button>`;
+    // 주간·일간처럼 시간축이 없는 목록에서는 시간대를 앞에 적어 준다
+    const timeSpan = li.querySelector(".t-time");
+    if (opts.showTime && t.time) timeSpan.textContent = timeRangeText(t);
+    else timeSpan.remove();
     li.querySelector(".t-ico").textContent = t.icon;
     li.querySelector(".t-label").textContent = t.text;
     li.title = "눌러서 시간·카테고리·메모 수정";
@@ -1468,13 +1483,13 @@
     head.className = "detail-head" + (isTodayKey(key) ? " today" : "");
     head.textContent = humanDate(key);
     card.appendChild(head);
-    const items = todosOn(key).sort((a, b) => (a.done - b.done) || (a.time || "").localeCompare(b.time || "") || a.createdAt - b.createdAt);
+    const items = todosOn(key).sort((a, b) => (a.done - b.done) || (timeLabelToHHMM(a.time) || "99").localeCompare(timeLabelToHHMM(b.time) || "99") || a.createdAt - b.createdAt);
     if (!items.length) {
       const e = document.createElement("div"); e.className = "cal-empty"; e.textContent = "이 날은 할 일이 없어요 🍃";
       card.appendChild(e);
     } else {
       const ul = document.createElement("ul"); ul.className = "todo-list";
-      items.forEach((t) => ul.appendChild(todoEl(t)));
+      items.forEach((t) => ul.appendChild(todoEl(t, { showTime: true })));
       card.appendChild(ul);
     }
     return card;
@@ -1543,10 +1558,10 @@
       const cnt = document.createElement("span"); cnt.className = "wd-count";
       cnt.textContent = st.total ? `${st.pending}개 남음 · 총 ${st.total}` : "없음";
       head.appendChild(title); head.appendChild(cnt); block.appendChild(head);
-      const items = todosOn(key).sort((a, b) => (a.done - b.done) || (a.time || "").localeCompare(b.time || "") || a.createdAt - b.createdAt);
+      const items = todosOn(key).sort((a, b) => (a.done - b.done) || (timeLabelToHHMM(a.time) || "99").localeCompare(timeLabelToHHMM(b.time) || "99") || a.createdAt - b.createdAt);
       if (items.length) {
         const ul = document.createElement("ul"); ul.className = "todo-list";
-        items.forEach((t) => ul.appendChild(todoEl(t)));
+        items.forEach((t) => ul.appendChild(todoEl(t, { showTime: true })));
         block.appendChild(ul);
       }
       wrap.appendChild(block);
