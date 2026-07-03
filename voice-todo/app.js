@@ -100,7 +100,9 @@
   const COMPLETE_MARKERS = ["완료", "끝냈", "끝났", "다했", "다 했", "처리했", "처리 했", "마쳤", "했어", "했음", "done"];
   const RESCHEDULE_MARKERS = ["미뤄", "미루", "미뤘", "옮겨", "옮기", "연기해", "연기", "바꿔", "변경해", "수정해", "수정"];
   const DELETE_MARKERS = ["삭제", "지워", "지우", "없애", "빼줘", "빼 줘", "취소해", "취소"];
-  const QUERY_MARKERS = ["알려줘", "알려 줘", "읽어줘", "읽어 줘", "보여줘", "보여 줘", "들려줘", "뭐야", "뭐 있", "뭐있", "뭐 남", "확인해", "확인 해", "어때", "정리해줘"];
+  const QUERY_MARKERS = ["알려줘", "알려 줘", "읽어줘", "읽어 줘", "보여줘", "보여 줘", "들려줘", "뭐야", "뭐 있", "뭐있", "뭐 남", "확인해", "확인 해"];
+  // 상담(비서) — 부하를 분석해 제안하고, 확인을 받아 실행한다
+  const CONSULT_MARKERS = ["정리해", "조정해", "너무 많", "너무많", "빡빡", "여유가 없", "여유 없", "뭐부터", "뭐 부터", "먼저 할", "요약", "어때"];
   const ADD_TAILS = ["해야 해", "해야해", "해야 돼", "해야돼", "해야지", "해야됨", "할 거야", "할거야", "할거", "할게", "할래", "하기로", "하기", "할 일", "할일", "예정", "등록해줘", "등록해", "추가해줘", "추가해", "추가", "넣어줘", "넣어", "줘", "끝내기", "끝내야 해", "끝내야", "마치기"];
   const GOAL_PREFIX = ["목표 추가", "목표추가", "목표 등록", "목표등록", "목표로", "목표는", "목표"];
 
@@ -252,6 +254,7 @@
     }
     if (hasAny(t, DELETE_MARKERS)) return { intent: "delete" };
     if (hasAny(t, RESCHEDULE_MARKERS)) return { intent: "reschedule" };
+    if (hasAny(t, CONSULT_MARKERS)) return { intent: "consult" };
     if (hasAny(t, QUERY_MARKERS)) return { intent: "query" };
     if (hasAny(t, COMPLETE_MARKERS)) return { intent: "complete" };
     return { intent: "add" };
@@ -276,15 +279,105 @@
   // ----------------------------------------------------------------------
   // 명령 실행
   // ----------------------------------------------------------------------
+  // 비서가 제안하고 확인을 기다리는 상태 (한 번에 하나)
+  let pendingAction = null;
+  const CONFIRM_RE = /^(응|어|그래|좋아|좋지|네|예|웅|오케이|ok|okay|그렇게 해\s*줘?|해\s*줘|옮겨\s*줘?)[.!~ ]*$/i;
+  const CANCEL_RE = /^(아니|아냐|아니요|아니야|싫어|취소|놔둬|놔 둬|그대로 둬?|괜찮아)[.!~ ]*$/;
+
   function handleUtterance(text) {
-    const { intent } = classify(text);
+    const t = text.trim();
+    // 제안에 대한 답변부터 처리
+    if (pendingAction) {
+      if (CONFIRM_RE.test(t)) return applyPending();
+      if (CANCEL_RE.test(t)) {
+        pendingAction = null;
+        return { type: "ok", msg: "👌 알겠어요, 그대로 둘게요.", speak: "알겠어요, 그대로 둘게요." };
+      }
+      pendingAction = null; // 다른 말을 하면 제안은 조용히 접는다
+    }
+    const { intent } = classify(t);
     if (intent === "empty") return { type: "warn", msg: "잘 못 들었어요. 다시 말해 주세요." };
-    if (intent === "goal_add") return doGoalAdd(text);
-    if (intent === "delete") return doDelete(text);
-    if (intent === "reschedule") return doReschedule(text);
-    if (intent === "query") return doQuery(text);
-    if (intent === "complete") return doComplete(text);
-    return doAdd(text);
+    if (intent === "goal_add") return doGoalAdd(t);
+    if (intent === "delete") return doDelete(t);
+    if (intent === "reschedule") return doReschedule(t);
+    if (intent === "consult") return doConsult(t);
+    if (intent === "query") return doQuery(t);
+    if (intent === "complete") return doComplete(t);
+    return doAdd(t);
+  }
+
+  function applyPending() {
+    const p = pendingAction;
+    pendingAction = null;
+    if (p.kind === "move") {
+      for (const id of p.ids) {
+        const t = state.todos.find((x) => x.id === id);
+        if (t) t.date = p.target;
+      }
+      save();
+      const remain = state.todos.filter((t) => t.date === p.from && !t.done).length;
+      return {
+        type: "ok",
+        msg: `⏭ ${p.ids.length}개를 ${spokenDate(p.target)}(으)로 옮겼어요. ${spokenDate(p.from)}은 이제 ${remain}개예요.`,
+        speak: `${p.ids.length}개를 ${spokenDate(p.target)}로 옮겼어요. ${spokenDate(p.from)}은 이제 ${remain}개예요.`,
+      };
+    }
+    return { type: "warn", msg: "적용할 제안이 없어요." };
+  }
+
+  // "오늘 너무 많아 정리해줘" / "뭐부터 하지" / "이번 주 요약"
+  function doConsult(text) {
+    // 1) 뭐부터 할지 추천
+    if (/뭐\s*부터|먼저\s*할/.test(text)) {
+      const items = state.todos
+        .filter((t) => t.date === todayKey() && !t.done)
+        .sort((a, b) => (timeLabelToHHMM(a.time) || "99") < (timeLabelToHHMM(b.time) || "99") ? -1 : 1);
+      if (!items.length) return { type: "ok", msg: "오늘은 남은 할 일이 없어요 ✨", speak: "오늘은 남은 할 일이 없어요." };
+      const first = items[0];
+      const rest = items.slice(1, 3).map((t) => t.text).join(", ");
+      const msg = `지금은 "${first.text}"${first.time ? ` (${first.time})` : ""}부터 시작하는 게 좋겠어요.${rest ? ` 그다음은 ${rest}.` : ""}`;
+      return { type: "ok", msg: "💡 " + msg, speak: msg };
+    }
+    // 2) 주간 요약
+    if (/주.*(요약|어때)|요약.*주|이번\s*주/.test(text)) {
+      const parts = [];
+      for (let i = 0; i < 7; i++) {
+        const k = dateKey(addDays(new Date(), i));
+        const n = state.todos.filter((t) => t.date === k && !t.done).length;
+        if (n) parts.push(`${spokenDate(k)} ${n}개`);
+      }
+      if (!parts.length) return { type: "ok", msg: "📋 앞으로 일주일은 비어 있어요.", speak: "앞으로 일주일은 할 일이 없어요. 여유롭네요." };
+      const msg = `앞으로 일주일: ${parts.join(", ")} 남았어요.`;
+      return { type: "ok", msg: "📋 " + msg, speak: msg };
+    }
+    // 3) 과부하 상담 → 옮기기 제안
+    const d = extractDate(text);
+    const fromKey = d.key || todayKey();
+    const items = state.todos.filter((t) => t.date === fromKey && !t.done);
+    if (items.length <= 2) {
+      const msg = `${spokenDate(fromKey)}은 ${items.length ? `${items.length}개뿐이라` : "할 일이 없어서"} 여유 있어요. 그대로 가도 좋겠어요.`;
+      return { type: "ok", msg: "💡 " + msg, speak: msg };
+    }
+    // 시간 약속 없는 것부터, 나중에 추가한 것부터 옮길 후보로 (최소 1개, 3개는 남긴다)
+    const moveCount = Math.max(1, items.length - 3);
+    const candidates = [...items]
+      .sort((a, b) => ((a.time ? 1 : 0) - (b.time ? 1 : 0)) || b.createdAt - a.createdAt)
+      .slice(0, moveCount);
+    // 다음 3일 중 가장 한가한 날로
+    let target = null, min = Infinity;
+    for (let i = 1; i <= 3; i++) {
+      const k = dateKey(addDays(keyToDate(fromKey), i));
+      const n = state.todos.filter((t) => t.date === k && !t.done).length;
+      if (n < min) { min = n; target = k; }
+    }
+    pendingAction = { kind: "move", ids: candidates.map((t) => t.id), target, from: fromKey };
+    const names = candidates.map((t) => `"${t.text}"`).join(", ");
+    const msg = `${spokenDate(fromKey)} 할 일이 ${items.length}개예요. 시간 약속이 없는 ${names}를 ${spokenDate(target)}(현재 ${min}개)로 옮길까요?`;
+    return {
+      type: "ok",
+      msg: `🤝 ${msg} — "응"이라고 답하면 옮겨드려요`,
+      speak: msg + " 응이라고 답하면 옮겨드려요.",
+    };
   }
 
   function doAdd(text) {
