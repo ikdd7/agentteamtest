@@ -150,6 +150,16 @@ html, body {
 .t-sub { display: flex; gap: 12px; margin-top: 3px; align-items: center; flex-wrap: wrap; }
 .chip { font-size: 12.5px; color: var(--muted); font-weight: 600; background: none; border: none; padding: 0; }
 .chip.time { color: var(--accent-ink); }
+/* 편집 가능한 칩: 눌리는 느낌만 살짝 */
+.chip-btn { cursor: pointer; font-family: inherit; padding: 3px 8px; margin: -3px -4px; border-radius: 8px; transition: background .12s; }
+.chip-btn:hover { background: var(--bg-soft); }
+.chip-btn:active { transform: scale(.96); }
+.chip-btn.ghost { color: #c4cbd4; }
+.chip-btn.ghost:hover { color: var(--accent-ink); background: var(--accent-soft); }
+.chip-edit {
+  font-family: inherit; font-size: 12.5px; font-weight: 600; color: var(--text2);
+  border: 1px solid var(--accent); border-radius: 8px; padding: 3px 6px; background: var(--bg); outline: none;
+}
 .t-del { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 14px; padding: 6px; opacity: 0; transition: opacity .12s; }
 .todo:hover .t-del { opacity: 1; }
 .t-del:hover { color: var(--danger); }

@@ -636,6 +636,82 @@
     return { el, list: el.querySelector(".todo-list") };
   }
 
+  // "오후 2시 30분" ↔ "14:30" 변환 (아침/저녁 같은 말 시간은 빈 값)
+  function timeLabelToHHMM(label) {
+    if (!label) return "";
+    const m = label.match(/(오전|오후)?\s*(\d{1,2})시(?:\s*(\d{1,2})분)?/);
+    if (!m) return "";
+    let h = Number(m[2]);
+    const min = m[3] ? Number(m[3]) : 0;
+    if (m[1] === "오후" && h < 12) h += 12;
+    if (m[1] === "오전" && h === 12) h = 0;
+    return String(h).padStart(2, "0") + ":" + String(min).padStart(2, "0");
+  }
+  function hhmmToLabel(v) {
+    const [h, min] = v.split(":").map(Number);
+    return `${h < 12 ? "오전" : "오후"} ${((h + 11) % 12) + 1}시${min ? ` ${min}분` : ""}`;
+  }
+
+  const ALL_CATEGORIES = [...CATEGORIES, { name: "기타", icon: "📌" }];
+
+  // 카테고리 칩 — 누르면 그 자리에서 선택 목록으로 바뀐다
+  function categoryChip(t) {
+    const c = document.createElement("button");
+    c.type = "button";
+    c.className = "chip chip-btn";
+    c.title = "눌러서 카테고리 변경";
+    c.textContent = `${t.icon} ${t.category}`;
+    c.onclick = (e) => {
+      e.stopPropagation();
+      const sel = document.createElement("select");
+      sel.className = "chip-edit";
+      ALL_CATEGORIES.forEach((cat) => {
+        const o = document.createElement("option");
+        o.value = cat.name;
+        o.textContent = `${cat.icon} ${cat.name}`;
+        if (cat.name === t.category) o.selected = true;
+        sel.appendChild(o);
+      });
+      c.replaceWith(sel);
+      sel.focus();
+      sel.onchange = () => {
+        const cat = ALL_CATEGORIES.find((x) => x.name === sel.value);
+        t.category = cat.name;
+        t.icon = cat.icon;
+        sel.onblur = null;
+        save(); render();
+      };
+      sel.onblur = () => render(); // 선택 없이 벗어나면 원상 복구
+    };
+    return c;
+  }
+
+  // 시간 칩 — 누르면 시간 픽커로. 시간이 없으면 "+ 시간" 칩을 보여준다
+  function timeChip(t) {
+    const c = document.createElement("button");
+    c.type = "button";
+    c.className = "chip chip-btn" + (t.time ? " time" : " ghost");
+    c.title = t.time ? "눌러서 시간 변경 (지우면 삭제)" : "시간 추가";
+    c.textContent = t.time ? `⏰ ${t.time}` : "+ 시간";
+    c.onclick = (e) => {
+      e.stopPropagation();
+      const inp = document.createElement("input");
+      inp.type = "time";
+      inp.className = "chip-edit";
+      inp.value = timeLabelToHHMM(t.time) || "09:00";
+      c.replaceWith(inp);
+      inp.focus();
+      const commit = () => {
+        t.time = inp.value ? hhmmToLabel(inp.value) : null;
+        inp.onblur = null;
+        save(); render();
+      };
+      inp.onchange = commit;
+      inp.onblur = () => render();
+    };
+    return c;
+  }
+
   function todoEl(t) {
     const li = document.createElement("li");
     li.className = "todo" + (t.done ? " done" : "");
@@ -665,11 +741,9 @@
       const c = document.createElement("span"); c.className = "chip"; c.textContent = spokenDate(t.date); sub.appendChild(c);
     }
     if (state.ui.group === "date") {
-      const c = document.createElement("span"); c.className = "chip"; c.textContent = `${t.icon} ${t.category}`; sub.appendChild(c);
+      sub.appendChild(categoryChip(t));
     }
-    if (t.time) {
-      const c = document.createElement("span"); c.className = "chip time"; c.textContent = `⏰ ${t.time}`; sub.appendChild(c);
-    }
+    sub.appendChild(timeChip(t));
 
     li.querySelector(".check").onclick = () => {
       t.done = !t.done;
