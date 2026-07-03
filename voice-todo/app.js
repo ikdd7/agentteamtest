@@ -623,14 +623,42 @@
     };
   }
 
-  // "운동을 요가로 바꿔줘" — 내용 수정
+  // "운동을 요가로 바꿔줘", "7시 반에 있는 맥도날드를 맥도날드 햄버거로 바꿔줘" — 내용 수정
   function doRename(text) {
-    const open = state.todos.filter((t) => !t.done);
-    if (!open.length) return { type: "warn", msg: "수정할 할 일이 없어요." };
-    let m = text.match(/(.+?)(?:을|를)\s*(.+?)(?:으로|로)\s*(?:바꿔|변경|수정)/);
-    if (!m) m = text.match(/(.+?)\s+(\S+?)(?:으로|로)\s*(?:바꿔|변경|수정)/);
+    if (!state.todos.length) return { type: "warn", msg: "수정할 할 일이 없어요." };
+    // "7시 반에 있는" 같은 시각 단서를 떼어내 후보를 좁힌다
+    let body = text;
+    let locLabel = null;
+    const locM = body.match(/에\s*(?:있는|잡힌)\s*/);
+    if (locM) {
+      const pre = body.slice(0, locM.index);
+      const tk = matchTimeToken(pre, false);
+      if (tk) {
+        const ti = pre.lastIndexOf(tk.m);
+        if (!pre.slice(ti + tk.m.length).trim()) { // 시각 토큰 바로 뒤가 "에 있는"일 때만
+          locLabel = tk.label;
+          body = (pre.slice(0, ti) + " " + body.slice(locM.index + locM[0].length)).trim();
+        }
+      }
+    }
+    let m = body.match(/(.+?)(?:을|를)\s*(.+?)(?:으로|로)\s*(?:바꿔|변경|수정)/);
+    if (!m) m = body.match(/(.+?)\s+(.+?)(?:으로|로)\s*(?:바꿔|변경|수정)/);
+    if (!m && locLabel) m = body.match(/(.*?)\s*(.+?)(?:으로|로)\s*(?:바꿔|변경|수정)/); // "7시에 있는 걸 X로"
     if (!m) return { type: "warn", msg: `「운동을 요가로 바꿔줘」처럼 말해 주세요.` };
-    const best = matchTodo(contentTokens(m[1]), open);
+    // 미완료 우선, 없으면 완료된 항목도 수정 허용
+    const open = state.todos.filter((t) => !t.done);
+    let pool = open.length ? open : state.todos;
+    if (locLabel) {
+      const lh = Number(timeLabelToHHMM(locLabel).split(":")[0]) % 12;
+      const scoped = pool.filter((t) => {
+        const hh = timeLabelToHHMM(t.time);
+        return hh && Number(hh.split(":")[0]) % 12 === lh;
+      });
+      if (scoped.length) pool = scoped;
+    }
+    const tokens = contentTokens(m[1]).filter((w) => !/^(일정|약속|스케줄|스케쥴|플랜|할일|있는|잡힌)$/.test(w));
+    let best = tokens.length ? (matchTodo(tokens, pool) || matchTodo(tokens, state.todos)) : null;
+    if (!best && pool.length === 1 && (locLabel || !tokens.length)) best = pool[0];
     if (!best) {
       return { type: "warn", msg: `"${cleanTaskText(m[1])}"와(과) 맞는 할 일을 못 찾았어요.` };
     }
