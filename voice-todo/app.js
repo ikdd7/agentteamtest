@@ -1073,41 +1073,6 @@
   if (quoteCard) quoteCard.onclick = () => showQuote(true);
   showQuote(false);
 
-  // 목표 인라인 입력 — 누르면 그 자리에서 펼쳐지고, 엔터/저장으로 등록
-  const goalAddRow = $("#goalAddRow");
-  const goalInputRow = $("#goalInputRow");
-  const goalInput = $("#goalInput");
-  function openGoalInput() {
-    goalAddRow.hidden = true;
-    goalInputRow.hidden = false;
-    goalInput.value = "";
-    goalInput.focus();
-  }
-  function closeGoalInput() {
-    goalInputRow.hidden = true;
-    goalAddRow.hidden = false;
-  }
-  function saveGoal() {
-    const v = goalInput.value.trim();
-    if (!v) { closeGoalInput(); return; }
-    state.goals.push({ id: uid(), text: v, createdAt: Date.now() });
-    save(); renderGoals();
-    goalInput.value = "";
-    goalInput.focus(); // 연속 입력을 배려
-  }
-  if (goalAddRow) {
-    goalAddRow.onclick = openGoalInput;
-    $("#goalSaveBtn").onclick = saveGoal;
-    goalInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") saveGoal();
-      if (e.key === "Escape") closeGoalInput();
-    });
-    goalInput.addEventListener("blur", () => {
-      // 저장 버튼 클릭이 blur보다 먼저 처리되도록 잠깐 기다린 뒤, 비어 있으면 접는다
-      setTimeout(() => { if (!goalInput.value.trim() && !goalInputRow.hidden) closeGoalInput(); }, 150);
-    });
-  }
-
   // 필터
   $("#statusFilter").addEventListener("click", (e) => {
     const b = e.target.closest("button"); if (!b) return;
