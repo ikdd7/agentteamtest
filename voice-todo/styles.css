@@ -90,7 +90,6 @@ input[type="text"], textarea { font-size: 16px; }
 }
 .pledge-card[hidden] { display: none; }
 .p-text { margin: 0; font-size: 14.5px; line-height: 1.55; font-weight: 600; color: #7a3b56; word-break: keep-all; }
-.p-text::before { content: "💗"; margin-right: 6px; font-size: 12.5px; }
 .p-date { position: absolute; right: 14px; bottom: 9px; font-size: 10.5px; color: #b3a0aa; font-weight: 600; }
 .pledge-edit textarea {
   flex: 1 1 100%; background: var(--bg-soft); border: 1px solid transparent; border-radius: 10px;
