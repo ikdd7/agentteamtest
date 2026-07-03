@@ -1082,15 +1082,8 @@
     navs[0].onclick = () => shiftDay(-1);
     navs[1].onclick = () => shiftDay(1);
 
-    // 메타 줄: 진행률 · 오늘로 복귀 · 지난 미완료 알림
+    // 메타 줄: 오늘로 복귀 · 지난 미완료 알림
     const meta = el.querySelector(".day-meta");
-    const allDay = state.todos.filter((t) => t.date === key);
-    if (allDay.length) {
-      const p = document.createElement("span");
-      p.className = "hero-progress";
-      p.textContent = `${allDay.filter((t) => t.done).length}/${allDay.length} 완료`;
-      meta.appendChild(p);
-    }
     if (diff !== 0) {
       const b = document.createElement("button");
       b.className = "today-btn";
@@ -1123,7 +1116,7 @@
         chips.appendChild(b);
       });
       el.appendChild(chips);
-    } else if (!items.length && allDay.length) {
+    } else if (!items.length && state.todos.some((t) => t.date === key)) {
       const empty = document.createElement("p");
       empty.className = "hero-empty";
       empty.textContent = "이 날 몫은 다 끝냈어요. 멋져요 ✨";
