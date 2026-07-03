@@ -1,4 +1,4 @@
-# 배포 트리거: voice-todo/ 정적 파일을 GitHub Pages로 게시 
+# 배포 트리거: voice-todo/ 정적 파일을 GitHub Pages로 게시.
 name: Deploy Voice To-Do to GitHub Pages
 
 on:
