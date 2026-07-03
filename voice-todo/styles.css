@@ -154,6 +154,31 @@ html, body {
 .overdue-pill:hover { background: #ffecc9; }
 .hero-empty { color: var(--muted); padding: 14px 4px 10px; font-size: 14px; text-align: center; }
 .hero .suggest-chips { justify-content: center; }
+/* ===== 세로 타임라인 ===== */
+.timeline { margin-top: 8px; }
+.tl-row { display: flex; align-items: stretch; }
+.tl-time {
+  width: 62px; flex: 0 0 auto; text-align: right; padding: 15px 6px 0 0;
+  font-size: 11.5px; font-weight: 700; color: var(--accent-ink); cursor: pointer;
+  word-break: keep-all; line-height: 1.3;
+}
+.tl-time:hover { text-decoration: underline; }
+.tl-row.done .tl-time { color: var(--done); }
+.tl-axis { width: 16px; flex: 0 0 auto; position: relative; }
+.tl-axis::before { content: ""; position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; background: var(--line-strong); transform: translateX(-50%); }
+.tl-row:first-child .tl-axis::before { top: 19px; }
+.tl-row:last-child .tl-axis::before { bottom: calc(100% - 19px); }
+.tl-row:first-child:last-child .tl-axis::before { display: none; }
+.tl-dot {
+  position: absolute; left: 50%; top: 15px; width: 9px; height: 9px; border-radius: 50%;
+  background: var(--bg); border: 2.5px solid var(--accent); transform: translateX(-50%); z-index: 1;
+}
+.tl-row.done .tl-dot { background: var(--done); border-color: var(--done); }
+.tl-body { flex: 1; min-width: 0; padding-left: 4px; }
+.tl-body .todo { border-bottom: none; }
+.tl-label { margin: 12px 0 2px 82px; font-size: 11.5px; font-weight: 700; color: var(--muted); }
+.tl-time-edit { margin: 10px 0 0 0; width: 62px; padding: 3px 2px; font-size: 11px; }
+
 @keyframes slideNext { from { transform: translateX(20px); opacity: .25; } to { transform: none; opacity: 1; } }
 @keyframes slidePrev { from { transform: translateX(-20px); opacity: .25; } to { transform: none; opacity: 1; } }
 .hero.slide-next { animation: slideNext .18s ease; }

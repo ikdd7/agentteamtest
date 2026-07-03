@@ -699,11 +699,7 @@
         el.appendChild(chips);
       }
     } else {
-      const ul = document.createElement("ul");
-      ul.className = "todo-list";
-      items.sort((a, b) => (a.done - b.done) || a.createdAt - b.createdAt);
-      items.forEach((t) => ul.appendChild(todoEl(t)));
-      el.appendChild(ul);
+      el.appendChild(timelineEl(items));
     }
     board.appendChild(el);
 
@@ -715,6 +711,61 @@
       none.forEach((t) => sec.list.appendChild(todoEl(t)));
       board.appendChild(sec.el);
     }
+  }
+
+  // 세로 타임라인 — 시간이 있는 항목은 시간순으로 축 위에, 없는 항목은 아래 "시간 미정"
+  function timelineEl(items) {
+    const wrap = document.createElement("div");
+    wrap.className = "timeline";
+    const timed = items
+      .filter((t) => timeLabelToHHMM(t.time))
+      .sort((a, b) => timeLabelToHHMM(a.time).localeCompare(timeLabelToHHMM(b.time)) || a.createdAt - b.createdAt);
+    const untimed = items
+      .filter((t) => !timeLabelToHHMM(t.time))
+      .sort((a, b) => (a.done - b.done) || a.createdAt - b.createdAt);
+
+    timed.forEach((t) => wrap.appendChild(tlRow(t, true)));
+    if (untimed.length) {
+      if (timed.length) {
+        const lb = document.createElement("div");
+        lb.className = "tl-label";
+        lb.textContent = "시간 미정";
+        wrap.appendChild(lb);
+      }
+      untimed.forEach((t) => wrap.appendChild(tlRow(t, false)));
+    }
+    return wrap;
+  }
+
+  function tlRow(t, hasTime) {
+    const row = document.createElement("div");
+    row.className = "tl-row" + (t.done ? " done" : "");
+    const timeCol = document.createElement("div");
+    timeCol.className = "tl-time";
+    if (hasTime) {
+      timeCol.textContent = t.time;
+      timeCol.title = "눌러서 시간 변경";
+      timeCol.onclick = () => {
+        const inp = document.createElement("input");
+        inp.type = "time";
+        inp.className = "chip-edit tl-time-edit";
+        inp.value = timeLabelToHHMM(t.time) || "09:00";
+        timeCol.replaceWith(inp);
+        inp.focus();
+        inp.onchange = () => { t.time = inp.value ? hhmmToLabel(inp.value) : null; inp.onblur = null; save(); render(); };
+        inp.onblur = () => render();
+      };
+    }
+    const axis = document.createElement("div");
+    axis.className = "tl-axis";
+    axis.innerHTML = `<span class="tl-dot"></span>`;
+    const body = document.createElement("ul");
+    body.className = "todo-list tl-body";
+    body.appendChild(todoEl(t, { hideTime: hasTime }));
+    row.appendChild(timeCol);
+    row.appendChild(axis);
+    row.appendChild(body);
+    return row;
   }
 
   // 모바일 스와이프로 하루씩 넘기기
@@ -740,11 +791,12 @@
     return { el, list: el.querySelector(".todo-list") };
   }
 
-  // "오후 2시 30분" ↔ "14:30" 변환 (아침/저녁 같은 말 시간은 빈 값)
+  // "오후 2시 30분" ↔ "14:30" 변환. 말 시간(아침/저녁 등)은 대략적인 시각으로
+  const WORD_TIME = { "새벽": "05:00", "아침": "07:00", "오전": "10:00", "점심": "12:00", "오후": "15:00", "저녁": "19:00", "밤": "21:00" };
   function timeLabelToHHMM(label) {
     if (!label) return "";
     const m = label.match(/(오전|오후)?\s*(\d{1,2})시(?:\s*(\d{1,2})분)?/);
-    if (!m) return "";
+    if (!m) return WORD_TIME[label.trim()] || "";
     let h = Number(m[2]);
     const min = m[3] ? Number(m[3]) : 0;
     if (m[1] === "오후" && h < 12) h += 12;
@@ -816,7 +868,8 @@
     return c;
   }
 
-  function todoEl(t) {
+  function todoEl(t, opts) {
+    opts = opts || {};
     const li = document.createElement("li");
     li.className = "todo" + (t.done ? " done" : "");
     li.innerHTML = `
@@ -842,7 +895,7 @@
 
     const sub = li.querySelector(".t-sub");
     sub.appendChild(categoryChip(t));
-    sub.appendChild(timeChip(t));
+    if (!opts.hideTime) sub.appendChild(timeChip(t)); // 타임라인에선 왼쪽 시간축이 대신한다
 
     li.querySelector(".check").onclick = () => {
       t.done = !t.done;
