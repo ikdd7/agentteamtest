@@ -560,7 +560,44 @@
     };
   }
 
+  // "오늘 오후부터 내일 두 시까지 출근" — 날짜를 넘는 일정은 자정 기준으로 나눠서 이틀에 걸쳐 표시
+  function tryCrossDayAdd(text) {
+    const idx = text.indexOf("부터");
+    if (idx < 0) return null;
+    const left = text.slice(0, idx);
+    const right = text.slice(idx + 2);
+    if (!/까지/.test(right)) return null;
+    const dl = extractDate(left);
+    const dr = extractDate(right);
+    if (!dr.key) return null;
+    const startKey = dl.key || todayKey();
+    if (dr.key <= startKey) return null; // 같은 날이면 일반 등록으로
+    const tl = extractTime(dl.rest);
+    const er = matchTimeToken(dr.rest, false); // 종료 시각 (extractDate가 "까지"를 이미 걷어냄)
+    const endLabel = er ? er.label : null;
+    let bodySrc = er ? dr.rest.replace(er.m, " ") : dr.rest;
+    bodySrc = bodySrc.replace(/까지/g, " ");
+    const body = cleanTaskText((tl.rest + " " + bodySrc).trim());
+    if (!body) return null;
+    const cat = inferCategory(body);
+    const mk = (date, time, timeEnd) => ({
+      id: uid(), text: body, date, time, timeEnd, place: null, memo: null,
+      category: cat.name, icon: cat.icon, done: false, createdAt: Date.now(),
+    });
+    // 시작일: 시작 시각~자정 / 끝나는 날: 자정~종료 시각
+    state.todos.push(mk(startKey, tl.time || null, tl.time ? "오전 12시" : null));
+    state.todos.push(mk(dr.key, "오전 12시", endLabel));
+    save();
+    return {
+      type: "ok",
+      msg: `✓ 추가됨  "${body}" · ${spokenDate(startKey)} ${tl.time || "저녁"}부터 ${spokenDate(dr.key)} ${endLabel || "아침"}까지 — 이틀에 걸쳐 표시해요`,
+      speak: `${body}, ${spokenDate(startKey)}부터 ${spokenDate(dr.key)}까지 등록했어요.`,
+    };
+  }
+
   function doAdd(text) {
+    const cross = tryCrossDayAdd(text);
+    if (cross) return cross;
     const parts = splitTasks(text);
 
     // 한 건이면 비서처럼 빠진 정보를 되묻는다
@@ -679,6 +716,22 @@
     let rest = text;
     for (const m of [...DELETE_MARKERS].sort((a, b) => b.length - a.length)) {
       rest = rest.split(m).join(" ");
+    }
+    // "어제 일정 다 지워" — 특정 이름 없이 날짜만 말하면 그날 전체 삭제
+    const d = extractDate(rest);
+    const bulkTokens = contentTokens(d.rest).filter((w) => !/^(일정|약속|스케줄|스케쥴|할일|플랜|전부|모두|전체|몽땅)$/.test(w));
+    if (d.key && !bulkTokens.length) {
+      const victims = state.todos.filter((t) => t.date === d.key);
+      if (!victims.length) {
+        return { type: "ok", msg: `🗑 ${spokenDate(d.key)}엔 지울 일정이 없어요.`, speak: `${spokenDate(d.key)}에는 일정이 없어요.` };
+      }
+      state.todos = state.todos.filter((t) => t.date !== d.key);
+      save();
+      return {
+        type: "ok",
+        msg: `🗑 ${spokenDate(d.key)} 일정 ${victims.length}개를 모두 지웠어요`,
+        speak: `${spokenDate(d.key)} 일정 ${victims.length}개를 모두 지웠어요.`,
+      };
     }
     const { best } = findTarget(rest, state.todos);
     if (!best) {
@@ -1765,7 +1818,7 @@
   const quoteCard = $("#quoteCard");
   let quoteIdx = -1;
   let curQuote = null;
-  function quotePool() { return (window.QUOTES || []).concat(state.myQuotes || []); }
+  function quotePool() { return window.QUOTES || []; }
   function isFav(q) { return q && state.favQuotes.some((f) => f.t === q.t); }
   function syncFavBtn() {
     const b = $("#quoteFav");
@@ -1840,31 +1893,10 @@
         favList.appendChild(li);
       });
     }
-    const myList = $("#myQuoteList");
-    myList.innerHTML = "";
-    state.myQuotes.forEach((q) => {
-      const li = document.createElement("li");
-      li.className = "qm-item";
-      li.innerHTML = `<div class="qm-body"><p class="qm-t"></p><p class="qm-a"></p></div><button class="qm-del" title="삭제">✕</button>`;
-      li.querySelector(".qm-t").textContent = `“${q.t}”`;
-      li.querySelector(".qm-a").textContent = "— " + q.a;
-      li.querySelector(".qm-del").onclick = () => { state.myQuotes = state.myQuotes.filter((f) => f.t !== q.t); save(); renderQuoteModal(); };
-      myList.appendChild(li);
-    });
   }
   $("#quoteSettingBtn").onclick = () => { renderQuoteModal(); $("#quoteModal").hidden = false; };
   $("#quoteModalClose").onclick = () => ($("#quoteModal").hidden = true);
   $("#quoteModal").addEventListener("click", (e) => { if (e.target.id === "quoteModal") e.currentTarget.hidden = true; });
-  $("#myQuoteAdd").onclick = () => {
-    const t = $("#myQuoteText").value.trim();
-    if (!t) return;
-    const a = $("#myQuoteAuthor").value.trim() || "나";
-    state.myQuotes.push({ t, a });
-    save();
-    $("#myQuoteText").value = ""; $("#myQuoteAuthor").value = "";
-    renderQuoteModal();
-    toast("✍️ 나만의 명언을 담았어요. 카드에도 섞여 나와요!");
-  };
 
   // 일정 상세·메모 팝업 바인딩
   $("#taskClose").onclick = closeTaskModal;
