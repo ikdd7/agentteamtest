@@ -7,7 +7,7 @@
   <meta name="description" content="음성으로 말하면 날짜별·행동별 투두리스트를 만들어 주고 달력으로 한눈에 보는 나만의 음성 비서" />
   <title>말로 하는 투두 · Voice To-Do</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
-  <link rel="stylesheet" href="styles.css?v=20" />
+  <link rel="stylesheet" href="styles.css?v=21" />
 </head>
 <body>
   <div class="app">
@@ -106,7 +106,7 @@
 
   <!-- ===== Voice dock (fixed, thumb zone) ===== -->
   <div class="voice-dock">
-    <div id="lastResult" class="last-result" hidden></div>
+    <div id="chatLog" class="chat-log" hidden></div>
     <div id="liveBox" class="live-box" hidden>
       <span id="liveText"></span><span class="caret">▍</span>
     </div>
@@ -131,6 +131,8 @@
             <li>"내일 오후 3시 회의 준비할 거야"</li>
             <li>"내일 아침 여섯 시에 일어나기"</li>
             <li>"모레 장보기 그리고 청소하기"</li>
+            <li>"내일 회의" → 몇 시인지 되물어요 (없으면 "시간 없어")</li>
+            <li>"강남역에서 저녁 약속" → 📍 장소도 저장</li>
             <li>"목표 추가 매일 책 10분 읽기" → 🌱 목표 등록</li>
           </ul>
         </div>
@@ -175,6 +177,6 @@
   <div id="toast" class="toast" hidden></div>
 
   <script src="quotes.js?v=1"></script>
-  <script src="app.js?v=20"></script>
+  <script src="app.js?v=21"></script>
 </body>
 </html>
