@@ -154,30 +154,25 @@ html, body {
 .overdue-pill:hover { background: #ffecc9; }
 .hero-empty { color: var(--muted); padding: 14px 4px 10px; font-size: 14px; text-align: center; }
 .hero .suggest-chips { justify-content: center; }
-/* ===== 세로 타임라인 ===== */
-.timeline { margin-top: 8px; }
-.tl-row { display: flex; align-items: stretch; }
-.tl-time {
-  width: 62px; flex: 0 0 auto; text-align: right; padding: 15px 6px 0 0;
-  font-size: 11.5px; font-weight: 700; color: var(--accent-ink); cursor: pointer;
-  word-break: keep-all; line-height: 1.3;
+/* ===== 아워 그리드 (구글 캘린더식) ===== */
+.timeline { margin-top: 10px; }
+.tl-label { margin: 4px 2px 4px; font-size: 11.5px; font-weight: 700; color: var(--muted); }
+.hg-row { display: flex; align-items: stretch; border-top: 1px solid var(--line); min-height: 34px; position: relative; }
+.hg-row:last-child { border-bottom: 1px solid var(--line); }
+.hg-time {
+  width: 62px; flex: 0 0 auto; text-align: right; padding: 8px 10px 0 0;
+  font-size: 11px; font-weight: 600; color: var(--muted); word-break: keep-all;
 }
-.tl-time:hover { text-decoration: underline; }
-.tl-row.done .tl-time { color: var(--done); }
-.tl-axis { width: 16px; flex: 0 0 auto; position: relative; }
-.tl-axis::before { content: ""; position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; background: var(--line-strong); transform: translateX(-50%); }
-.tl-row:first-child .tl-axis::before { top: 19px; }
-.tl-row:last-child .tl-axis::before { bottom: calc(100% - 19px); }
-.tl-row:first-child:last-child .tl-axis::before { display: none; }
-.tl-dot {
-  position: absolute; left: 50%; top: 15px; width: 9px; height: 9px; border-radius: 50%;
-  background: var(--bg); border: 2.5px solid var(--accent); transform: translateX(-50%); z-index: 1;
-}
-.tl-row.done .tl-dot { background: var(--done); border-color: var(--done); }
-.tl-body { flex: 1; min-width: 0; padding-left: 4px; }
-.tl-body .todo { border-bottom: none; }
-.tl-label { margin: 12px 0 2px 82px; font-size: 11.5px; font-weight: 700; color: var(--muted); }
-.tl-time-edit { margin: 10px 0 0 0; width: 62px; padding: 3px 2px; font-size: 11px; }
+.hg-slot { flex: 1; min-width: 0; padding: 3px 0; position: relative; }
+.hg-slot.empty { cursor: pointer; border-radius: 8px; transition: background .12s; }
+.hg-slot.empty:hover { background: var(--accent-soft); }
+/* 슬롯 안 일정은 캘린더 이벤트 블록처럼 */
+.hg-slot .todo { border-bottom: none; background: var(--accent-soft); border-radius: 10px; padding: 8px 10px; margin: 2px 0; border-left: 3px solid var(--accent); }
+.hg-slot .todo:hover { background: #ddebfc; }
+.hg-slot .todo.done { background: var(--bg-soft); border-left-color: var(--done); }
+/* 현재 시각 표시선 */
+.hg-now { position: absolute; left: 58px; right: 0; height: 2px; background: #f04452; z-index: 2; pointer-events: none; }
+.hg-now::before { content: ""; position: absolute; left: -4px; top: -3px; width: 8px; height: 8px; border-radius: 50%; background: #f04452; }
 
 @keyframes slideNext { from { transform: translateX(20px); opacity: .25; } to { transform: none; opacity: 1; } }
 @keyframes slidePrev { from { transform: translateX(-20px); opacity: .25; } to { transform: none; opacity: 1; } }
