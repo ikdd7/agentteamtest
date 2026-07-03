@@ -205,11 +205,11 @@
     const num = str.match(new RegExp("(오전|오후|아침|점심|저녁|밤|새벽)?\\s*(\\d{1,2})\\s*시\\s*(반|(\\d{1,2})\\s*분)?" + K));
     if (num) {
       const min = num[3] === "반" ? 30 : (num[4] ? Number(num[4]) : 0);
-      return { label: buildTimeLabel(Number(num[2]), num[1], min), m: num[0] };
+      return { label: buildTimeLabel(Number(num[2]), num[1], min), m: num[0], explicit: !!num[1] };
     }
     const ko = str.match(new RegExp("(오전|오후|아침|점심|저녁|밤|새벽)?\\s*" + KO_HOUR_RE + "\\s*시\\s*(반)?" + K));
     if (ko) {
-      return { label: buildTimeLabel(KO_HOUR[ko[2]], ko[1], ko[3] === "반" ? 30 : 0), m: ko[0] };
+      return { label: buildTimeLabel(KO_HOUR[ko[2]], ko[1], ko[3] === "반" ? 30 : 0), m: ko[0], explicit: !!ko[1] };
     }
     return null;
   }
@@ -244,7 +244,22 @@
     if (time) {
       const hadRange = /부터/.test(text);
       const end = matchTimeToken(t, !hadRange);
-      if (end) { timeEnd = end.label; t = t.replace(end.m, " "); }
+      if (end) {
+        timeEnd = end.label;
+        // 오전/오후를 안 붙인 종료가 시작보다 이르면 같은 쪽(오후)으로 해석
+        // 예) "저녁 6시 반부터 7시 반까지" → 종료는 오후 7시 30분
+        if (!end.explicit) {
+          const s = timeLabelToHHMM(time), e2 = timeLabelToHHMM(timeEnd);
+          if (s && e2 && e2 <= s) {
+            let [h, mi] = e2.split(":").map(Number);
+            if (h < 12) {
+              h += 12;
+              timeEnd = `${h < 12 ? "오전" : "오후"} ${((h + 11) % 12) + 1}시${mi ? ` ${mi}분` : ""}`;
+            }
+          }
+        }
+        t = t.replace(end.m, " ");
+      }
       t = t.replace(/부터/g, " "); // 잔여 정리
     }
     return { time, timeEnd, rest: t };
