@@ -205,15 +205,16 @@ input[type="text"], textarea { font-size: 16px; }
 .hg-event .todo-list { height: 100%; }
 .hg-event .todo {
   height: 100%; box-sizing: border-box; overflow: hidden;
-  border-bottom: none; border-radius: 9px; padding: 4px 9px; margin: 0;
-  background: var(--bg-soft); gap: 8px; align-items: flex-start;
+  border-bottom: none; border-radius: 9px; padding: 2px 9px; margin: 0;
+  background: var(--bg-soft); gap: 8px;
+  align-items: center; /* 블록이 길어져도 내용은 세로 가운데 */
 }
+.hg-event .todo .t-main { display: flex; align-items: center; }
 .hg-event .todo .t-text { font-size: 13px; line-height: 1.25; }
-.hg-event .todo .t-sub { margin-top: 1px; gap: 8px; }
-.hg-event .todo .check { width: 18px; height: 18px; font-size: 10px; margin-top: 1px; }
+.hg-event .todo .check { width: 18px; height: 18px; font-size: 10px; margin-top: 0; flex: 0 0 auto; }
 .hg-event .todo .t-del { font-size: 12px; padding: 1px; }
-.hg-event.slim .todo { padding: 2px 8px; }
-.hg-event.slim .t-sub { display: none; }
+.hg-event.slim .todo { padding: 0 8px; }
+.hg-event.slim .t-text { font-size: 12px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
 .hg-event .todo:hover { filter: brightness(.97); }
 .hg-event .todo[data-cat="업무"]   { background: #e8f1fe; }
 .hg-event .todo[data-cat="운동"]   { background: #e3f7f1; }
@@ -257,6 +258,7 @@ input[type="text"], textarea { font-size: 16px; }
 .todo.done .check { background: var(--accent); border-color: var(--accent); color: white; }
 .t-main { flex: 1; min-width: 0; }
 .t-text { font-size: 16px; word-break: break-word; font-weight: 500; line-height: 1.35; cursor: pointer; }
+.t-ico { margin-right: 5px; }
 .todo.done .t-text { text-decoration: line-through; color: var(--done); }
 .t-sub { display: flex; gap: 12px; margin-top: 3px; align-items: center; flex-wrap: wrap; }
 .chip { font-size: 12.5px; color: var(--muted); font-weight: 600; background: none; border: none; padding: 0; }
@@ -428,11 +430,17 @@ input[type="text"], textarea { font-size: 16px; }
 /* ===== Task memo modal ===== */
 .task-box { max-width: 440px; }
 .tm-label { display: block; margin: 14px 2px 6px; font-size: 12.5px; font-weight: 700; color: var(--text2); }
-#taskTitle, #taskMemo {
+#taskTitle, #taskMemo, #taskCat {
   width: 100%; background: var(--bg-soft); border: 1px solid transparent; border-radius: 12px;
-  padding: 12px 14px; color: var(--text); font-family: inherit; resize: vertical;
+  padding: 12px 14px; color: var(--text); font-family: inherit; resize: vertical; font-size: 15px;
 }
-#taskTitle:focus, #taskMemo:focus { outline: none; border-color: var(--accent); background: var(--bg); }
+#taskTitle:focus, #taskMemo:focus, #taskCat:focus { outline: none; border-color: var(--accent); background: var(--bg); }
+.tm-time { display: flex; align-items: center; gap: 8px; }
+.tm-time input {
+  flex: 1; background: var(--bg-soft); border: 1px solid transparent; border-radius: 12px;
+  padding: 10px 12px; font-family: inherit; font-size: 15px;
+}
+.tm-time input:focus { outline: none; border-color: var(--accent); background: var(--bg); }
 .tm-save { width: 100%; height: 46px; margin-top: 16px; }
 .chip.memo { color: #b08a17; }
 
