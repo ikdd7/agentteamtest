@@ -191,6 +191,8 @@
   function buildTimeLabel(hour, ampm, min) {
     if ((ampm === "오후" || ampm === "저녁" || ampm === "밤") && hour < 12) hour += 12;
     if ((ampm === "오전" || ampm === "아침" || ampm === "새벽") && hour === 12) hour = 0;
+    // 오전/오후 없이 말한 1~6시는 낮 시간(오후)으로 해석 — "3시 미팅"은 보통 15시다
+    if (!ampm && hour >= 1 && hour <= 6) hour += 12;
     return `${hour < 12 ? "오전" : "오후"} ${((hour + 11) % 12) + 1}시${min ? " " + min + "분" : ""}`;
   }
 
@@ -588,15 +590,15 @@
     return { type: "ok", msg: `✏️ 수정: "${oldText}" → "${newText}"`, speak: `${oldText}를 ${newText}로 바꿨어요.` };
   }
 
-  // "운동 내일로 미뤄줘" — 날짜를 뽑고, 나머지 토큰으로 할 일을 찾아 옮긴다
-  // 날짜 없이 "바꿔/수정"이면 내용 수정으로 처리
+  // "운동 내일로 미뤄줘" / "CPR교육 한시반으로 수정" — 날짜·시간을 뽑고 나머지로 할 일을 찾아 옮긴다
+  // 날짜도 시간도 없이 "바꿔/수정"이면 내용 수정으로 처리
   function doReschedule(text) {
     const d = extractDate(text);
-    if (!d.key && /(바꿔|변경|수정)/.test(text)) return doRename(text);
+    const tm = extractTime(d.rest);
+    if (!d.key && !tm.time && /(바꿔|변경|수정)/.test(text)) return doRename(text);
     const open = state.todos.filter((t) => !t.done);
     if (!open.length) return { type: "warn", msg: "옮길 할 일이 없어요." };
-    const targetKey = d.key || dateKey(addDays(new Date(), 1)); // 날짜 없으면 내일로
-    let rest = d.rest;
+    let rest = tm.rest;
     for (const m of [...RESCHEDULE_MARKERS].sort((a, b) => b.length - a.length)) {
       rest = rest.split(m).join(" ");
     }
@@ -605,12 +607,22 @@
     if (!best) {
       return { type: "warn", msg: `"${cleanTaskText(rest)}"와(과) 맞는 할 일을 못 찾았어요.` };
     }
-    best.date = targetKey;
+    // 날짜/시간 중 말한 것만 바꾼다. 둘 다 없으면(그냥 "미뤄줘") 내일로
+    if (!d.key && !tm.time) {
+      best.date = dateKey(addDays(new Date(), 1));
+    } else {
+      if (d.key) best.date = d.key;
+      if (tm.time) best.time = tm.time;
+    }
     save();
+    const parts = [];
+    if (d.key) parts.push(spokenDate(d.key));
+    if (tm.time) parts.push(tm.time);
+    const when = parts.join(" ") || spokenDate(best.date);
     return {
       type: "ok",
-      msg: `⏭ "${best.text}" → ${spokenDate(targetKey)}(으)로 옮겼어요`,
-      speak: `${best.text}, ${spokenDate(targetKey)}로 옮겼어요.`,
+      msg: `⏭ "${best.text}" → ${when}(으)로 옮겼어요`,
+      speak: `${best.text}, ${when}로 옮겼어요.`,
     };
   }
 
