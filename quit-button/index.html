@@ -192,11 +192,77 @@
   footer { margin-top: 56px; text-align: center; font-size: 11.5px; color: #5d5a85; line-height: 1.8; }
 
   canvas#confetti { position: fixed; inset: 0; pointer-events: none; z-index: 40; }
+
+  /* ── cute extras ── */
+  .btn-sound {
+    position: fixed; top: 14px; right: 14px; z-index: 20;
+    background: var(--bg-soft); border: 1.5px solid #3d3d66; border-radius: 999px;
+    width: 42px; height: 42px; font-size: 18px; cursor: pointer;
+  }
+  .zzz { position: absolute; top: 4px; right: 16px; font-size: 24px; opacity: 0; transition: opacity .6s; pointer-events: none; z-index: 3; }
+  .btn-quit.sleepy { animation-duration: 6s; }
+  .btn-quit.sleepy .eye { height: 3px; border-radius: 4px; margin-top: 10px; }
+  .btn-quit.sleepy .mouth { width: 12px; height: 6px; }
+  .combo {
+    position: absolute; top: -6px; left: 50%; transform: translateX(-50%) scale(.6);
+    background: var(--yellow); color: #6b4d00; font-weight: 800; font-size: 13px;
+    padding: 6px 14px; border-radius: 999px; opacity: 0;
+    transition: all .25s cubic-bezier(.34,1.56,.64,1); z-index: 5; white-space: nowrap;
+  }
+  .combo.show { opacity: 1; transform: translateX(-50%) scale(1); }
+  .weather { margin-top: 8px; font-size: 12.5px; color: var(--yellow); }
+  .title-chip { display: inline-block; margin-top: 12px; background: #3b2a4d; color: #e3c8ff; padding: 6px 16px; border-radius: 999px; font-size: 12.5px; font-weight: 700; }
+
+  /* ── seal (사직서 봉인) ── */
+  .btn-write-seal {
+    width: 100%; margin-top: 14px; background: var(--card); color: var(--peach);
+    border: 2px dashed #5a4a6e; border-radius: var(--radius); padding: 16px;
+    font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit;
+    transition: transform .1s;
+  }
+  .btn-write-seal:active { transform: scale(.98); }
+  .envelope {
+    background: linear-gradient(135deg,#2b2338,#241d2e); border-radius: 20px;
+    padding: 16px 18px; display: flex; justify-content: space-between; align-items: center;
+    margin-top: 12px; border: 1px solid #3c3050; animation: slidein .4s ease;
+  }
+  .env-t { font-size: 14px; font-weight: 700; }
+  .env-d { font-size: 12px; color: var(--sub); margin-top: 4px; }
+  .wax {
+    width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0;
+    background: radial-gradient(circle at 35% 30%, #ff7d92, #b92645);
+    display: flex; align-items: center; justify-content: center; font-size: 17px;
+    box-shadow: 0 3px 10px rgba(0,0,0,.35);
+  }
+  .btn-open-seal { background: var(--red); color:#fff; border:none; border-radius: 14px; padding: 10px 18px; font-weight: 700; font-family: inherit; cursor: pointer; box-shadow: 0 3px 0 #c23a52; }
+  .seal-inner {
+    background: #1b1622; border: 1px solid #342a44; border-radius: 24px;
+    padding: 24px 20px; max-width: 380px; width: 100%; animation: slidein .35s ease;
+  }
+  .seal-title { font-size: 14.5px; line-height: 1.7; color: #d8cfe8; text-align: center; }
+  .seal-inner textarea {
+    width: 100%; height: 160px; margin-top: 16px; background: #241d2e;
+    border: 1px solid #3c3050; border-radius: 14px; padding: 14px;
+    color: var(--text); font-family: "Noto Serif KR", serif; font-size: 14px;
+    line-height: 1.8; resize: none; outline: none;
+  }
+  .seal-btns { display: flex; gap: 10px; margin-top: 14px; }
+  .seal-btns button { flex: 1; border: none; border-radius: 14px; padding: 14px 0; font-weight: 700; font-family: inherit; cursor: pointer; font-size: 13.5px; }
+  #doSeal { background: #8e2f47; color: #ffe3ea; }
+  #cancelSeal, #keepSeal { background: var(--card); color: var(--sub); }
+  #tearSeal { background: var(--red); color: #fff; }
+  .seal-view { margin-top: 16px; background: #241d2e; border-radius: 14px; padding: 16px; font-family: "Noto Serif KR", serif; font-size: 14px; line-height: 1.8; color: #e8dff5; max-height: 200px; overflow-y: auto; white-space: pre-wrap; text-align: left; }
+  .seal-view.torn { animation: tearfx .6s ease forwards; }
+  @keyframes tearfx { 40% { transform: rotate(-2deg) scale(1.02); } 100% { transform: rotate(6deg) scale(.4) translateY(60px); opacity: 0; } }
+  .stamp-overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 70; pointer-events: none; }
+  .stamp-overlay .wax { width: 110px; height: 110px; font-size: 44px; animation: stampin .6s cubic-bezier(.34,1.56,.64,1); }
+  @keyframes stampin { 0% { transform: scale(3); opacity: 0; } 60% { transform: scale(.92); opacity: 1; } 100% { transform: scale(1); } }
 </style>
 </head>
 <body>
 
 <canvas id="confetti"></canvas>
+<button class="btn-sound" id="soundBtn" aria-label="소리 켜기/끄기">🔇</button>
 
 <main>
   <div class="hero">
@@ -206,6 +272,8 @@
 
   <div class="stage">
     <div class="ring-wrap">
+      <div class="zzz" id="zzz">💤</div>
+      <div class="combo" id="combo"></div>
       <svg class="ring" width="260" height="260" viewBox="0 0 260 260">
         <circle class="track" cx="130" cy="130" r="120"></circle>
         <circle class="prog" id="progRing" cx="130" cy="130" r="120"></circle>
@@ -224,6 +292,7 @@
       <div class="counter-label">오늘 전국에서</div>
       <div class="counter-num" id="todayCount">0</div>
       <div class="counter-sub">번의 퇴사 욕구가 접수됐어요 <span id="liveDot">·</span></div>
+      <div class="weather" id="weather"></div>
     </div>
   </div>
 
@@ -247,6 +316,13 @@
       <div class="stat"><div class="n" id="stStreak">0</div><div class="l">연속 출석일</div></div>
     </div>
     <p class="stat-msg" id="statMsg">아직 한 번도 안 눌렀어요. 괜찮은 하루인가 봐요! 🍀</p>
+    <div style="text-align:center"><span class="title-chip" id="titleChip"></span></div>
+  </section>
+
+  <section>
+    <h2>✉️ 사직서 봉인함 <span class="badge">쓰면 좀 나아져요</span></h2>
+    <div id="sealArea"></div>
+    <button class="btn-write-seal" id="writeSeal">오늘은 좀 다른가요? 사직서 써서 봉인하기 🕯</button>
   </section>
 
   <footer>
@@ -263,6 +339,31 @@
     <div class="modal-btns">
       <button class="btn-save" id="saveMeme">이미지 저장</button>
       <button class="btn-close" id="closeMeme">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- seal writing modal -->
+<div class="modal" id="sealModal">
+  <div class="seal-inner">
+    <div class="seal-title">아무도 보지 않아요.<br>하고 싶은 말을 전부 쓰세요.</div>
+    <textarea id="sealText" placeholder="사직서.&#10;&#10;저는 오늘…"></textarea>
+    <div class="seal-btns">
+      <button id="doSeal">🕯 봉인하기 · 900원 <small>(데모 무료)</small></button>
+      <button id="cancelSeal">아직…</button>
+    </div>
+    <p style="margin-top:12px;font-size:11.5px;color:#6d6a96;text-align:center">이 기기에만 저장돼요. 데모라서 1분 뒤 열어볼 수 있어요 (실서비스: 30일)</p>
+  </div>
+</div>
+
+<!-- seal open modal -->
+<div class="modal" id="openModal">
+  <div class="seal-inner">
+    <div class="seal-title" id="openTitle">그날의 마음이에요.<br>아직 유효한가요?</div>
+    <div class="seal-view" id="openView"></div>
+    <div class="seal-btns">
+      <button id="tearSeal">찢는다 💪</button>
+      <button id="keepSeal">간직한다 💌</button>
     </div>
   </div>
 </div>
@@ -332,6 +433,13 @@ function renderStats() {
     t <= 4  ? '음… 오늘 회사에서 무슨 일 있었죠? 🫠' :
               '오늘 좀 심하네요 🥺 꼭 기록해둘게요. 당신 잘못이 아니에요.';
   $('#statMsg').textContent = msgs;
+  $('#titleChip').textContent = '칭호: ' + myTitle(stats.total);
+}
+function myTitle(total) {
+  return total >= 100 ? '전설의 존버왕 👑' :
+         total >= 30  ? '프로 참을러 🧘' :
+         total >= 10  ? '견습 버티기 요정 🧚' :
+         total >= 1   ? '신입 버티기 요정 🌱' : '아직 평화로운 분 🍀';
 }
 function recordPress() {
   const k = todayKey();
@@ -399,7 +507,9 @@ function fire() {
   const myNumber = nationalCount;
   renderCounter();
   recordPress();
-  confettiBurst();
+  bumpCombo();
+  confettiBurst(90 + (combo-1) * 40);
+  pop();
 
   hint.innerHTML = `<b>${myNumber.toLocaleString('ko-KR')}번째</b> 접수! ` + HINTS_FIRED[Math.floor(Math.random()*HINTS_FIRED.length)];
 
@@ -432,9 +542,9 @@ sizeCanvas(); addEventListener('resize', sizeCanvas);
 let parts = [], confettiRaf = null;
 const COLORS = ['#ff6b81','#ffd97d','#7bed9f','#70a1ff','#ffb8b8','#fff5e1'];
 const EMOJI = ['💥','🎉','⭐','🤍','🌷'];
-function confettiBurst() {
+function confettiBurst(n = 90) {
   const cx = innerWidth/2, cy = btn.getBoundingClientRect().top + 100;
-  for (let i = 0; i < 90; i++) {
+  for (let i = 0; i < n; i++) {
     const a = Math.random()*Math.PI*2, v = 4 + Math.random()*9;
     parts.push({
       x: cx, y: cy, vx: Math.cos(a)*v, vy: Math.sin(a)*v - 4,
@@ -495,13 +605,15 @@ function showMeme(n) {
   mCtx.fillText('오늘 ' + n.toLocaleString('ko-KR') + '번째로', W/2, 476);
   mCtx.fillText('퇴사버튼을 눌렀습니다', W/2, 544);
   mCtx.fillStyle = '#a5a1c9'; mCtx.font = '500 26px Pretendard, sans-serif';
-  mCtx.fillText('당신만 그런 게 아니에요 🤍', W/2, 600);
+  mCtx.fillText('당신만 그런 게 아니에요 🤍', W/2, 598);
+  mCtx.fillStyle = '#e3c8ff'; mCtx.font = '700 24px Pretendard, sans-serif';
+  mCtx.fillText(myTitle(stats.total), W/2, 640);
   mCtx.fillStyle = '#6d6a96'; mCtx.font = '600 22px Pretendard, sans-serif';
-  mCtx.fillText('퇴사버튼 🔴', W/2, 668);
+  mCtx.fillText('퇴사버튼 🔴', W/2, 682);
   $('#memeModal').classList.add('show');
 }
-$('#closeMeme').onclick = () => $('#memeModal').classList.remove('show');
-$('#memeModal').onclick = e => { if (e.target === $('#memeModal')) $('#memeModal').classList.remove('show'); };
+$('#closeMeme').onclick = () => { $('#memeModal').classList.remove('show'); maybeCharm(); };
+$('#memeModal').onclick = e => { if (e.target === $('#memeModal')) { $('#memeModal').classList.remove('show'); maybeCharm(); } };
 $('#saveMeme').onclick = async () => {
   const blob = await new Promise(r => mCvs.toBlob(r, 'image/png'));
   const file = new File([blob], 'quit-button.png', { type: 'image/png' });
@@ -576,6 +688,179 @@ postBtn.onclick = () => {
   vibrate(20);
   toast(masked !== raw ? '살짝 가려서 올렸어요 🫥' : '털어놨어요. 후련하죠? 🫧');
 };
+
+/* ─────────────────────── 시간대 맞춤 인사 ─────────────────────── */
+(function greet() {
+  const d = new Date(), day = d.getDay(), h = d.getHours();
+  const t = document.querySelector('.tagline');
+  if (day === 1 && h < 12)      t.textContent = '월요일이네요… 알아요. 여기 있어요 🫂';
+  else if (day === 5 && h >= 15) t.textContent = '금요일 오후! 조금만 더 버텨요 🎈';
+  else if (h >= 22 || h < 5)     t.textContent = '이 시간까지…? 야근인가요 🥺';
+  else if (h >= 12 && h < 13)    t.textContent = '점심시간엔 잠시 잊어요 🍜';
+})();
+
+/* ─────────────────────── 눈동자 따라오기 + 꾸벅꾸벅 ─────────────────────── */
+const eyeEls = document.querySelectorAll('.eye');
+let idleTm = null;
+function wake() {
+  btn.classList.remove('sleepy');
+  $('#zzz').style.opacity = 0;
+  clearTimeout(idleTm);
+  idleTm = setTimeout(() => { btn.classList.add('sleepy'); $('#zzz').style.opacity = .9; }, 25000);
+}
+document.addEventListener('pointermove', e => {
+  wake();
+  if (btn.classList.contains('holding')) return;
+  const r = btn.getBoundingClientRect();
+  const dx = Math.max(-1, Math.min(1, (e.clientX - (r.left + r.width/2)) / 220));
+  const dy = Math.max(-1, Math.min(1, (e.clientY - (r.top + r.height/2)) / 220));
+  eyeEls.forEach(el => el.style.transform = `translate(${dx*7}px, ${dy*5}px)`);
+});
+document.addEventListener('pointerdown', wake);
+document.addEventListener('scroll', wake, { passive: true });
+wake();
+
+/* ─────────────────────── 사운드 (기본 꺼짐) ─────────────────────── */
+let soundOn = store.get('sound', false), actx = null;
+const sBtn = $('#soundBtn');
+function renderSound() { sBtn.textContent = soundOn ? '🔊' : '🔇'; }
+sBtn.onclick = () => { soundOn = !soundOn; store.set('sound', soundOn); renderSound(); if (soundOn) pop(.5); };
+renderSound();
+function pop(gain = 1) {
+  if (!soundOn) return;
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(760, actx.currentTime);
+    o.frequency.exponentialRampToValueAtTime(180, actx.currentTime + .18);
+    g.gain.setValueAtTime(.22 * gain, actx.currentTime);
+    g.gain.exponentialRampToValueAtTime(.001, actx.currentTime + .22);
+    o.connect(g); g.connect(actx.destination);
+    o.start(); o.stop(actx.currentTime + .25);
+  } catch {}
+}
+
+/* ─────────────────────── 콤보 ─────────────────────── */
+let combo = 0, lastFire = 0;
+function bumpCombo() {
+  const now = Date.now();
+  combo = (now - lastFire < 45000) ? combo + 1 : 1;
+  lastFire = now;
+  if (combo >= 2) {
+    const c = $('#combo');
+    c.textContent = `콤보 x${combo} 🔥`;
+    c.classList.add('show');
+    clearTimeout(c._t);
+    c._t = setTimeout(() => c.classList.remove('show'), 2200);
+  }
+}
+
+/* ─────────────────────── 전국 퇴사 기상예보 ─────────────────────── */
+(function weatherReport() {
+  const w = dayFactor >= .9 ? ['⛈','폭풍 전야'] :
+            dayFactor >= .7 ? ['🌧','비 내림'] :
+            dayFactor >= .4 ? ['☁️','흐림'] :
+            dayFactor >= .15 ? ['🌤','구름 조금'] : ['🌙','고요함'];
+  $('#weather').textContent = `지금 전국 퇴사 기상: ${w[1]} ${w[0]}`;
+})();
+
+/* ─────────────────────── 방금 어딘가에서 (데모) ─────────────────────── */
+const REGIONS = ['판교','여의도','강남','을지로','구로 디지털단지','마곡','상암','부산 센텀','대전 둔산','광화문'];
+(function regionTick() {
+  setTimeout(() => {
+    if (!document.querySelector('.modal.show'))
+      toast(`방금 ${REGIONS[Math.floor(Math.random()*REGIONS.length)]}에서 누군가 눌렀어요 🔴`);
+    regionTick();
+  }, 30000 + Math.random()*40000);
+})();
+
+/* ─────────────────────── 오늘의 부적 (랜덤 보상) ─────────────────────── */
+const CHARMS = [
+  '🧿 상사 눈빛 방어 +10',
+  '🍀 야근 회피 확률 UP',
+  '☕ 오후 졸음 저항 +5',
+  '🛡 갑작스런 회의 소환 면역 (1회)',
+  '🌈 퇴근길 버스 바로 도착',
+  '🕯 메신저 알림 무음의 축복'
+];
+function maybeCharm() {
+  if (Math.random() < .3)
+    setTimeout(() => toast('오늘의 부적: ' + CHARMS[Math.floor(Math.random()*CHARMS.length)]), 400);
+}
+
+/* ─────────────────────── 사직서 봉인함 ───────────────────────
+   데모: 봉인 1분 뒤 개봉 가능 (실서비스 30일). 이 기기에만 저장. */
+const DEMO_SEAL_MS = 60 * 1000;
+let sealed = store.get('sealed', []);
+let openIdx = null;
+function fmtLeft(ms) {
+  const s = Math.ceil(ms/1000);
+  return s >= 60 ? Math.ceil(s/60) + '분' : s + '초';
+}
+function renderSeals() {
+  const area = $('#sealArea'); area.innerHTML = '';
+  sealed.forEach((sl, i) => {
+    const el = document.createElement('div'); el.className = 'envelope';
+    const left = sl.openAt - Date.now();
+    if (sl.kept) {
+      el.innerHTML = `<div><div class="env-t">간직한 사직서 💌</div><div class="env-d">${new Date(sl.at).toLocaleDateString('ko-KR')} · 진심이라면, 준비를 시작해도 돼요</div></div><div class="wax">💌</div>`;
+    } else if (left > 0) {
+      el.innerHTML = `<div><div class="env-t">봉인된 사직서</div><div class="env-d">${new Date(sl.at).toLocaleDateString('ko-KR')} 봉인 · ${fmtLeft(left)} 뒤에 열려요</div></div><div class="wax">✉️</div>`;
+    } else {
+      el.innerHTML = `<div><div class="env-t">열어볼 수 있어요!</div><div class="env-d">그날의 마음, 아직 유효한가요?</div></div><button class="btn-open-seal">개봉</button>`;
+      el.querySelector('button').onclick = () => {
+        openIdx = i;
+        $('#openView').textContent = sl.text;
+        $('#openView').classList.remove('torn');
+        $('#openModal').classList.add('show');
+      };
+    }
+    area.appendChild(el);
+  });
+}
+renderSeals();
+setInterval(renderSeals, 10000);
+
+$('#writeSeal').onclick = () => { $('#sealText').value = ''; $('#sealModal').classList.add('show'); };
+$('#cancelSeal').onclick = () => $('#sealModal').classList.remove('show');
+$('#doSeal').onclick = () => {
+  const text = $('#sealText').value.trim();
+  if (!text) { toast('한 글자라도 괜찮아요. 써보세요 ✍️'); return; }
+  $('#sealModal').classList.remove('show');
+  /* wax stamp ritual */
+  const ov = document.createElement('div');
+  ov.className = 'stamp-overlay';
+  ov.innerHTML = '<div class="wax">🕯</div>';
+  document.body.appendChild(ov);
+  vibrate([80, 50, 140]);
+  pop(1.4);
+  setTimeout(() => ov.remove(), 900);
+  sealed.unshift({ text, at: Date.now(), openAt: Date.now() + DEMO_SEAL_MS, kept: false });
+  store.set('sealed', sealed);
+  renderSeals();
+  setTimeout(() => toast('봉인했어요. 마음이 조금 가벼워졌길 🤍'), 950);
+};
+$('#tearSeal').onclick = () => {
+  $('#openView').classList.add('torn');
+  vibrate([40, 30, 40, 30, 90]);
+  confettiBurst(60);
+  setTimeout(() => {
+    sealed.splice(openIdx, 1);
+    store.set('sealed', sealed);
+    renderSeals();
+    $('#openModal').classList.remove('show');
+    toast('수고했어요. 잘 버텼네요 🤍');
+  }, 650);
+};
+$('#keepSeal').onclick = () => {
+  sealed[openIdx].kept = true;
+  store.set('sealed', sealed);
+  renderSeals();
+  $('#openModal').classList.remove('show');
+  toast('간직할게요. 당신의 속도로 가요 💌');
+};
+$('#openModal').onclick = e => { if (e.target === $('#openModal')) $('#openModal').classList.remove('show'); };
 </script>
 </body>
 </html>
