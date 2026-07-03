@@ -17,6 +17,8 @@
   if (!state.ui.tab) state.ui.tab = "home";
   if (!state.ui.calView) state.ui.calView = "month";
   if (!state.ui.calCursor) state.ui.calCursor = todayKey();
+  if (!Array.isArray(state.favQuotes)) state.favQuotes = []; // ♥ 즐겨찾기 명언
+  if (!Array.isArray(state.myQuotes)) state.myQuotes = [];   // ✍️ 나만의 명언
 
   function load() {
     try {
@@ -861,21 +863,29 @@
       const slot = document.createElement("div");
       slot.className = "hg-slot";
       const tasks = (byHour[h] || []).sort((a, b) => timeLabelToHHMM(a.time).localeCompare(timeLabelToHHMM(b.time)) || a.createdAt - b.createdAt);
-      if (tasks.length) {
-        const ul = document.createElement("ul");
-        ul.className = "todo-list";
-        tasks.forEach((t) => ul.appendChild(todoEl(t)));
-        slot.appendChild(ul);
-      } else {
-        // 빈 칸을 누르면 그 시간으로 바로 추가할 수 있게 입력을 채워준다
-        slot.classList.add("empty");
-        slot.title = "눌러서 이 시간에 추가";
-        slot.onclick = () => {
-          const inp = $("#manualInput");
-          inp.value = `${dayWord(key)} ${hourLabel(h)}에 `;
-          inp.focus();
-        };
-      }
+      // 30분 단위: 정시(:00~:29)와 반(:30~:59) 두 칸으로 나눈다
+      const firstHalf = tasks.filter((t) => Number(timeLabelToHHMM(t.time).split(":")[1]) < 30);
+      const secondHalf = tasks.filter((t) => Number(timeLabelToHHMM(t.time).split(":")[1]) >= 30);
+      [firstHalf, secondHalf].forEach((half, idx) => {
+        const halfEl = document.createElement("div");
+        halfEl.className = "hg-half" + (idx === 1 ? " h30" : "");
+        if (half.length) {
+          const ul = document.createElement("ul");
+          ul.className = "todo-list";
+          half.forEach((t) => ul.appendChild(todoEl(t)));
+          halfEl.appendChild(ul);
+        } else {
+          // 빈 반 칸을 누르면 그 시각으로 바로 추가
+          halfEl.classList.add("empty");
+          halfEl.title = "눌러서 이 시간에 추가";
+          halfEl.onclick = () => {
+            const inp = $("#manualInput");
+            inp.value = `${dayWord(key)} ${hourLabel(h)}${idx === 1 ? " 반" : ""}에 `;
+            inp.focus();
+          };
+        }
+        slot.appendChild(halfEl);
+      });
       // 현재 시각 표시선 (오늘 + 해당 시간대)
       if (isToday && now.getHours() === h) {
         const line = document.createElement("div");
@@ -1004,16 +1014,11 @@
       <button class="t-del" title="삭제">🗑</button>`;
     const textEl = li.querySelector(".t-text");
     textEl.textContent = t.text;
-    textEl.title = "눌러서 수정";
-    textEl.onclick = () => {
-      const v = prompt("내용 수정", t.text);
-      if (v && v.trim() && v.trim() !== t.text) {
-        t.text = v.trim();
-        const cat = inferCategory(t.text);
-        t.category = cat.name;
-        t.icon = cat.icon;
-        save(); render();
-      }
+    li.title = "눌러서 상세·메모";
+    // 블록을 누르면 상세/메모 팝업 (버튼·칩·입력은 각자 동작)
+    li.onclick = (e) => {
+      if (e.target.closest("button, select, input, .chip-btn")) return;
+      openTaskModal(t);
     };
 
     const sub = li.querySelector(".t-sub");
@@ -1025,17 +1030,55 @@
       pc.textContent = `📍 ${t.place}`;
       sub.appendChild(pc);
     }
+    if (t.memo) {
+      const mc = document.createElement("span");
+      mc.className = "chip memo";
+      mc.textContent = "📝 메모";
+      sub.appendChild(mc);
+    }
 
-    li.querySelector(".check").onclick = () => {
+    li.querySelector(".check").onclick = (e) => {
+      e.stopPropagation();
       t.done = !t.done;
       t.completedAt = t.done ? Date.now() : null;
       save(); render();
     };
-    li.querySelector(".t-del").onclick = () => {
+    li.querySelector(".t-del").onclick = (e) => {
+      e.stopPropagation();
       state.todos = state.todos.filter((x) => x.id !== t.id);
       save(); render();
     };
     return li;
+  }
+
+  // ----------------------------------------------------------------------
+  // 일정 상세·메모 팝업
+  // ----------------------------------------------------------------------
+  let modalTaskId = null;
+  function openTaskModal(t) {
+    modalTaskId = t.id;
+    $("#taskTitle").value = t.text;
+    $("#taskMemo").value = t.memo || "";
+    const meta = [spokenDate(t.date), t.time, t.place && `📍${t.place}`, `${t.icon} ${t.category}`].filter(Boolean).join(" · ");
+    $("#taskMeta").textContent = meta;
+    $("#taskModal").hidden = false;
+    $("#taskMemo").focus();
+  }
+  function closeTaskModal() { $("#taskModal").hidden = true; modalTaskId = null; }
+  function saveTaskModal() {
+    const t = state.todos.find((x) => x.id === modalTaskId);
+    if (t) {
+      const v = $("#taskTitle").value.trim();
+      if (v && v !== t.text) {
+        t.text = v;
+        const cat = inferCategory(v);
+        t.category = cat.name;
+        t.icon = cat.icon;
+      }
+      t.memo = $("#taskMemo").value.trim() || null;
+      save(); render();
+    }
+    closeTaskModal();
   }
 
   // ----------------------------------------------------------------------
@@ -1363,25 +1406,93 @@
     inp.value = "";
   }
 
-  // 명언 카드 — 열 때마다 랜덤, 탭하면 다음 명언
+  // 명언 카드 — 열 때마다 랜덤(나만의 명언 포함), 탭하면 다음, ♥로 즐겨찾기
   const quoteCard = $("#quoteCard");
   let quoteIdx = -1;
+  let curQuote = null;
+  function quotePool() { return (window.QUOTES || []).concat(state.myQuotes || []); }
+  function isFav(q) { return q && state.favQuotes.some((f) => f.t === q.t); }
+  function syncFavBtn() {
+    const b = $("#quoteFav");
+    if (!b) return;
+    b.textContent = isFav(curQuote) ? "♥" : "♡";
+    b.classList.toggle("on", isFav(curQuote));
+  }
   function showQuote(animate) {
-    const list = window.QUOTES || [];
+    const list = quotePool();
     if (!quoteCard || !list.length) return;
     let i;
     do { i = Math.floor(Math.random() * list.length); } while (list.length > 1 && i === quoteIdx);
     quoteIdx = i;
+    curQuote = list[i];
     const apply = () => {
-      $("#quoteText").textContent = list[i].t;
-      $("#quoteAuthor").textContent = "— " + list[i].a;
+      $("#quoteText").textContent = curQuote.t;
+      $("#quoteAuthor").textContent = "— " + curQuote.a;
       quoteCard.classList.remove("q-fade");
+      syncFavBtn();
     };
     if (animate) { quoteCard.classList.add("q-fade"); setTimeout(apply, 180); }
     else apply();
   }
   if (quoteCard) quoteCard.onclick = () => showQuote(true);
+  const quoteFavBtn = $("#quoteFav");
+  if (quoteFavBtn) quoteFavBtn.onclick = (e) => {
+    e.stopPropagation();
+    if (!curQuote) return;
+    if (isFav(curQuote)) state.favQuotes = state.favQuotes.filter((f) => f.t !== curQuote.t);
+    else state.favQuotes.push({ t: curQuote.t, a: curQuote.a });
+    save(); syncFavBtn();
+    toast(isFav(curQuote) ? "♥ 즐겨찾기에 담았어요" : "즐겨찾기에서 뺐어요");
+  };
   showQuote(false);
+
+  // ⚙ 명언 설정: 즐겨찾기 목록 + 나만의 명언 관리
+  function renderQuoteModal() {
+    const favList = $("#favQuoteList");
+    favList.innerHTML = "";
+    if (!state.favQuotes.length) {
+      favList.innerHTML = `<p class="muted small">명언 카드의 ♥를 누르면 여기에 모여요.</p>`;
+    } else {
+      state.favQuotes.forEach((q) => {
+        const li = document.createElement("li");
+        li.className = "qm-item";
+        li.innerHTML = `<div class="qm-body"><p class="qm-t"></p><p class="qm-a"></p></div><button class="qm-del" title="빼기">✕</button>`;
+        li.querySelector(".qm-t").textContent = `“${q.t}”`;
+        li.querySelector(".qm-a").textContent = "— " + q.a;
+        li.querySelector(".qm-del").onclick = () => { state.favQuotes = state.favQuotes.filter((f) => f.t !== q.t); save(); renderQuoteModal(); syncFavBtn(); };
+        favList.appendChild(li);
+      });
+    }
+    const myList = $("#myQuoteList");
+    myList.innerHTML = "";
+    state.myQuotes.forEach((q) => {
+      const li = document.createElement("li");
+      li.className = "qm-item";
+      li.innerHTML = `<div class="qm-body"><p class="qm-t"></p><p class="qm-a"></p></div><button class="qm-del" title="삭제">✕</button>`;
+      li.querySelector(".qm-t").textContent = `“${q.t}”`;
+      li.querySelector(".qm-a").textContent = "— " + q.a;
+      li.querySelector(".qm-del").onclick = () => { state.myQuotes = state.myQuotes.filter((f) => f.t !== q.t); save(); renderQuoteModal(); };
+      myList.appendChild(li);
+    });
+  }
+  $("#quoteSettingBtn").onclick = () => { renderQuoteModal(); $("#quoteModal").hidden = false; };
+  $("#quoteModalClose").onclick = () => ($("#quoteModal").hidden = true);
+  $("#quoteModal").addEventListener("click", (e) => { if (e.target.id === "quoteModal") e.currentTarget.hidden = true; });
+  $("#myQuoteAdd").onclick = () => {
+    const t = $("#myQuoteText").value.trim();
+    if (!t) return;
+    const a = $("#myQuoteAuthor").value.trim() || "나";
+    state.myQuotes.push({ t, a });
+    save();
+    $("#myQuoteText").value = ""; $("#myQuoteAuthor").value = "";
+    renderQuoteModal();
+    toast("✍️ 나만의 명언을 담았어요. 카드에도 섞여 나와요!");
+  };
+
+  // 일정 상세·메모 팝업 바인딩
+  $("#taskClose").onclick = closeTaskModal;
+  $("#taskSave").onclick = saveTaskModal;
+  $("#taskModal").addEventListener("click", (e) => { if (e.target.id === "taskModal") closeTaskModal(); });
 
   // 필터
   $("#statusFilter").addEventListener("click", (e) => {
