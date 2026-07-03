@@ -645,34 +645,101 @@
     return { type: "ok", msg: `✏️ 수정: "${oldText}" → "${newText}"`, speak: `${oldText}를 ${newText}로 바꿨어요.` };
   }
 
-  // "운동 내일로 미뤄줘" / "CPR교육 한시반으로 수정" — 날짜·시간을 뽑고 나머지로 할 일을 찾아 옮긴다
-  // 날짜도 시간도 없이 "바꿔/수정"이면 내용 수정으로 처리
+  // 문장 안의 모든 시각 토큰을 조사와 함께 스캔
+  // "7시에 있는" → 위치 단서(locator), "7시 반에서/부터" → 새 시작, "8시로/까지" → 새 종료
+  function scanTimes(str) {
+    const out = [];
+    let s = str;
+    for (let guard = 0; guard < 6; guard++) {
+      const tk = matchTimeToken(s, false);
+      if (!tk) break;
+      const idx = s.indexOf(tk.m);
+      let particle = /까지\s*$/.test(tk.m) ? "까지" : null;
+      let consumedAfter = 0;
+      if (!particle) {
+        const after = s.slice(idx + tk.m.length);
+        const pm = after.match(/^\s*(에\s*있는|에\s*잡힌|에서|부터|으로|로|에는|에)/);
+        if (pm) { particle = pm[1].replace(/\s+/g, ""); consumedAfter = pm[0].length; }
+      }
+      out.push({ label: tk.label, explicit: tk.explicit, particle });
+      s = s.slice(0, idx) + " " + s.slice(idx + tk.m.length + consumedAfter);
+    }
+    return { times: out, rest: s };
+  }
+
+  // 오전/오후를 안 붙인 시각을 기준 시각(기존 일정/새 시작)의 오후에 맞춘다
+  function alignMeridiem(label, explicit, refLabel) {
+    if (explicit || !label || !refLabel) return label;
+    const v = timeLabelToHHMM(label), r = timeLabelToHHMM(refLabel);
+    if (!v || !r) return label;
+    let [h, mi] = v.split(":").map(Number);
+    if (h < 12 && Number(r.split(":")[0]) >= 12) {
+      h += 12;
+      return `${h < 12 ? "오전" : "오후"} ${((h + 11) % 12) + 1}시${mi ? ` ${mi}분` : ""}`;
+    }
+    return label;
+  }
+
+  // "저녁 7시에 있는 맥도날드를 7시 반에서 8시로 바꿔줘" 같은 자유로운 일정 변경
   function doReschedule(text) {
     const d = extractDate(text);
-    const tm = extractTime(d.rest);
-    if (!d.key && !tm.time && /(바꿔|변경|수정)/.test(text)) return doRename(text);
+    const scan = scanTimes(d.rest);
+    // 시각 토큰들을 역할별로 분류
+    let locator = null, newStart = null, newEnd = null;
+    for (const t of scan.times) {
+      if (t.particle === "에있는" || t.particle === "에잡힌") locator = t;
+      else if (t.particle === "에서" || t.particle === "부터") newStart = t;
+      else if (t.particle === "까지") newEnd = t;
+      else if (t.particle === "로" || t.particle === "으로") { if (newStart && !newEnd) newEnd = t; else if (!newStart) newStart = t; }
+      else if (t.particle === "에" || t.particle === "에는") { if (!locator && scan.times.length > 1) locator = t; else if (!newStart) newStart = t; }
+      else { if (!newStart) newStart = t; else if (!newEnd) newEnd = t; }
+    }
+    if (!d.key && !newStart && /(바꿔|변경|수정)/.test(text)) return doRename(text);
     const open = state.todos.filter((t) => !t.done);
     if (!open.length) return { type: "warn", msg: "옮길 할 일이 없어요." };
-    let rest = tm.rest;
+
+    // 이름 토큰 (시각·조사·마커 제거 후)
+    let rest = scan.rest.replace(/있는|잡힌/g, " ");
     for (const m of [...RESCHEDULE_MARKERS].sort((a, b) => b.length - a.length)) {
       rest = rest.split(m).join(" ");
     }
     rest = rest.replace(/(으로|로)\s/g, " ").replace(/(으로|로)$/g, " ");
-    const best = matchTodo(contentTokens(rest), open);
+    // "일정/약속" 같은 일반 명사는 특정 항목을 가리키지 않으므로 제외
+    const tokens = contentTokens(rest).filter((w) => !/^(일정|약속|스케줄|스케쥴|플랜|할일|거|것)$/.test(w));
+
+    // 후보: 위치 단서 시각과 같은 시(시각의 12시간제 비교)에 있는 일정 우선
+    let pool = open;
+    if (locator) {
+      const lh = Number(timeLabelToHHMM(locator.label).split(":")[0]) % 12;
+      const scoped = open.filter((t) => {
+        const hh = timeLabelToHHMM(t.time);
+        return hh && Number(hh.split(":")[0]) % 12 === lh;
+      });
+      if (scoped.length) pool = scoped;
+    }
+    let best = tokens.length ? (matchTodo(tokens, pool) || matchTodo(tokens, open)) : null;
+    if (!best && pool.length === 1 && (locator || !tokens.length)) best = pool[0]; // "7시에 있는 일정을 …"
     if (!best) {
       return { type: "warn", msg: `"${cleanTaskText(rest)}"와(과) 맞는 할 일을 못 찾았어요.` };
     }
+
     // 날짜/시간 중 말한 것만 바꾼다. 둘 다 없으면(그냥 "미뤄줘") 내일로
-    if (!d.key && !tm.time) {
+    if (!d.key && !newStart) {
       best.date = dateKey(addDays(new Date(), 1));
     } else {
       if (d.key) best.date = d.key;
-      if (tm.time) { best.time = tm.time; best.timeEnd = tm.timeEnd || null; }
+      if (newStart) {
+        // 기준은 찾은 일정의 실제 시각(오전/오후 확정) — 로케이터가 맨숫자라도 안전
+        const ref = best.time || (locator ? locator.label : null);
+        const s = alignMeridiem(newStart.label, newStart.explicit, ref);
+        best.time = s;
+        best.timeEnd = newEnd ? alignMeridiem(newEnd.label, newEnd.explicit, s) : null;
+      }
     }
     save();
     const parts = [];
     if (d.key) parts.push(spokenDate(d.key));
-    if (tm.time) parts.push(tm.time);
+    if (newStart) parts.push(timeRangeText(best));
     const when = parts.join(" ") || spokenDate(best.date);
     return {
       type: "ok",
