@@ -284,6 +284,9 @@
             if (h < 12) {
               h += 12;
               timeEnd = `${h < 12 ? "오전" : "오후"} ${((h + 11) % 12) + 1}시${mi ? ` ${mi}분` : ""}`;
+            } else if (h === 12) {
+              // "오후 1시부터 12시까지"의 12시는 정오가 아니라 자정
+              timeEnd = `오전 12시${mi ? ` ${mi}분` : ""}`;
             }
           }
         }
@@ -340,6 +343,8 @@
     // "러닝할 건데 어떤 준비물이 필요할까?" — 준비물 상담
     if (/(준비물|챙겨야|챙길)/.test(t) && /(뭐|무엇|어떤|필요|알려)/.test(t)) return { intent: "prep" };
     if (/필요할까|뭐가\s*필요|뭐\s*필요|무엇이\s*필요/.test(t)) return { intent: "prep" };
+    // "A를 나눠서 6시에 B, 10시에 C로 나눠줘" — 일정 쪼개기
+    if (/(나눠|나누어|쪼개)\s*줘/.test(t) && /(나눠서|나누어서|쪼개서|나누고)/.test(t)) return { intent: "split" };
     if (hasAny(t, DELETE_MARKERS)) return { intent: "delete" };
     if (hasAny(t, RESCHEDULE_MARKERS)) return { intent: "reschedule" };
     if (hasAny(t, CONSULT_MARKERS)) return { intent: "consult" };
@@ -434,6 +439,7 @@
     if (intent === "goal_add") return doGoalAdd(t);
     if (intent === "delete") return doDelete(t);
     if (intent === "reschedule") return doReschedule(t);
+    if (intent === "split") return doSplit(t);
     if (intent === "prep") return doPrepQuery(t);
     if (intent === "consult") return doConsult(t);
     if (intent === "query") return doQuery(t);
@@ -762,6 +768,7 @@
       h += 12;
       return `${h < 12 ? "오전" : "오후"} ${((h + 11) % 12) + 1}시${mi ? ` ${mi}분` : ""}`;
     }
+    if (h === 12 && v <= r) return `오전 12시${mi ? ` ${mi}분` : ""}`; // 기준보다 이른 12시는 자정
     return label;
   }
 
@@ -853,6 +860,64 @@
       type: "ok",
       msg: `⏭ "${best.text}" → ${when}(으)로 옮겼어요`,
       speak: `${best.text}, ${when}로 옮겼어요.`,
+    };
+  }
+
+  // "6시에 있는 A를 나눠서 오전 6시에 기상 하나 나누고 오전 10시에 헬스장 운동 이렇게 2개로 나눠줘"
+  // — 기존 일정 하나를 여러 개로 쪼갠다
+  function doSplit(text) {
+    const d = extractDate(text);
+    const parts = d.rest.split(/나눠서|나누어서|쪼개서/);
+    if (parts.length < 2) {
+      return { type: "warn", msg: '🤔 "A를 나눠서 6시에 B, 10시에 C로 나눠줘"처럼 말해 주세요.' };
+    }
+    const open = state.todos.filter((t) => !t.done);
+    if (!open.length) return { type: "warn", msg: "나눌 일정이 없어요." };
+
+    // 1) 나눌 대상 찾기 — 날짜·시각 단서 + 이름
+    const scan = scanTimes(parts[0]);
+    const locator = scan.times.find((x) => x.particle === "에있는") || scan.times[0] || null;
+    let pool = open;
+    if (d.key) { const dp = pool.filter((t) => t.date === d.key); if (dp.length) pool = dp; }
+    if (locator) {
+      const lh = Number(timeLabelToHHMM(locator.label).split(":")[0]) % 12;
+      const scoped = pool.filter((t) => {
+        const hh = timeLabelToHHMM(t.time);
+        return hh && Number(hh.split(":")[0]) % 12 === lh;
+      });
+      if (scoped.length) pool = scoped;
+    }
+    const tokens = contentTokens(scan.rest.replace(/있는|잡힌/g, " "))
+      .filter((w) => !/^(일정|약속|스케줄|스케쥴|할일)$/.test(w));
+    let target = tokens.length ? (matchTodo(tokens, pool) || matchTodo(tokens, open)) : null;
+    if (!target && pool.length === 1) target = pool[0];
+    if (!target) return { type: "warn", msg: "나눌 일정을 못 찾았어요." };
+
+    // 2) 새 조각 파싱 — "하나 나누고", "그리고", 쉼표로 구분된 [시각 + 할 일]들
+    let restPart = parts.slice(1).join(" ")
+      .replace(/이렇게\s*[0-9한두세네다섯여섯일곱여덟아홉열]+\s*개(로|를|의|는)?/g, " ")
+      .replace(/(나눠|나누어|쪼개)\s*줘.*$/, " ");
+    const segs = restPart.split(/하나\s*나누고|나누고|그리고|,|、/).map((s) => s.trim()).filter(Boolean);
+    const made = [];
+    for (const seg of segs) {
+      const tm = extractTime(seg);
+      const body = cleanTaskText(tm.rest.replace(/(으로|로)\s*(하나|하고)?\s*$/, " ").replace(/하나\s*$/, " "));
+      if (!body) continue;
+      const cat = inferCategory(body);
+      made.push({
+        id: uid(), text: body, date: d.key || target.date, time: tm.time || null, timeEnd: tm.timeEnd || null,
+        place: null, memo: null, category: cat.name, icon: cat.icon, done: false, createdAt: Date.now(),
+      });
+    }
+    if (!made.length) return { type: "warn", msg: "나눌 내용(시각과 할 일)을 못 알아들었어요." };
+    state.todos = state.todos.filter((t) => t.id !== target.id);
+    state.todos.push(...made);
+    save();
+    const names = made.map((t) => `${t.time ? t.time + " " : ""}${t.text}`).join(" / ");
+    return {
+      type: "ok",
+      msg: `✂️ "${target.text}" → ${made.length}개로 나눴어요: ${names}`,
+      speak: `${made.length}개로 나눴어요. ${names}.`,
     };
   }
 
@@ -1122,7 +1187,7 @@
     items.forEach((t) => {
       const eHH = timeLabelToHHMM(t.timeEnd);
       if (!eHH) return;
-      const eh = Number(eHH.split(":")[0]) - (eHH.endsWith(":00") ? 1 : 0);
+      const eh = eHH === "00:00" ? 23 : Number(eHH.split(":")[0]) - (eHH.endsWith(":00") ? 1 : 0); // 자정 종료면 밤 11시까지 펼침
       if (eh > end) end = eh;
     });
     if (isToday) {
