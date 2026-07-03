@@ -199,13 +199,29 @@
     return `${hour < 12 ? "오전" : "오후"} ${((hour + 11) % 12) + 1}시${min ? " " + min + "분" : ""}`;
   }
 
-  // 시간 표현 추출 → 표시용 문자열
+  // 시각 토큰 하나 매칭 (숫자/한글) — requireKkaji면 "까지"가 붙은 것만
+  function matchTimeToken(str, requireKkaji) {
+    const K = requireKkaji ? "\\s*까지" : "(?:\\s*까지)?";
+    const num = str.match(new RegExp("(오전|오후|아침|점심|저녁|밤|새벽)?\\s*(\\d{1,2})\\s*시\\s*(반|(\\d{1,2})\\s*분)?" + K));
+    if (num) {
+      const min = num[3] === "반" ? 30 : (num[4] ? Number(num[4]) : 0);
+      return { label: buildTimeLabel(Number(num[2]), num[1], min), m: num[0] };
+    }
+    const ko = str.match(new RegExp("(오전|오후|아침|점심|저녁|밤|새벽)?\\s*" + KO_HOUR_RE + "\\s*시\\s*(반)?" + K));
+    if (ko) {
+      return { label: buildTimeLabel(KO_HOUR[ko[2]], ko[1], ko[3] === "반" ? 30 : 0), m: ko[0] };
+    }
+    return null;
+  }
+
+  // 시간 표현 추출 → 표시용 문자열 (+ "X시부터 Y시까지" 범위)
   function extractTime(text) {
     let t = text;
     let time = null;
+    let timeEnd = null;
 
-    // 시각 뒤에 붙는 조사들 (에/엔/에는/쯤/경/께/정도)
-    const JOSA = "(?:에는|엔|에|쯤|경|께|정도)?";
+    // 시각 뒤에 붙는 조사들 (에/엔/에는/쯤/경/께/정도/부터)
+    const JOSA = "(?:에는|엔|에|쯤|경|께|정도|부터)?";
     // 1) 숫자 시각: (오전) 3시 (반|30분) (조사)
     const hm = t.match(new RegExp("(오전|오후|아침|점심|저녁|밤|새벽)?\\s*(\\d{1,2})\\s*시\\s*(반|(\\d{1,2})\\s*분)?\\s*" + JOSA));
     // 2) 한글 시각: (저녁) 여섯 시 (반) (조사)
@@ -223,7 +239,25 @@
       const word = t.match(/(아침|점심|저녁|오전|오후|밤|새벽|정오|자정)/);
       if (word) { time = word[0]; t = t.replace(word[0], " "); }
     }
-    return { time, rest: t };
+
+    // 종료 시각: "부터"가 있었으면 다음 시각을, 아니면 "까지"가 붙은 시각만 종료로 본다
+    if (time) {
+      const hadRange = /부터/.test(text);
+      const end = matchTimeToken(t, !hadRange);
+      if (end) { timeEnd = end.label; t = t.replace(end.m, " "); }
+      t = t.replace(/부터/g, " "); // 잔여 정리
+    }
+    return { time, timeEnd, rest: t };
+  }
+
+  // "오후 1시 30분 ~ 3시" 표기 (종료가 같은 오전/오후면 접두 생략)
+  function timeRangeText(t) {
+    if (!t.time) return null;
+    if (!t.timeEnd) return t.time;
+    let end = t.timeEnd;
+    const pre = t.time.split(" ")[0];
+    if (end.startsWith(pre + " ")) end = end.slice(pre.length + 1);
+    return `${t.time} ~ ${end}`;
   }
 
   function stripTails(text) {
@@ -241,13 +275,15 @@
     let t = stripTails(raw);
     // 시간/날짜를 떼어낸 뒤 맨 앞에 홀로 남은 조사 정리 ("에 밥 먹기" → "밥 먹기")
     t = t.replace(/^(?:에는|에서|에게|엔|에|의|을|를)\s+/g, "").trim();
+    t = t.replace(/(^|\s)(부터|까지)(?=\s|$)/g, " ").replace(/\s+/g, " ").trim();
     t = t.replace(/[.,!?·~]+$/g, "").trim();
     return t;
   }
 
   function hasAny(text, arr) {
-    const t = text.replace(/\s+/g, "");
-    return arr.some((m) => t.includes(m.replace(/\s+/g, "")));
+    // 공백을 전부 지우고 비교하면 "…까지 워크숍"이 "지워"로 오인되는 식의
+    // 단어 경계 침범이 생긴다 — 마커 내부 공백만 유연하게 매칭한다
+    return arr.some((m) => new RegExp(m.replace(/\s+/g, "\\s*")).test(text));
   }
 
   // 발화 → 의도 분류
@@ -303,7 +339,7 @@
         // 시간만 답했을 때만 초안에 채운다 ("오늘 9시에 회의"처럼 내용이 있으면 새 명령)
         if (tm.time && !leftover) {
           pendingAction = null;
-          return commitAdd({ ...p.draft, date: dd.key || p.draft.date, time: tm.time });
+          return commitAdd({ ...p.draft, date: dd.key || p.draft.date, time: tm.time, timeEnd: tm.timeEnd });
         }
         if (!tm.time && t.length <= 10 && /없|몰라|모르|나중|미정|안\s*정|패스|스킵|아무\s*때/.test(t)) { pendingAction = null; return commitAdd({ ...p.draft, time: null }); }
         pendingAction = null; // 시간 답이 아니면 새 명령으로 처리
@@ -423,13 +459,14 @@
     const cat = inferCategory(draft.text);
     const todo = {
       id: uid(), text: draft.text, date: draft.date, time: draft.time || null,
+      timeEnd: draft.timeEnd || null,
       place: draft.place || null,
       category: cat.name, icon: cat.icon, done: false, createdAt: Date.now(),
     };
     state.todos.push(todo);
     save();
     const bits = [`"${todo.text}"`, spokenDate(todo.date)];
-    if (todo.time) bits.push(todo.time);
+    if (todo.time) bits.push(timeRangeText(todo));
     if (todo.place) bits.push(`📍${todo.place}`);
     if (todo.category !== "기타") bits.push(`${todo.icon} ${todo.category}`);
     return {
@@ -450,7 +487,7 @@
       const body = cleanTaskText(pl.rest);
       const dateK = d.key || todayKey();
       if (!body) {
-        pendingAction = { kind: "ask-text", draft: { date: dateK, time: tm.time || null, place: pl.place } };
+        pendingAction = { kind: "ask-text", draft: { date: dateK, time: tm.time || null, timeEnd: tm.timeEnd || null, place: pl.place } };
         return {
           type: "ok",
           msg: `🤔 ${spokenDate(dateK)}${tm.time ? ` ${tm.time}` : ""}에 무엇을 하실 건가요?`,
@@ -465,7 +502,7 @@
           speak: `${body}, 몇 시로 할까요? 시간이 없으면 없다고 말해 주세요.`,
         };
       }
-      return commitAdd({ text: body, date: dateK, time: tm.time, place: pl.place });
+      return commitAdd({ text: body, date: dateK, time: tm.time, timeEnd: tm.timeEnd, place: pl.place });
     }
 
     // 여러 건("그리고")이면 되묻지 않고 한 번에 등록한다
@@ -481,7 +518,7 @@
       const dateK = d.key || lastDate || todayKey();
       lastDate = dateK;
       const todo = {
-        id: uid(), text: body, date: dateK, time: tm.time || null, place: pl.place || null,
+        id: uid(), text: body, date: dateK, time: tm.time || null, timeEnd: tm.timeEnd || null, place: pl.place || null,
         category: cat.name, icon: cat.icon, done: false, createdAt: Date.now(),
       };
       state.todos.push(todo);
@@ -491,7 +528,7 @@
     save();
     const lines = added.map((a) => {
       const bits = [`"${a.text}"`, spokenDate(a.date)];
-      if (a.time) bits.push(a.time);
+      if (a.time) bits.push(timeRangeText(a));
       if (a.place) bits.push(`📍${a.place}`);
       if (a.category !== "기타") bits.push(`${a.icon} ${a.category}`);
       return bits.join(" · ");
@@ -615,7 +652,7 @@
       best.date = dateKey(addDays(new Date(), 1));
     } else {
       if (d.key) best.date = d.key;
-      if (tm.time) best.time = tm.time;
+      if (tm.time) { best.time = tm.time; best.timeEnd = tm.timeEnd || null; }
     }
     save();
     const parts = [];
@@ -950,7 +987,7 @@
     c.type = "button";
     c.className = "chip chip-btn";
     c.title = "눌러서 카테고리 변경";
-    c.textContent = `${t.icon} ${t.category}`;
+    c.textContent = t.category; // 칸에는 이름만 딱
     c.onclick = (e) => {
       e.stopPropagation();
       const sel = document.createElement("select");
@@ -976,28 +1013,38 @@
     return c;
   }
 
-  // 시간 칩 — 누르면 시간 픽커로. 시간이 없으면 "+ 시간" 칩을 보여준다
+  // 시간 칩 — 누르면 시작~종료를 함께 설정. 시간이 없으면 "+ 시간" 칩
   function timeChip(t) {
     const c = document.createElement("button");
     c.type = "button";
     c.className = "chip chip-btn" + (t.time ? " time" : " ghost");
-    c.title = t.time ? "눌러서 시간 변경 (지우면 삭제)" : "시간 추가";
-    c.textContent = t.time ? `⏰ ${t.time}` : "+ 시간";
+    c.title = t.time ? "눌러서 시간 변경 (시작~종료)" : "시간 추가";
+    c.textContent = t.time ? `⏰ ${timeRangeText(t)}` : "+ 시간";
     c.onclick = (e) => {
       e.stopPropagation();
-      const inp = document.createElement("input");
-      inp.type = "time";
-      inp.className = "chip-edit";
-      inp.value = timeLabelToHHMM(t.time) || "09:00";
-      c.replaceWith(inp);
-      inp.focus();
-      const commit = () => {
-        t.time = inp.value ? hhmmToLabel(inp.value) : null;
-        inp.onblur = null;
+      const wrap = document.createElement("span");
+      wrap.className = "chip-range";
+      wrap.onclick = (ev) => ev.stopPropagation();
+      const s = document.createElement("input");
+      s.type = "time"; s.className = "chip-edit";
+      s.value = timeLabelToHHMM(t.time) || "09:00";
+      const tilde = document.createElement("span");
+      tilde.className = "chip-tilde"; tilde.textContent = "~";
+      const en = document.createElement("input");
+      en.type = "time"; en.className = "chip-edit";
+      en.value = timeLabelToHHMM(t.timeEnd) || "";
+      en.title = "종료 시각 (비우면 없음)";
+      const ok = document.createElement("button");
+      ok.type = "button"; ok.className = "chip-ok"; ok.textContent = "✓"; ok.title = "저장";
+      ok.onclick = (ev) => {
+        ev.stopPropagation();
+        t.time = s.value ? hhmmToLabel(s.value) : null;
+        t.timeEnd = t.time && en.value ? hhmmToLabel(en.value) : null;
         save(); render();
       };
-      inp.onchange = commit;
-      inp.onblur = () => render();
+      wrap.append(s, tilde, en, ok);
+      c.replaceWith(wrap);
+      s.focus();
     };
     return c;
   }
@@ -1061,7 +1108,7 @@
     modalTaskId = t.id;
     $("#taskTitle").value = t.text;
     $("#taskMemo").value = t.memo || "";
-    const meta = [spokenDate(t.date), t.time, t.place && `📍${t.place}`, `${t.icon} ${t.category}`].filter(Boolean).join(" · ");
+    const meta = [spokenDate(t.date), timeRangeText(t), t.place && `📍${t.place}`, `${t.icon} ${t.category}`].filter(Boolean).join(" · ");
     $("#taskMeta").textContent = meta;
     $("#taskModal").hidden = false;
     $("#taskMemo").focus();

@@ -255,6 +255,14 @@ input[type="text"], textarea { font-size: 16px; }
   font-family: inherit; font-size: 12.5px; font-weight: 600; color: var(--text2);
   border: 1px solid var(--accent); border-radius: 8px; padding: 3px 6px; background: var(--bg); outline: none;
 }
+/* 시작~종료 시간 편집기 */
+.chip-range { display: inline-flex; align-items: center; gap: 4px; }
+.chip-tilde { color: var(--muted); font-size: 12px; font-weight: 700; }
+.chip-ok {
+  width: 24px; height: 24px; border-radius: 8px; border: none; background: var(--accent);
+  color: #fff; font-size: 12px; cursor: pointer; flex: 0 0 auto;
+}
+.chip-ok:active { transform: scale(.92); }
 .t-del { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 14px; padding: 6px; opacity: 0; transition: opacity .12s; }
 .todo:hover .t-del { opacity: 1; }
 .t-del:hover { color: var(--danger); }
