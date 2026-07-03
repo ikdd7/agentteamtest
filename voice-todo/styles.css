@@ -220,6 +220,7 @@ input[type="text"], textarea { font-size: 16px; }
 .hg-event .todo[data-cat="운동"]   { background: #e3f7f1; }
 .hg-event .todo[data-cat="공부"]   { background: #f1ecfe; }
 .hg-event .todo[data-cat="쇼핑"]   { background: #fff0e1; }
+.hg-event .todo[data-cat="식사"]   { background: #ffe9db; }
 .hg-event .todo[data-cat="집안일"] { background: #fcf4d7; }
 .hg-event .todo[data-cat="약속"]   { background: #fdeaf2; }
 .hg-event .todo[data-cat="건강"]   { background: #ffecec; }

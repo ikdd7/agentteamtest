@@ -82,8 +82,9 @@
     { name: "업무", icon: "💼", kw: ["회의", "미팅", "보고", "업무", "메일", "이메일", "프로젝트", "발표", "보고서", "기획", "마감", "출근", "거래처", "결재", "회사"] },
     { name: "공부", icon: "📚", kw: ["공부", "학습", "강의", "시험", "숙제", "과제", "독서", "책", "복습", "예습", "인강", "스터디", "자격증", "토익", "영어"] },
     { name: "쇼핑", icon: "🛒", kw: ["장보기", "장 보기", "쇼핑", "구매", "주문", "마트", "사기", "사야", "택배", "결제"] },
+    { name: "식사", icon: "🍔", kw: ["맥도날드", "햄버거", "버거", "치킨", "피자", "외식", "식사", "밥 먹", "점심 먹", "저녁 먹", "아침 먹", "브런치", "회식", "맛집", "간식"] },
     { name: "집안일", icon: "🧹", kw: ["청소", "빨래", "설거지", "정리", "집안일", "분리수거", "요리", "밥", "쓰레기"] },
-    { name: "약속", icon: "🤝", kw: ["약속", "만나", "만남", "모임", "식사", "점심약속", "저녁약속", "데이트", "생일"] },
+    { name: "약속", icon: "🤝", kw: ["약속", "만나", "만남", "모임", "점심약속", "저녁약속", "데이트", "생일"] },
     { name: "건강", icon: "🩺", kw: ["병원", "약", "건강", "검진", "치과", "진료", "예약", "한의원", "운동처방"] },
     { name: "금융", icon: "💳", kw: ["은행", "세금", "공과금", "납부", "카드", "이체", "송금", "보험", "월세", "관리비"] },
     { name: "연락", icon: "📞", kw: ["전화", "연락", "문자", "카톡", "통화", "안부"] },
@@ -629,7 +630,7 @@
     // "7시 반에 있는" 같은 시각 단서를 떼어내 후보를 좁힌다
     let body = text;
     let locLabel = null;
-    const locM = body.match(/에\s*(?:있는|잡힌)\s*/);
+    const locM = body.match(/에\s*(?:있는|잇는|인는|있던|잡힌|잡혀\s*있는)\s*/);
     if (locM) {
       const pre = body.slice(0, locM.index);
       const tk = matchTimeToken(pre, false);
@@ -656,7 +657,7 @@
       });
       if (scoped.length) pool = scoped;
     }
-    const tokens = contentTokens(m[1]).filter((w) => !/^(일정|약속|스케줄|스케쥴|플랜|할일|있는|잡힌)$/.test(w));
+    const tokens = contentTokens(m[1]).filter((w) => !/^(일정|약속|스케줄|스케쥴|플랜|할일|있는|잇는|인는|있던|잡힌)$/.test(w));
     let best = tokens.length ? (matchTodo(tokens, pool) || matchTodo(tokens, state.todos)) : null;
     if (!best && pool.length === 1 && (locLabel || !tokens.length)) best = pool[0];
     if (!best) {
@@ -686,8 +687,11 @@
       let consumedAfter = 0;
       if (!particle) {
         const after = s.slice(idx + tk.m.length);
-        const pm = after.match(/^\s*(에\s*있는|에\s*잡힌|에서|부터|으로|로|에는|에)/);
-        if (pm) { particle = pm[1].replace(/\s+/g, ""); consumedAfter = pm[0].length; }
+        const pm = after.match(/^\s*(에\s*(?:있는|잇는|인는|있던|잡힌)|에서|부터|으로|로|에는|에)/);
+        if (pm) {
+          particle = pm[1].replace(/\s+/g, "").replace(/(잇는|인는|있던|잡힌)$/, "있는");
+          consumedAfter = pm[0].length;
+        }
       }
       out.push({ label: tk.label, explicit: tk.explicit, particle });
       s = s.slice(0, idx) + " " + s.slice(idx + tk.m.length + consumedAfter);
@@ -721,6 +725,14 @@
       else if (t.particle === "로" || t.particle === "으로") { if (newStart && !newEnd) newEnd = t; else if (!newStart) newStart = t; }
       else if (t.particle === "에" || t.particle === "에는") { if (!locator && scan.times.length > 1) locator = t; else if (!newStart) newStart = t; }
       else { if (!newStart) newStart = t; else if (!newEnd) newEnd = t; }
+    }
+    // "…를 ○○로 바꿔/변경/수정"에서 ○○가 시각·날짜가 아니면 시간 이동이 아니라 이름 바꾸기다
+    // (음성인식이 "있는"을 "있던/잇는"으로 적어 시각이 새 시작으로 오인돼도 시간은 건드리지 않는다)
+    const rn = text.match(/(?:을|를)\s*(.+?)(?:으로|로)\s*(?:바꿔|변경|수정)/);
+    if (rn && rn[1].trim() && !matchTimeToken(rn[1], false)
+        && !/(오늘|내일|모레|다음\s*주|이번\s*주|요일)/.test(rn[1])
+        && !/^\s*(아침|점심|저녁|밤|새벽|오전|오후)\s*$/.test(rn[1])) {
+      return doRename(text);
     }
     if (!d.key && !newStart && /(바꿔|변경|수정)/.test(text)) return doRename(text);
     const open = state.todos.filter((t) => !t.done);
@@ -760,8 +772,21 @@
         // 기준은 찾은 일정의 실제 시각(오전/오후 확정) — 로케이터가 맨숫자라도 안전
         const ref = best.time || (locator ? locator.label : null);
         const s = alignMeridiem(newStart.label, newStart.explicit, ref);
+        if (newEnd) {
+          best.timeEnd = alignMeridiem(newEnd.label, newEnd.explicit, s);
+        } else {
+          // 끝 시각을 말하지 않았으면 기존 길이를 유지한 채 통째로 이동
+          const a = timeLabelToHHMM(best.time), b = timeLabelToHHMM(best.timeEnd);
+          const ns = timeLabelToHHMM(s);
+          if (a && b && ns) {
+            const min = (v) => Number(v.slice(0, 2)) * 60 + Number(v.slice(3));
+            const end = Math.min(min(ns) + Math.max(min(b) - min(a), 5), 23 * 60 + 55);
+            best.timeEnd = hhmmToLabel(`${String(Math.floor(end / 60)).padStart(2, "0")}:${String(end % 60).padStart(2, "0")}`);
+          } else {
+            best.timeEnd = null;
+          }
+        }
         best.time = s;
-        best.timeEnd = newEnd ? alignMeridiem(newEnd.label, newEnd.explicit, s) : null;
       }
     }
     save();
