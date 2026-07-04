@@ -21,14 +21,19 @@
 <body>
   <div class="card">
     <h1>Sentence Lens 설정</h1>
-    <div class="sub">문장 분석에 사용할 Claude API 를 설정합니다.</div>
+    <div class="sub">둘 중 하나만 있어도 동작합니다. DeepL 키만 있으면 번역(무료), Anthropic 키가 있으면 문장구조·문법·단어까지 전체 분석합니다.</div>
 
-    <label for="apiKey">Anthropic API 키</label>
+    <label for="deeplKey">DeepL API 키 — 무료 번역</label>
+    <input type="password" id="deeplKey" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx:fx">
+    <div class="hint">DeepL API Free 플랜은 월 50만 자까지 무료입니다.
+      <a href="https://www.deepl.com/pro-api" target="_blank" rel="noreferrer">무료 키 발급받기 →</a></div>
+
+    <label for="apiKey">Anthropic API 키 — 전체 분석 (선택)</label>
     <input type="password" id="apiKey" placeholder="sk-ant-...">
     <div class="hint">키는 이 브라우저의 확장 프로그램 저장소에만 보관됩니다.
       <a href="https://platform.claude.com/" target="_blank" rel="noreferrer">키 발급받기 →</a></div>
 
-    <label for="model">모델</label>
+    <label for="model">모델 (Anthropic 키 사용 시)</label>
     <select id="model">
       <option value="claude-opus-4-8">Claude Opus 4.8 — 최고 품질 (기본값)</option>
       <option value="claude-sonnet-5">Claude Sonnet 5 — 품질·속도 균형</option>

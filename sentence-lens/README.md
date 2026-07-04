@@ -2,7 +2,14 @@
 
 웹서핑 중 이해되지 않는 문장을 만나면, **드래그하거나 Alt+클릭**하는 것만으로
 해석 · 문장구조 · 문법 포인트 · 단어 분석을 바로 보여주는 크롬 확장 프로그램입니다.
-분석 엔진은 Claude API 를 사용합니다.
+
+두 가지 엔진을 지원합니다:
+
+- **DeepL API Free (무료)** — 번역만 제공. 월 50만 자까지 무료.
+- **Claude API (Anthropic)** — 번역 + 문장구조 + 문법 + 단어 전체 분석.
+  Haiku 모델 기준 문장당 약 5원 수준.
+
+Anthropic 키가 있으면 Claude 전체 분석을 사용하고, 없으면 DeepL 무료 번역으로 동작합니다.
 
 ## 무엇을 보여주나요?
 
@@ -20,8 +27,10 @@
 1. 크롬에서 `chrome://extensions` 접속
 2. 우측 상단 **개발자 모드** 켜기
 3. **압축해제된 확장 프로그램을 로드합니다** 클릭 → 이 `sentence-lens/` 폴더 선택
-4. 확장 프로그램 아이콘 → **설정 열기** → Anthropic API 키 입력
-   (키 발급: https://platform.claude.com/)
+4. 확장 프로그램 아이콘 → **설정 열기** → 키 입력 (둘 중 하나만 있어도 됨)
+   - DeepL 무료 키: https://www.deepl.com/pro-api → "API Free" 가입
+     (월 50만 자 무료, 남용 방지용 카드 등록은 필요하지만 과금되지 않음)
+   - Anthropic 키: https://platform.claude.com/
 
 ## 사용법
 
@@ -34,9 +43,13 @@
 
 | 항목 | 설명 |
 |------|------|
-| API 키 | Anthropic API 키. 이 브라우저의 `chrome.storage.sync` 에만 저장됩니다. |
-| 모델 | 기본값 Claude Opus 4.8 (최고 품질). 속도/비용이 중요하면 Sonnet 5 나 Haiku 4.5 선택. |
+| DeepL API 키 | 무료 번역용. 월 50만 자 무료 (API Free 플랜). |
+| Anthropic API 키 | 전체 분석용 (선택). 있으면 DeepL 대신 Claude 로 상세 분석. |
+| 모델 | 기본값 Claude Opus 4.8 (최고 품질). 비용이 중요하면 Haiku 4.5 선택 (문장당 약 5원). |
 | 번역·설명 언어 | 기본값 한국어. 영어/일본어/중국어 지원. |
+
+모든 키는 이 브라우저의 `chrome.storage.sync` 에만 저장되며, background 서비스 워커에서만
+사용되고 방문한 웹페이지에는 노출되지 않습니다.
 
 ## 구조
 

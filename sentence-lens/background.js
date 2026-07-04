@@ -1,8 +1,19 @@
 // Sentence Lens — background service worker
-// content.js 가 보낸 문장을 Claude API 로 분석해서 돌려준다.
+// content.js 가 보낸 문장을 분석해서 돌려준다.
+// - Anthropic 키가 있으면: Claude 로 전체 분석 (번역+문장구조+문법+단어)
+// - DeepL 키만 있으면: DeepL API Free 로 번역만 (월 50만 자 무료)
 
 const API_URL = "https://api.anthropic.com/v1/messages";
 const DEFAULT_MODEL = "claude-opus-4-8";
+
+// DeepL 무료 키는 ":fx" 로 끝나고 api-free 호스트를 쓴다.
+function deeplEndpoint(key) {
+  return key.endsWith(":fx")
+    ? "https://api-free.deepl.com/v2/translate"
+    : "https://api.deepl.com/v2/translate";
+}
+
+const DEEPL_TARGET = { "한국어": "KO", "English": "EN", "日本語": "JA", "中文": "ZH" };
 
 // 구조화된 JSON 출력 스키마 — 응답이 항상 이 형태임을 API 가 보장한다.
 const ANALYSIS_SCHEMA = {
@@ -73,15 +84,52 @@ function buildSystemPrompt(targetLang) {
   ].join("\n");
 }
 
+async function translateWithDeepL(sentence, settings) {
+  const res = await fetch(deeplEndpoint(settings.deeplKey), {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "Authorization": `DeepL-Auth-Key ${settings.deeplKey}`
+    },
+    body: JSON.stringify({
+      text: [sentence],
+      target_lang: DEEPL_TARGET[settings.targetLang] || "KO"
+    })
+  });
+
+  if (!res.ok) {
+    if (res.status === 401 || res.status === 403) throw new Error("DeepL API 키가 올바르지 않습니다. 설정에서 키를 다시 확인해주세요.");
+    if (res.status === 456) throw new Error("DeepL 무료 한도(월 50만 자)를 모두 사용했습니다. 다음 달에 초기화됩니다.");
+    if (res.status === 429) throw new Error("요청이 너무 많습니다. 잠시 후 다시 시도해주세요.");
+    throw new Error(`DeepL 번역 요청 실패 (${res.status})`);
+  }
+
+  const data = await res.json();
+  const t = data.translations && data.translations[0];
+  if (!t) throw new Error("DeepL 응답에서 번역 결과를 찾지 못했습니다.");
+
+  return {
+    translation: t.text,
+    sentence_type: t.detected_source_language ? `원문 언어: ${t.detected_source_language}` : "",
+    structure: [],
+    grammar_points: [],
+    words: [],
+    notice: "DeepL 무료 번역입니다. 문장구조·문법·단어 분석은 설정에서 Anthropic API 키를 추가하면 제공됩니다."
+  };
+}
+
 async function analyzeSentence(sentence, pageContext) {
   const settings = await chrome.storage.sync.get({
     apiKey: "",
+    deeplKey: "",
     model: DEFAULT_MODEL,
     targetLang: "한국어"
   });
 
+  // Anthropic 키가 없으면 DeepL 무료 번역으로 폴백
   if (!settings.apiKey) {
-    throw new Error("API 키가 설정되지 않았습니다. 확장 프로그램 아이콘 → 설정에서 Anthropic API 키를 입력해주세요.");
+    if (settings.deeplKey) return translateWithDeepL(sentence, settings);
+    throw new Error("API 키가 설정되지 않았습니다. 확장 프로그램 아이콘 → 설정에서 DeepL(무료) 또는 Anthropic API 키를 입력해주세요.");
   }
 
   const contextLine = pageContext && pageContext.title

@@ -58,6 +58,7 @@
     .word .pos { font-size: 11px; color: #8a8272; }
     .word .m { color: #333; }
     .word .n { flex-basis: 100%; color: #888; font-size: 12px; }
+    .notice { margin-top: 14px; padding: 8px 10px; font-size: 12px; color: #6b5d3f; background: #f5f2ea; border-radius: 8px; }
     .loading, .error { padding: 8px 0; }
     .loading { color: #6b5d3f; }
     .error { color: #b03030; word-break: break-word; }
@@ -233,6 +234,14 @@
         secW.appendChild(row);
       }
       body.appendChild(secW);
+    }
+
+    // 안내 문구 (예: DeepL 무료 모드)
+    if (r.notice) {
+      const notice = document.createElement("div");
+      notice.className = "notice";
+      notice.textContent = r.notice;
+      body.appendChild(notice);
     }
   }
 

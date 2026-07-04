@@ -4,7 +4,11 @@
   "version": "0.1.0",
   "description": "웹에서 모르는 문장을 드래그하거나 Alt+클릭하면 번역·문장구조·단어를 분석해줍니다.",
   "permissions": ["storage"],
-  "host_permissions": ["https://api.anthropic.com/*"],
+  "host_permissions": [
+    "https://api.anthropic.com/*",
+    "https://api-free.deepl.com/*",
+    "https://api.deepl.com/*"
+  ],
   "background": {
     "service_worker": "background.js"
   },
