@@ -1875,11 +1875,12 @@
   }
   function clearLlmHistory() { llmHistory = []; }
 
-  function llmPrompt(text) {
+  function llmPrompt(text, historyText) {
     const now = new Date();
     const pad = (n) => String(n).padStart(2, "0");
     const items = llmSnapshot().map((t, i) => ({ n: i, done: !!t.done, date: t.date, time: t.time, end: t.timeEnd, text: t.text }));
-    return [
+    const hist = historyText ? ["── 직전 대화 기록 (반드시 참고) ──", historyText, "──────────"] : [];
+    return hist.concat([
       "당신은 한국어 일정 비서입니다. 사용자의 말을 해석해서 JSON만 출력하세요. 설명·마크다운 금지.",
       `오늘: ${todayKey()} (${["일","월","화","수","목","금","토"][now.getDay()]}요일), 현재 시각 ${pad(now.getHours())}:${pad(now.getMinutes())}`,
       `현재 일정 목록(n=번호): ${JSON.stringify(items)}`,
@@ -1890,20 +1891,24 @@
       '- {"type":"update","n":번호,"set":{"text":?,"date":?,"time":?,"end":?,"memo":?,"cat":?}} — 기존 일정 수정(말한 필드만).',
       '- {"type":"complete","n":번호} · {"type":"uncomplete","n":번호} · {"type":"delete","n":번호}',
       "규칙: 날짜를 넘는 일정은 자정 기준으로 add 두 개로 나눈다(첫날 …~\"오전 12시\", 다음날 \"오전 12시\"~끝). 하나를 여러 개로 쪼개 달라면 원본은 delete. 조회·질문이면 actions를 빈 배열로 하고 reply로 답한다. 명확하지 않으면 임의로 지우지 말고 reply로 되묻는다.",
-      "이 메시지 앞의 턴들은 직전 대화 기록이다. \"그 재료들\", \"아까 말한 거\" 같은 지시어는 그 대화 내용(당신의 이전 reply 포함)을 참고해 해석한다. 필요하면 이전 답변의 목록을 memo에 옮겨 적는다.",
+      "대화 이어가기(중요): 위 대화 기록을 보고 이번 말을 해석한다.",
+      "1) 당신이 직전에 되물었고 사용자가 그 답을 말한 것이면, 두 발화를 합쳐 하나의 요청으로 실행한다. 예: 사용자 \"모레 아침 6시에\" → 당신 \"어떤 일정을 추가할까요?\" → 사용자 \"수육 해 먹기\" ⇒ 모레 오전 6시에 \"수육 해 먹기\" add.",
+      "2) \"그 재료들\", \"아까 말한 거\" 같은 지시어는 당신의 이전 reply 내용으로 해석하고, 필요하면 그 목록을 memo에 옮겨 적는다.",
+      "3) 필요한 정보(날짜·시간·할 일)가 대화 기록에 이미 있으면 절대 다시 묻지 않는다.",
       '출력: {"actions":[...],"reply":"사용자에게 할 짧은 한국어 대답(질문에는 구체적으로, 목록이 필요하면 목록으로)"}',
       `사용자: ${JSON.stringify(text)}`,
-    ].join("\n");
+    ]).join("\n");
   }
 
   async function llmCall(text) {
     const key = llmKey();
     if (!key) return null;
     pruneLlmHistory();
-    // 직전 대화 턴들 + 이번 지시(현재 일정·규칙 포함)를 함께 보낸다
-    const contents = llmHistory
-      .map((h) => ({ role: h.role, parts: [{ text: h.text }] }))
-      .concat([{ role: "user", parts: [{ text: llmPrompt(text) }] }]);
+    // 직전 대화를 지시문 안에 텍스트로 넣는다 (별도 턴보다 모델이 훨씬 잘 참고함)
+    const historyText = llmHistory
+      .map((h) => (h.role === "user" ? "사용자: " : "비서: ") + h.text)
+      .join("\n");
+    const contents = [{ role: "user", parts: [{ text: llmPrompt(text, historyText) }] }];
     let lastErr = "모델 사용 불가";
     for (const model of LLM_MODELS) {
       const ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
