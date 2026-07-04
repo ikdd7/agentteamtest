@@ -1834,7 +1834,7 @@
       x.className = "chat-close";
       x.textContent = "✕";
       x.title = "대화 닫기";
-      x.onclick = () => { pendingAction = null; hideChat(); };
+      x.onclick = () => { pendingAction = null; clearLlmHistory(); hideChat(); };
       chatLog.appendChild(x);
     }
     const d = document.createElement("div");
@@ -1859,6 +1859,22 @@
   // LLM이 다루는 목록 스냅샷 (번호 ↔ 실제 항목 매핑)
   function llmSnapshot() { return state.todos.slice(-80); }
 
+  // 🧠 대화 기억 — 최근 주고받은 말을 함께 보내 "그 재료들" 같은 지시어를 이해하게 한다
+  // 10분간 말이 없으면 기억을 비운다 (✕로 대화를 닫아도 비움)
+  const LLM_HISTORY_TTL = 10 * 60 * 1000;
+  const LLM_HISTORY_MAX = 12; // 최근 6번의 주고받기
+  let llmHistory = []; // { role: "user"|"model", text }
+  let llmHistoryAt = 0;
+  function pruneLlmHistory() {
+    if (llmHistory.length && Date.now() - llmHistoryAt > LLM_HISTORY_TTL) llmHistory = [];
+  }
+  function pushLlmHistory(role, text) {
+    llmHistory.push({ role, text });
+    while (llmHistory.length > LLM_HISTORY_MAX) llmHistory.shift();
+    llmHistoryAt = Date.now();
+  }
+  function clearLlmHistory() { llmHistory = []; }
+
   function llmPrompt(text) {
     const now = new Date();
     const pad = (n) => String(n).padStart(2, "0");
@@ -1873,7 +1889,8 @@
       '- {"type":"update","n":번호,"set":{"text":?,"date":?,"time":?,"end":?,"memo":?}} — 기존 일정 수정(말한 필드만).',
       '- {"type":"complete","n":번호} · {"type":"uncomplete","n":번호} · {"type":"delete","n":번호}',
       "규칙: 날짜를 넘는 일정은 자정 기준으로 add 두 개로 나눈다(첫날 …~\"오전 12시\", 다음날 \"오전 12시\"~끝). 하나를 여러 개로 쪼개 달라면 원본은 delete. 조회·질문이면 actions를 빈 배열로 하고 reply로 답한다. 명확하지 않으면 임의로 지우지 말고 reply로 되묻는다.",
-      '출력: {"actions":[...],"reply":"사용자에게 할 짧은 한국어 대답(한두 문장)"}',
+      "이 메시지 앞의 턴들은 직전 대화 기록이다. \"그 재료들\", \"아까 말한 거\" 같은 지시어는 그 대화 내용(당신의 이전 reply 포함)을 참고해 해석한다. 필요하면 이전 답변의 목록을 memo에 옮겨 적는다.",
+      '출력: {"actions":[...],"reply":"사용자에게 할 짧은 한국어 대답(질문에는 구체적으로, 목록이 필요하면 목록으로)"}',
       `사용자: ${JSON.stringify(text)}`,
     ].join("\n");
   }
@@ -1881,6 +1898,11 @@
   async function llmCall(text) {
     const key = llmKey();
     if (!key) return null;
+    pruneLlmHistory();
+    // 직전 대화 턴들 + 이번 지시(현재 일정·규칙 포함)를 함께 보낸다
+    const contents = llmHistory
+      .map((h) => ({ role: h.role, parts: [{ text: h.text }] }))
+      .concat([{ role: "user", parts: [{ text: llmPrompt(text) }] }]);
     let lastErr = "모델 사용 불가";
     for (const model of LLM_MODELS) {
       const ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
@@ -1893,7 +1915,7 @@
             headers: { "Content-Type": "application/json" },
             signal: ctrl ? ctrl.signal : undefined,
             body: JSON.stringify({
-              contents: [{ parts: [{ text: llmPrompt(text) }] }],
+              contents,
               generationConfig: { temperature: 0.1, responseMimeType: "application/json" },
             }),
           }
@@ -1910,6 +1932,9 @@
         if (!raw) { lastErr = "빈 응답"; continue; }
         const parsed = JSON.parse(raw.replace(/^```json\s*/i, "").replace(/```\s*$/, ""));
         if (!parsed || !Array.isArray(parsed.actions)) { lastErr = "형식 오류"; continue; }
+        // 대화 기억에 이번 주고받기를 남긴다 (사용자 원문 + 모델의 원 JSON 응답)
+        pushLlmHistory("user", text);
+        pushLlmHistory("model", raw);
         return { parsed };
       } catch (e) {
         if (timer) clearTimeout(timer);
