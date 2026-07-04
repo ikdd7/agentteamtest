@@ -1884,9 +1884,10 @@
       `오늘: ${todayKey()} (${["일","월","화","수","목","금","토"][now.getDay()]}요일), 현재 시각 ${pad(now.getHours())}:${pad(now.getMinutes())}`,
       `현재 일정 목록(n=번호): ${JSON.stringify(items)}`,
       '표기 규칙: date는 "YYYY-MM-DD". time/end는 "오후 3시", "오전 9시 30분" 형식(모르면 null). 자정은 "오전 12시".',
+      'cat(카테고리)은 반드시 다음 중 내용과 가장 잘 맞는 하나: "운동","업무","공부","쇼핑","식사","집안일","약속","건강","금융","연락","기타". 단어가 아니라 의미로 판단한다(예: 수육 해먹기→식사, 부모님 뵙기→약속, 필라테스→운동, 세금 납부→금융).',
       "가능한 actions:",
-      '- {"type":"add","text":"할 일","date":"...","time":...,"end":...,"memo":...} — 새 일정. 끝 시각을 안 말했으면 시작+1시간.',
-      '- {"type":"update","n":번호,"set":{"text":?,"date":?,"time":?,"end":?,"memo":?}} — 기존 일정 수정(말한 필드만).',
+      '- {"type":"add","text":"할 일","date":"...","time":...,"end":...,"memo":...,"cat":"카테고리"} — 새 일정. 끝 시각을 안 말했으면 시작+1시간.',
+      '- {"type":"update","n":번호,"set":{"text":?,"date":?,"time":?,"end":?,"memo":?,"cat":?}} — 기존 일정 수정(말한 필드만).',
       '- {"type":"complete","n":번호} · {"type":"uncomplete","n":번호} · {"type":"delete","n":번호}',
       "규칙: 날짜를 넘는 일정은 자정 기준으로 add 두 개로 나눈다(첫날 …~\"오전 12시\", 다음날 \"오전 12시\"~끝). 하나를 여러 개로 쪼개 달라면 원본은 delete. 조회·질문이면 actions를 빈 배열로 하고 reply로 답한다. 명확하지 않으면 임의로 지우지 말고 reply로 되묻는다.",
       "이 메시지 앞의 턴들은 직전 대화 기록이다. \"그 재료들\", \"아까 말한 거\" 같은 지시어는 그 대화 내용(당신의 이전 reply 포함)을 참고해 해석한다. 필요하면 이전 답변의 목록을 memo에 옮겨 적는다.",
@@ -1952,13 +1953,19 @@
   }
   function llmDate(v) { return typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null; }
 
+  // LLM이 고른 카테고리를 앱 카테고리로 (없거나 엉뚱하면 키워드 추론으로 폴백)
+  function llmCat(name, text) {
+    const hit = name && ALL_CATEGORIES.find((c) => c.name === String(name).trim());
+    return hit || inferCategory(text || "");
+  }
+
   function applyLlmActions(parsed) {
     const list = llmSnapshot();
     let changed = 0;
     for (const a of parsed.actions || []) {
       if (!a || typeof a !== "object") continue;
       if (a.type === "add" && a.text) {
-        const cat = inferCategory(String(a.text));
+        const cat = llmCat(a.cat, String(a.text));
         const time = llmTime(a.time);
         state.todos.push({
           id: uid(), text: String(a.text), date: llmDate(a.date) || todayKey(), time,
@@ -1970,7 +1977,8 @@
       } else if (a.type === "update" && list[a.n]) {
         const t = list[a.n];
         const s = a.set || {};
-        if (s.text) { t.text = String(s.text); const c = inferCategory(t.text); t.category = c.name; t.icon = c.icon; }
+        if (s.text) { t.text = String(s.text); const c = llmCat(s.cat, t.text); t.category = c.name; t.icon = c.icon; }
+        else if (s.cat) { const c = llmCat(s.cat, t.text); t.category = c.name; t.icon = c.icon; }
         if (s.date !== undefined && llmDate(s.date)) t.date = s.date;
         if (s.time !== undefined) t.time = llmTime(s.time);
         if (s.end !== undefined) t.timeEnd = llmTime(s.end);
