@@ -1797,7 +1797,8 @@
   // 🤖 AI 비서 (선택) — 구글 Gemini 무료 API. 키는 이 기기(localStorage)에만 저장.
   // 키가 있으면 AI가 문장을 통째로 이해하고, 없거나 실패하면 기본 규칙 엔진으로.
   // ----------------------------------------------------------------------
-  const LLM_MODELS = ["gemini-2.5-flash", "gemini-2.0-flash"];
+  // 하루 무료 한도가 차면 다음 모델로 자동 전환: 2.5-flash(≈250/일) → 2.5-flash-lite(≈1000/일) → 2.0-flash
+  const LLM_MODELS = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash"];
   function llmKey() { return (state.settings && state.settings.geminiKey) || null; }
 
   // LLM이 다루는 목록 스냅샷 (번호 ↔ 실제 항목 매핑)
@@ -1844,8 +1845,8 @@
         );
         if (timer) clearTimeout(timer);
         if (!res.ok) {
-          lastErr = res.status === 400 || res.status === 403 ? "키가 올바르지 않아요" : res.status === 429 ? "무료 사용량 초과(잠시 후 재시도)" : `API 오류 ${res.status}`;
-          if (res.status === 404) continue; // 다음 모델로
+          lastErr = res.status === 400 || res.status === 403 ? "키가 올바르지 않아요" : res.status === 429 ? "오늘 무료 사용량을 다 썼어요" : `API 오류 ${res.status}`;
+          if (res.status === 404 || res.status === 429) continue; // 없는 모델·한도 초과 → 다음 모델로
           return { error: lastErr };
         }
         const data = await res.json();
