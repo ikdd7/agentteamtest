@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>Sentence Lens 설정</title>
+  <style>
+    body { font-family: -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; background: #faf8f3; color: #1a1a1a; margin: 0; padding: 40px 16px; }
+    .card { max-width: 520px; margin: 0 auto; background: #fff; border: 1px solid #d9d4c8; border-radius: 12px; padding: 28px 32px; }
+    h1 { font-size: 18px; margin: 0 0 4px; }
+    .sub { color: #8a8272; font-size: 13px; margin-bottom: 24px; }
+    label { display: block; font-size: 13px; font-weight: 700; color: #6b5d3f; margin: 18px 0 6px; }
+    input, select { width: 100%; padding: 9px 12px; font-size: 14px; border: 1px solid #d9d4c8; border-radius: 8px; background: #fff; box-sizing: border-box; }
+    input:focus, select:focus { outline: 2px solid #b08d3e; border-color: transparent; }
+    .hint { font-size: 12px; color: #8a8272; margin-top: 5px; }
+    .hint a { color: #a0742c; }
+    button { margin-top: 26px; width: 100%; padding: 11px; font-size: 14px; font-weight: 700; color: #fff; background: #a0742c; border: 0; border-radius: 8px; cursor: pointer; }
+    button:hover { background: #8a6224; }
+    #status { text-align: center; font-size: 13px; color: #2e7d32; margin-top: 12px; min-height: 18px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Sentence Lens 설정</h1>
+    <div class="sub">문장 분석에 사용할 Claude API 를 설정합니다.</div>
+
+    <label for="apiKey">Anthropic API 키</label>
+    <input type="password" id="apiKey" placeholder="sk-ant-...">
+    <div class="hint">키는 이 브라우저의 확장 프로그램 저장소에만 보관됩니다.
+      <a href="https://platform.claude.com/" target="_blank" rel="noreferrer">키 발급받기 →</a></div>
+
+    <label for="model">모델</label>
+    <select id="model">
+      <option value="claude-opus-4-8">Claude Opus 4.8 — 최고 품질 (기본값)</option>
+      <option value="claude-sonnet-5">Claude Sonnet 5 — 품질·속도 균형</option>
+      <option value="claude-haiku-4-5">Claude Haiku 4.5 — 빠르고 저렴</option>
+    </select>
+
+    <label for="targetLang">번역·설명 언어</label>
+    <select id="targetLang">
+      <option value="한국어">한국어</option>
+      <option value="English">English</option>
+      <option value="日本語">日本語</option>
+      <option value="中文">中文</option>
+    </select>
+
+    <button id="save">저장</button>
+    <div id="status"></div>
+  </div>
+  <script src="options.js"></script>
+</body>
+</html>

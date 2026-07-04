@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "Sentence Lens — 문장 분석기",
+  "version": "0.1.0",
+  "description": "웹에서 모르는 문장을 드래그하거나 Alt+클릭하면 번역·문장구조·단어를 분석해줍니다.",
+  "permissions": ["storage"],
+  "host_permissions": ["https://api.anthropic.com/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Sentence Lens"
+  },
+  "options_page": "options.html"
+}
