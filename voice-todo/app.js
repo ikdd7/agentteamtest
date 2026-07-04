@@ -14,6 +14,7 @@
   if (!Array.isArray(state.todos)) state.todos = [];
   if (!Array.isArray(state.goals)) state.goals = [];
   state.settings = state.settings || { tts: true };
+  state.dayMemos = state.dayMemos || {}; // 📝 날짜별 자유 메모
   state.ui = state.ui || {};
   if (!state.ui.status) state.ui.status = "all";
   if (!state.ui.group) state.ui.group = "date";
@@ -1118,6 +1119,57 @@
   }
   function goToday() { dayDir = 0; homeDay = todayKey(); renderBoard(); }
 
+  // 날짜별 자유 메모 (state.dayMemos["YYYY-MM-DD"]) — 드롭다운으로 접고 펼친다
+  function dayMemoEl(key) {
+    const memoText = (state.dayMemos && state.dayMemos[key]) || "";
+    const open = !!state.ui.memoOpen;
+    const wrap = document.createElement("div");
+    wrap.className = "day-memo" + (open ? " open" : "");
+    const head = document.createElement("button");
+    head.className = "dm-head";
+    head.type = "button";
+    const label = document.createElement("span");
+    label.className = "dm-label";
+    label.textContent = "📝 메모";
+    const preview = document.createElement("span");
+    preview.className = "dm-preview";
+    const syncPreview = (v) => {
+      preview.textContent = !open && v.trim() ? v.trim().split("\n")[0].slice(0, 22) : "";
+    };
+    syncPreview(memoText);
+    const arrow = document.createElement("span");
+    arrow.className = "dm-arrow";
+    arrow.textContent = "▾";
+    head.appendChild(label); head.appendChild(preview); head.appendChild(arrow);
+    const body = document.createElement("div");
+    body.className = "dm-body";
+    body.hidden = !open;
+    const ta = document.createElement("textarea");
+    ta.className = "dm-input";
+    ta.rows = 4;
+    ta.placeholder = "오늘 해야 할 일, 생각나는 것들을 자유롭게 적어두세요";
+    ta.value = memoText;
+    ta.oninput = () => {
+      state.dayMemos = state.dayMemos || {};
+      if (ta.value.trim()) state.dayMemos[key] = ta.value;
+      else delete state.dayMemos[key];
+      save();
+    };
+    body.appendChild(ta);
+    head.onclick = () => {
+      const nowOpen = body.hidden; // 열리는 중인가
+      body.hidden = !nowOpen;
+      state.ui.memoOpen = nowOpen;
+      wrap.classList.toggle("open", nowOpen);
+      preview.textContent = !nowOpen && ta.value.trim() ? ta.value.trim().split("\n")[0].slice(0, 22) : "";
+      save();
+      if (nowOpen) ta.focus();
+    };
+    wrap.appendChild(head);
+    wrap.appendChild(body);
+    return wrap;
+  }
+
   function renderDayPager(todos) {
     const key = homeDay;
     const d = keyToDate(key);
@@ -1165,6 +1217,9 @@
       }
     }
     if (!meta.children.length) meta.remove();
+
+    // 📝 그날의 메모 — 날짜와 시간표 사이, 접었다 펼치는 노란 메모지
+    el.appendChild(dayMemoEl(key));
 
     // 그날의 목록 — 아워 그리드는 비어 있어도 항상 보여준다 (빈 칸 눌러 추가)
     const items = todos.filter((t) => t.date === key);

@@ -252,6 +252,24 @@ input[type="text"], textarea { font-size: 16px; }
 .t-main { flex: 1; min-width: 0; }
 .t-text { font-size: 16px; word-break: break-word; font-weight: 500; line-height: 1.35; cursor: pointer; }
 .t-ico { margin-right: 5px; }
+
+/* ===== 📝 날짜별 메모 (드롭다운, 옅은 노랑 메모지) ===== */
+.day-memo { margin: 10px 0 4px; border-radius: 14px; background: #fffbe6; border: 1px solid #f5ecc0; overflow: hidden; }
+.dm-head {
+  width: 100%; display: flex; align-items: center; gap: 8px;
+  background: none; border: none; padding: 11px 14px; cursor: pointer;
+  font-family: inherit; font-size: 13.5px; font-weight: 700; color: #8a6d1a; text-align: left;
+}
+.dm-preview { flex: 1; min-width: 0; font-weight: 500; color: #b09a55; font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dm-label { white-space: nowrap; }
+.dm-arrow { margin-left: auto; color: #c4ab5e; transition: transform .15s; }
+.day-memo.open .dm-arrow { transform: rotate(180deg); }
+.dm-body { padding: 0 12px 12px; }
+.dm-input {
+  width: 100%; min-height: 92px; border: none; background: transparent; resize: vertical;
+  font-family: inherit; font-size: 16px; line-height: 1.55; color: #5c4a12; outline: none;
+}
+.dm-input::placeholder { color: #c9b877; }
 .t-time { margin-right: 7px; font-size: 12px; font-weight: 700; color: var(--accent); white-space: nowrap; }
 .todo.done .t-time { color: var(--done); }
 .todo.done .t-text { text-decoration: line-through; color: var(--done); }
