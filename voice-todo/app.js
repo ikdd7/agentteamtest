@@ -1793,9 +1793,138 @@
     armChatHide();
   }
 
-  function process(text) {
+  // ----------------------------------------------------------------------
+  // 🤖 AI 비서 (선택) — 구글 Gemini 무료 API. 키는 이 기기(localStorage)에만 저장.
+  // 키가 있으면 AI가 문장을 통째로 이해하고, 없거나 실패하면 기본 규칙 엔진으로.
+  // ----------------------------------------------------------------------
+  const LLM_MODELS = ["gemini-2.5-flash", "gemini-2.0-flash"];
+  function llmKey() { return (state.settings && state.settings.geminiKey) || null; }
+
+  // LLM이 다루는 목록 스냅샷 (번호 ↔ 실제 항목 매핑)
+  function llmSnapshot() { return state.todos.slice(-80); }
+
+  function llmPrompt(text) {
+    const now = new Date();
+    const pad = (n) => String(n).padStart(2, "0");
+    const items = llmSnapshot().map((t, i) => ({ n: i, done: !!t.done, date: t.date, time: t.time, end: t.timeEnd, text: t.text }));
+    return [
+      "당신은 한국어 일정 비서입니다. 사용자의 말을 해석해서 JSON만 출력하세요. 설명·마크다운 금지.",
+      `오늘: ${todayKey()} (${["일","월","화","수","목","금","토"][now.getDay()]}요일), 현재 시각 ${pad(now.getHours())}:${pad(now.getMinutes())}`,
+      `현재 일정 목록(n=번호): ${JSON.stringify(items)}`,
+      '표기 규칙: date는 "YYYY-MM-DD". time/end는 "오후 3시", "오전 9시 30분" 형식(모르면 null). 자정은 "오전 12시".',
+      "가능한 actions:",
+      '- {"type":"add","text":"할 일","date":"...","time":...,"end":...,"memo":...} — 새 일정. 끝 시각을 안 말했으면 시작+1시간.',
+      '- {"type":"update","n":번호,"set":{"text":?,"date":?,"time":?,"end":?,"memo":?}} — 기존 일정 수정(말한 필드만).',
+      '- {"type":"complete","n":번호} · {"type":"uncomplete","n":번호} · {"type":"delete","n":번호}',
+      "규칙: 날짜를 넘는 일정은 자정 기준으로 add 두 개로 나눈다(첫날 …~\"오전 12시\", 다음날 \"오전 12시\"~끝). 하나를 여러 개로 쪼개 달라면 원본은 delete. 조회·질문이면 actions를 빈 배열로 하고 reply로 답한다. 명확하지 않으면 임의로 지우지 말고 reply로 되묻는다.",
+      '출력: {"actions":[...],"reply":"사용자에게 할 짧은 한국어 대답(한두 문장)"}',
+      `사용자: ${JSON.stringify(text)}`,
+    ].join("\n");
+  }
+
+  async function llmCall(text) {
+    const key = llmKey();
+    if (!key) return null;
+    let lastErr = "모델 사용 불가";
+    for (const model of LLM_MODELS) {
+      const ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
+      const timer = ctrl ? setTimeout(() => ctrl.abort(), 12000) : null;
+      try {
+        const res = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            signal: ctrl ? ctrl.signal : undefined,
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: llmPrompt(text) }] }],
+              generationConfig: { temperature: 0.1, responseMimeType: "application/json" },
+            }),
+          }
+        );
+        if (timer) clearTimeout(timer);
+        if (!res.ok) {
+          lastErr = res.status === 400 || res.status === 403 ? "키가 올바르지 않아요" : res.status === 429 ? "무료 사용량 초과(잠시 후 재시도)" : `API 오류 ${res.status}`;
+          if (res.status === 404) continue; // 다음 모델로
+          return { error: lastErr };
+        }
+        const data = await res.json();
+        const c = data && data.candidates && data.candidates[0];
+        const raw = c && c.content && c.content.parts && c.content.parts[0] && c.content.parts[0].text;
+        if (!raw) { lastErr = "빈 응답"; continue; }
+        const parsed = JSON.parse(raw.replace(/^```json\s*/i, "").replace(/```\s*$/, ""));
+        if (!parsed || !Array.isArray(parsed.actions)) { lastErr = "형식 오류"; continue; }
+        return { parsed };
+      } catch (e) {
+        if (timer) clearTimeout(timer);
+        lastErr = e && e.name === "AbortError" ? "응답 시간 초과" : "네트워크 오류";
+      }
+    }
+    return { error: lastErr };
+  }
+
+  // LLM이 준 시각 표현을 앱 표기로 (관대한 변환: "15:00"도 허용)
+  function llmTime(v) {
+    if (!v) return null;
+    if (/^\d{1,2}:\d{2}$/.test(v)) return hhmmToLabel(v.length === 4 ? "0" + v : v);
+    return timeLabelToHHMM(v) ? v : null;
+  }
+  function llmDate(v) { return typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null; }
+
+  function applyLlmActions(parsed) {
+    const list = llmSnapshot();
+    let changed = 0;
+    for (const a of parsed.actions || []) {
+      if (!a || typeof a !== "object") continue;
+      if (a.type === "add" && a.text) {
+        const cat = inferCategory(String(a.text));
+        const time = llmTime(a.time);
+        state.todos.push({
+          id: uid(), text: String(a.text), date: llmDate(a.date) || todayKey(), time,
+          timeEnd: llmTime(a.end) || (time ? defaultEnd(time) : null),
+          place: a.place ? String(a.place) : null, memo: a.memo ? String(a.memo) : null,
+          category: cat.name, icon: cat.icon, done: false, createdAt: Date.now(),
+        });
+        changed++;
+      } else if (a.type === "update" && list[a.n]) {
+        const t = list[a.n];
+        const s = a.set || {};
+        if (s.text) { t.text = String(s.text); const c = inferCategory(t.text); t.category = c.name; t.icon = c.icon; }
+        if (s.date !== undefined && llmDate(s.date)) t.date = s.date;
+        if (s.time !== undefined) t.time = llmTime(s.time);
+        if (s.end !== undefined) t.timeEnd = llmTime(s.end);
+        if (s.memo !== undefined) t.memo = s.memo ? String(s.memo) : null;
+        changed++;
+      } else if (a.type === "complete" && list[a.n]) {
+        list[a.n].done = true; list[a.n].completedAt = Date.now(); changed++;
+      } else if (a.type === "uncomplete" && list[a.n]) {
+        list[a.n].done = false; changed++;
+      } else if (a.type === "delete" && list[a.n]) {
+        const id = list[a.n].id;
+        state.todos = state.todos.filter((x) => x.id !== id); changed++;
+      }
+    }
+    if (changed) save();
+    return changed;
+  }
+
+  async function process(text) {
     appendBubble("user", text);
-    const res = handleUtterance(text);
+    let res = null;
+    // 비서가 되물은 상태(시간? 준비물? 응/아니)는 기존 대화 흐름이 처리
+    if (llmKey() && !pendingAction) {
+      appendBubble("bot", "🤖 생각 중…");
+      const r = await llmCall(text);
+      const thinking = chatLog && [...chatLog.querySelectorAll(".bubble")].find((b) => b.textContent === "🤖 생각 중…");
+      if (thinking) thinking.remove();
+      if (r && r.parsed) {
+        applyLlmActions(r.parsed);
+        res = { type: "ok", msg: "🤖 " + (r.parsed.reply || "처리했어요."), speak: r.parsed.reply || null };
+      } else if (r && r.error) {
+        toast(`AI 연결 실패(${r.error}) — 기본 모드로 처리했어요`);
+      }
+    }
+    if (!res) res = handleUtterance(text);
     appendBubble("bot", res.msg, res.type !== "ok");
     if (res.speak) speak(res.speak);
     render();
@@ -1878,6 +2007,8 @@
   // ⚙ 명언 설정: 즐겨찾기 목록 + 나만의 명언 관리
   function renderQuoteModal() {
     $("#pledgeInput").value = state.myPledge ? state.myPledge.t : "";
+    const aiInp = $("#aiKeyInput");
+    if (aiInp) { aiInp.value = llmKey() || ""; syncAiStatus(); }
     const favList = $("#favQuoteList");
     favList.innerHTML = "";
     if (!state.favQuotes.length) {
@@ -1897,6 +2028,26 @@
   $("#quoteSettingBtn").onclick = () => { renderQuoteModal(); $("#quoteModal").hidden = false; };
   $("#quoteModalClose").onclick = () => ($("#quoteModal").hidden = true);
   $("#quoteModal").addEventListener("click", (e) => { if (e.target.id === "quoteModal") e.currentTarget.hidden = true; });
+
+  // 🤖 AI 비서 키 저장/해제 + 연결 확인
+  function syncAiStatus() {
+    const el = $("#aiKeyStatus");
+    if (!el) return;
+    el.textContent = llmKey()
+      ? "✅ 연결됨 — 말하기가 AI로 처리돼요. 비우고 저장하면 해제됩니다."
+      : "미연결 — 기본(규칙) 모드로 동작 중이에요.";
+  }
+  $("#aiKeySave").onclick = async () => {
+    const v = $("#aiKeyInput").value.trim();
+    state.settings.geminiKey = v || null;
+    save();
+    syncAiStatus();
+    if (!v) { toast("AI 연결을 해제했어요"); return; }
+    toast("연결 확인 중…");
+    const r = await llmCall("연결 테스트야. actions는 빈 배열로 하고 reply로 짧게 인사해줘");
+    if (r && r.parsed) toast("🤖 AI 비서 연결 성공!");
+    else toast(`연결 실패: ${r && r.error ? r.error : "알 수 없음"} — 키를 다시 확인해 주세요`);
+  };
 
   // 일정 상세·메모 팝업 바인딩
   $("#taskClose").onclick = closeTaskModal;
@@ -1970,5 +2121,5 @@
   render();
 
   // 디버그/테스트용 노출
-  window.__voiceTodo = { handleUtterance, classify, extractDate, extractTime, cleanTaskText, inferCategory, doReschedule, process, state };
+  window.__voiceTodo = { handleUtterance, classify, extractDate, extractTime, cleanTaskText, inferCategory, doReschedule, process, applyLlmActions, llmPrompt, state };
 })();
