@@ -1144,17 +1144,33 @@
     const body = document.createElement("div");
     body.className = "dm-body";
     body.hidden = !open;
+    // 펼치면 우선 '읽기'로 보여주고, 글을 눌러야 수정(키보드)로 들어간다
+    const read = document.createElement("div");
+    read.className = "dm-read";
+    read.title = "눌러서 수정";
     const ta = document.createElement("textarea");
     ta.className = "dm-input";
     ta.rows = 4;
     ta.placeholder = "오늘 해야 할 일, 생각나는 것들을 자유롭게 적어두세요";
     ta.value = memoText;
+    ta.hidden = true;
+    const syncRead = () => {
+      const has = !!ta.value.trim();
+      read.textContent = has ? ta.value : "아직 메모가 없어요 · 눌러서 적어보세요 ✏️";
+      read.classList.toggle("empty", !has);
+    };
+    const toEdit = () => { read.hidden = true; ta.hidden = false; ta.focus(); };
+    const toRead = () => { syncRead(); ta.hidden = true; read.hidden = false; };
+    syncRead();
+    read.onclick = toEdit;
+    ta.onblur = toRead;
     ta.oninput = () => {
       state.dayMemos = state.dayMemos || {};
       if (ta.value.trim()) state.dayMemos[key] = ta.value;
       else delete state.dayMemos[key];
       save();
     };
+    body.appendChild(read);
     body.appendChild(ta);
     head.onclick = () => {
       const nowOpen = body.hidden; // 열리는 중인가
@@ -1163,7 +1179,7 @@
       wrap.classList.toggle("open", nowOpen);
       preview.textContent = !nowOpen && ta.value.trim() ? ta.value.trim().split("\n")[0].slice(0, 22) : "";
       save();
-      if (nowOpen) ta.focus();
+      if (nowOpen) toRead(); // 보는 게 우선 — 수정은 글을 한 번 더 눌렀을 때
     };
     wrap.appendChild(head);
     wrap.appendChild(body);
@@ -2024,6 +2040,48 @@
     render();
   }
 
+  // ----------------------------------------------------------------------
+  // ⏰ 알람 — 앱이 열려 있는 동안, 일정 시작 시각이 되면 소리·음성·말풍선으로 알림
+  // (웹 특성상 사파리를 닫아두면 울릴 수 없어요 — 화면이 켜져 있을 때 동작)
+  // ----------------------------------------------------------------------
+  function beep() {
+    try {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return;
+      const ctx = beep._ctx || (beep._ctx = new Ctx());
+      if (ctx.resume) ctx.resume();
+      const ding = (at, f) => {
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.frequency.value = f;
+        g.gain.setValueAtTime(0.25, ctx.currentTime + at);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + at + 0.45);
+        o.start(ctx.currentTime + at); o.stop(ctx.currentTime + at + 0.5);
+      };
+      ding(0, 880); ding(0.55, 880); ding(1.1, 1175);
+    } catch (_) {}
+  }
+  function checkAlarms() {
+    const now = new Date();
+    const hhmm = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+    const k = todayKey();
+    let hit = false;
+    for (const t of state.todos) {
+      if (t.done || t.alarmed || t.date !== k || !t.time) continue;
+      if (timeLabelToHHMM(t.time) === hhmm) {
+        t.alarmed = true;
+        hit = true;
+        appendBubble("bot", `⏰ ${t.time} — "${t.text}" 시간이에요!`);
+        toast(`⏰ ${t.text} 시간이에요!`);
+        speak(`${t.text} 시간이에요.`);
+        if (state.settings.tts) beep(); // 🔊 꺼두면 소리 없이 화면으로만
+        if (navigator.vibrate) navigator.vibrate([300, 100, 300]);
+      }
+    }
+    if (hit) save();
+  }
+  setInterval(checkAlarms, 20000);
+
   function toast(msg) {
     const el = $("#toast");
     el.textContent = msg;
@@ -2215,5 +2273,5 @@
   render();
 
   // 디버그/테스트용 노출
-  window.__voiceTodo = { handleUtterance, classify, extractDate, extractTime, cleanTaskText, inferCategory, doReschedule, process, applyLlmActions, llmPrompt, state };
+  window.__voiceTodo = { handleUtterance, classify, extractDate, extractTime, cleanTaskText, inferCategory, doReschedule, process, applyLlmActions, llmPrompt, checkAlarms, state };
 })();
