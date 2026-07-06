@@ -2234,47 +2234,62 @@
   if ($("#backupCopy")) {
     $("#backupCopy").onclick = async () => {
       const code = makeBackupCode();
-      // 항상 화면에 코드를 띄워 직접 길게 눌러 복사할 수 있게 한다
+      // 화면에도 코드를 띄우되(투명성/최후수단), 복사는 클립보드로 '전체'를 담는다
       const out = $("#backupOutput");
-      if (out) { out.hidden = false; out.value = code; out.focus(); try { out.setSelectionRange(0, code.length); } catch (_) {} }
+      if (out) { out.hidden = false; out.value = code; }
       let ok = false;
       try {
         if (navigator.clipboard && navigator.clipboard.writeText) { await navigator.clipboard.writeText(code); ok = true; }
       } catch (_) {}
+      if (!ok && out) { out.focus(); try { out.setSelectionRange(0, code.length); } catch (_) {} }
       setBackupStatus(ok
-        ? "✅ 복사됐어요. 옮길 곳(홈 화면 앱/사파리)에서 붙여넣고 복원하세요. (안 되면 위 코드를 길게 눌러 전체 복사)"
-        : "위 코드를 길게 눌러 '전체 선택 → 복사'한 뒤, 옮길 곳에 붙여넣고 복원하세요.");
-      toast("백업 코드를 만들었어요");
+        ? "✅ 복사됐어요! 옮길 쪽에서 '📋 클립보드에서 복원'을 누르세요."
+        : "위 코드 상자를 길게 눌러 '전체 선택 → 복사'하세요 (스크롤된 부분까지 전부).");
+      toast(ok ? "백업 코드를 복사했어요" : "코드를 전체 선택해 복사하세요");
+    };
+  }
+  // 복원 실행 (클립보드/직접입력 공용)
+  function doRestore(raw) {
+    if (!raw || !raw.trim()) { setBackupStatus("붙여넣은 백업 코드가 없어요."); return; }
+    const data = parseBackupCode(raw);
+    if (!data || typeof data !== "object" || !Array.isArray(data.todos)) {
+      setBackupStatus("❌ 백업 코드를 읽지 못했어요. 코드가 일부만 복사된 것 같아요 — '📋 클립보드에서 복원'을 쓰거나, 코드 전체를 다시 복사해 주세요.");
+      return;
+    }
+    const cnt = data.todos.length;
+    if (!confirm(`이 기기의 현재 데이터를 백업 내용으로 덮어쓸까요?\n(할 일 ${cnt}개 등)`)) return;
+    // state 객체를 그대로 교체하지 않고 속성만 바꿔 기존 참조를 유지
+    state.todos = Array.isArray(data.todos) ? data.todos : [];
+    state.goals = Array.isArray(data.goals) ? data.goals : [];
+    state.settings = data.settings && typeof data.settings === "object" ? data.settings : state.settings;
+    state.ui = data.ui && typeof data.ui === "object" ? data.ui : state.ui;
+    state.favQuotes = Array.isArray(data.favQuotes) ? data.favQuotes : [];
+    state.myQuotes = Array.isArray(data.myQuotes) ? data.myQuotes : [];
+    state.myPledge = data.myPledge !== undefined ? data.myPledge : null;
+    state.memo = typeof data.memo === "string" ? data.memo
+      : (data.dayMemos && typeof data.dayMemos === "object"
+          ? Object.keys(data.dayMemos).sort().map((k) => String(data.dayMemos[k] || "").trim()).filter(Boolean).join("\n")
+          : "");
+    save();
+    setBackupStatus("✅ 복원했어요!");
+    toast("복원 완료 — 데이터를 불러왔어요");
+    try { location.reload(); } catch (_) { render(); }
+  }
+  if ($("#restorePaste")) {
+    $("#restorePaste").onclick = async () => {
+      let txt = "";
+      try { if (navigator.clipboard && navigator.clipboard.readText) txt = await navigator.clipboard.readText(); } catch (_) {}
+      if (!txt || !txt.trim()) {
+        setBackupStatus("클립보드를 읽지 못했어요. 아래 칸에 코드를 붙여넣고 '복원'을 눌러 주세요.");
+        const ri = $("#restoreInput"); if (ri) ri.focus();
+        return;
+      }
+      const ri = $("#restoreInput"); if (ri) ri.value = txt;
+      doRestore(txt);
     };
   }
   if ($("#restoreBtn")) {
-    $("#restoreBtn").onclick = () => {
-      const raw = ($("#restoreInput").value || "").trim();
-      if (!raw) { setBackupStatus("붙여넣은 백업 코드가 없어요."); return; }
-      const data = parseBackupCode(raw);
-      if (!data) { setBackupStatus("❌ 백업 코드를 읽지 못했어요. 코드 '전체'를 다시 복사해 붙여넣어 주세요."); return; }
-      if (typeof data !== "object" || !Array.isArray(data.todos)) {
-        setBackupStatus("❌ 백업 데이터를 읽을 수 없어요."); return;
-      }
-      const cnt = data.todos.length;
-      if (!confirm(`이 기기의 현재 데이터를 백업 내용으로 덮어쓸까요?\n(할 일 ${cnt}개 등)`)) return;
-      // state 객체를 그대로 교체하지 않고 속성만 바꿔 기존 참조를 유지
-      state.todos = Array.isArray(data.todos) ? data.todos : [];
-      state.goals = Array.isArray(data.goals) ? data.goals : [];
-      state.settings = data.settings && typeof data.settings === "object" ? data.settings : state.settings;
-      state.ui = data.ui && typeof data.ui === "object" ? data.ui : state.ui;
-      state.favQuotes = Array.isArray(data.favQuotes) ? data.favQuotes : [];
-      state.myQuotes = Array.isArray(data.myQuotes) ? data.myQuotes : [];
-      state.myPledge = data.myPledge !== undefined ? data.myPledge : null;
-      state.memo = typeof data.memo === "string" ? data.memo
-        : (data.dayMemos && typeof data.dayMemos === "object"
-            ? Object.keys(data.dayMemos).sort().map((k) => String(data.dayMemos[k] || "").trim()).filter(Boolean).join("\n")
-            : "");
-      save();
-      setBackupStatus("✅ 복원했어요!");
-      toast("복원 완료 — 데이터를 불러왔어요");
-      try { location.reload(); } catch (_) { render(); }
-    };
+    $("#restoreBtn").onclick = () => doRestore(($("#restoreInput").value || "").trim());
   }
 
   // 일정 상세·메모 팝업 바인딩
