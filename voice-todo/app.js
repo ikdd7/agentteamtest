@@ -2210,38 +2210,50 @@
   };
 
   // 💾 백업 · 복원 — 사파리↔홈화면 앱처럼 저장 공간이 다른 곳 사이에서 데이터 옮기기
-  function makeBackupCode() { return "VTD1:" + JSON.stringify(state); }
+  // 코드는 base64(영문·숫자만)로 만들어 따옴표·한글이 깨지는 것을 막는다
+  function makeBackupCode() {
+    const json = JSON.stringify(state);
+    try { return "VTD2:" + btoa(unescape(encodeURIComponent(json))); }
+    catch (_) { return "VTD1:" + json; }
+  }
+  function parseBackupCode(raw) {
+    let s = String(raw || "").trim();
+    if (!s) return null;
+    // 아이폰 스마트 따옴표를 원래 따옴표로 되돌린다 (혹시 변환됐을 경우)
+    s = s.replace(/[“”″]/g, '"').replace(/[‘’′]/g, "'");
+    if (s.indexOf("VTD2:") !== -1) {
+      const b64 = s.slice(s.indexOf("VTD2:") + 5).replace(/\s+/g, "");
+      try { return JSON.parse(decodeURIComponent(escape(atob(b64)))); } catch (_) {}
+    }
+    const j = s.replace(/^.*?VTD1:/, "").trim();
+    try { return JSON.parse(j); } catch (_) {}                                   // 옛 형식(그대로 JSON)
+    try { return JSON.parse(decodeURIComponent(escape(atob(s.replace(/\s+/g, ""))))); } catch (_) {} // 접두어 유실된 base64
+    return null;
+  }
   function setBackupStatus(msg) { const el = $("#backupStatus"); if (el) el.textContent = msg || ""; }
   if ($("#backupCopy")) {
     $("#backupCopy").onclick = async () => {
       const code = makeBackupCode();
+      // 항상 화면에 코드를 띄워 직접 길게 눌러 복사할 수 있게 한다
+      const out = $("#backupOutput");
+      if (out) { out.hidden = false; out.value = code; out.focus(); try { out.setSelectionRange(0, code.length); } catch (_) {} }
       let ok = false;
       try {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          await navigator.clipboard.writeText(code);
-          ok = true;
-        }
+        if (navigator.clipboard && navigator.clipboard.writeText) { await navigator.clipboard.writeText(code); ok = true; }
       } catch (_) {}
-      if (!ok) {
-        // 클립보드 권한이 없으면 붙여넣기 칸에 넣어 길게 눌러 복사하도록
-        const ta = $("#restoreInput");
-        if (ta) { ta.value = code; ta.focus(); ta.select && ta.select(); }
-      }
       setBackupStatus(ok
-        ? "✅ 백업 코드를 복사했어요. 옮길 곳(홈 화면 앱/사파리)에서 붙여넣고 복원하세요."
-        : "아래 칸에 코드를 넣었어요. 길게 눌러 복사한 뒤 옮길 곳에 붙여넣으세요.");
-      toast("백업 코드를 준비했어요");
+        ? "✅ 복사됐어요. 옮길 곳(홈 화면 앱/사파리)에서 붙여넣고 복원하세요. (안 되면 위 코드를 길게 눌러 전체 복사)"
+        : "위 코드를 길게 눌러 '전체 선택 → 복사'한 뒤, 옮길 곳에 붙여넣고 복원하세요.");
+      toast("백업 코드를 만들었어요");
     };
   }
   if ($("#restoreBtn")) {
     $("#restoreBtn").onclick = () => {
       const raw = ($("#restoreInput").value || "").trim();
       if (!raw) { setBackupStatus("붙여넣은 백업 코드가 없어요."); return; }
-      let data;
-      try {
-        data = JSON.parse(raw.replace(/^VTD1:/, ""));
-      } catch (_) { setBackupStatus("❌ 백업 코드 형식이 올바르지 않아요. 전체를 다시 복사해 붙여넣어 주세요."); return; }
-      if (!data || typeof data !== "object" || !Array.isArray(data.todos)) {
+      const data = parseBackupCode(raw);
+      if (!data) { setBackupStatus("❌ 백업 코드를 읽지 못했어요. 코드 '전체'를 다시 복사해 붙여넣어 주세요."); return; }
+      if (typeof data !== "object" || !Array.isArray(data.todos)) {
         setBackupStatus("❌ 백업 데이터를 읽을 수 없어요."); return;
       }
       const cnt = data.todos.length;
