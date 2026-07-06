@@ -14,7 +14,17 @@
   if (!Array.isArray(state.todos)) state.todos = [];
   if (!Array.isArray(state.goals)) state.goals = [];
   state.settings = state.settings || { tts: true };
-  state.dayMemos = state.dayMemos || {}; // 📝 날짜별 자유 메모
+  // 📝 메모는 이제 날짜와 무관한 '하나의 메모'로 항상 보인다.
+  if (typeof state.memo !== "string") state.memo = "";
+  // 예전 날짜별 메모(dayMemos)가 있으면 하나로 합쳐 옮긴다 (데이터 보존)
+  if (state.dayMemos && typeof state.dayMemos === "object") {
+    const merged = Object.keys(state.dayMemos)
+      .sort()
+      .map((k) => String(state.dayMemos[k] || "").trim())
+      .filter(Boolean);
+    if (merged.length) state.memo = [state.memo.trim(), ...merged].filter(Boolean).join("\n");
+    delete state.dayMemos;
+  }
   state.ui = state.ui || {};
   if (!state.ui.status) state.ui.status = "all";
   if (!state.ui.group) state.ui.group = "date";
@@ -1119,9 +1129,9 @@
   }
   function goToday() { dayDir = 0; homeDay = todayKey(); renderBoard(); }
 
-  // 날짜별 자유 메모 (state.dayMemos["YYYY-MM-DD"]) — 드롭다운으로 접고 펼친다
-  function dayMemoEl(key) {
-    const memoText = (state.dayMemos && state.dayMemos[key]) || "";
+  // 자유 메모 (state.memo) — 날짜와 무관한 하나의 메모, 어느 날에서든 항상 보인다
+  function dayMemoEl() {
+    const memoText = state.memo || "";
     const open = !!state.ui.memoOpen;
     const wrap = document.createElement("div");
     wrap.className = "day-memo" + (open ? " open" : "");
@@ -1165,9 +1175,7 @@
     read.onclick = toEdit;
     ta.onblur = toRead;
     ta.oninput = () => {
-      state.dayMemos = state.dayMemos || {};
-      if (ta.value.trim()) state.dayMemos[key] = ta.value;
-      else delete state.dayMemos[key];
+      state.memo = ta.value;
       save();
     };
     body.appendChild(read);
@@ -1234,8 +1242,8 @@
     }
     if (!meta.children.length) meta.remove();
 
-    // 📝 그날의 메모 — 날짜와 시간표 사이, 접었다 펼치는 노란 메모지
-    el.appendChild(dayMemoEl(key));
+    // 📝 메모 — 날짜와 시간표 사이, 접었다 펼치는 노란 메모지 (모든 날짜에서 같은 하나)
+    el.appendChild(dayMemoEl());
 
     // 그날의 목록 — 아워 그리드는 비어 있어도 항상 보여준다 (빈 칸 눌러 추가)
     const items = todos.filter((t) => t.date === key);
@@ -2200,6 +2208,62 @@
     if (r && r.parsed) toast("🤖 AI 비서 연결 성공!");
     else toast(`연결 실패: ${r && r.error ? r.error : "알 수 없음"} — 키를 다시 확인해 주세요`);
   };
+
+  // 💾 백업 · 복원 — 사파리↔홈화면 앱처럼 저장 공간이 다른 곳 사이에서 데이터 옮기기
+  function makeBackupCode() { return "VTD1:" + JSON.stringify(state); }
+  function setBackupStatus(msg) { const el = $("#backupStatus"); if (el) el.textContent = msg || ""; }
+  if ($("#backupCopy")) {
+    $("#backupCopy").onclick = async () => {
+      const code = makeBackupCode();
+      let ok = false;
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(code);
+          ok = true;
+        }
+      } catch (_) {}
+      if (!ok) {
+        // 클립보드 권한이 없으면 붙여넣기 칸에 넣어 길게 눌러 복사하도록
+        const ta = $("#restoreInput");
+        if (ta) { ta.value = code; ta.focus(); ta.select && ta.select(); }
+      }
+      setBackupStatus(ok
+        ? "✅ 백업 코드를 복사했어요. 옮길 곳(홈 화면 앱/사파리)에서 붙여넣고 복원하세요."
+        : "아래 칸에 코드를 넣었어요. 길게 눌러 복사한 뒤 옮길 곳에 붙여넣으세요.");
+      toast("백업 코드를 준비했어요");
+    };
+  }
+  if ($("#restoreBtn")) {
+    $("#restoreBtn").onclick = () => {
+      const raw = ($("#restoreInput").value || "").trim();
+      if (!raw) { setBackupStatus("붙여넣은 백업 코드가 없어요."); return; }
+      let data;
+      try {
+        data = JSON.parse(raw.replace(/^VTD1:/, ""));
+      } catch (_) { setBackupStatus("❌ 백업 코드 형식이 올바르지 않아요. 전체를 다시 복사해 붙여넣어 주세요."); return; }
+      if (!data || typeof data !== "object" || !Array.isArray(data.todos)) {
+        setBackupStatus("❌ 백업 데이터를 읽을 수 없어요."); return;
+      }
+      const cnt = data.todos.length;
+      if (!confirm(`이 기기의 현재 데이터를 백업 내용으로 덮어쓸까요?\n(할 일 ${cnt}개 등)`)) return;
+      // state 객체를 그대로 교체하지 않고 속성만 바꿔 기존 참조를 유지
+      state.todos = Array.isArray(data.todos) ? data.todos : [];
+      state.goals = Array.isArray(data.goals) ? data.goals : [];
+      state.settings = data.settings && typeof data.settings === "object" ? data.settings : state.settings;
+      state.ui = data.ui && typeof data.ui === "object" ? data.ui : state.ui;
+      state.favQuotes = Array.isArray(data.favQuotes) ? data.favQuotes : [];
+      state.myQuotes = Array.isArray(data.myQuotes) ? data.myQuotes : [];
+      state.myPledge = data.myPledge !== undefined ? data.myPledge : null;
+      state.memo = typeof data.memo === "string" ? data.memo
+        : (data.dayMemos && typeof data.dayMemos === "object"
+            ? Object.keys(data.dayMemos).sort().map((k) => String(data.dayMemos[k] || "").trim()).filter(Boolean).join("\n")
+            : "");
+      save();
+      setBackupStatus("✅ 복원했어요!");
+      toast("복원 완료 — 데이터를 불러왔어요");
+      try { location.reload(); } catch (_) { render(); }
+    };
+  }
 
   // 일정 상세·메모 팝업 바인딩
   $("#taskClose").onclick = closeTaskModal;
