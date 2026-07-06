@@ -1,0 +1,21 @@
+{
+  "generated": "demo",
+  "facilities": [
+    {"id": "sw-gangseo-am", "name": "성인 새벽수영 초급반 (05:50)", "category": "수영", "area": "강서구", "place": "강서구민체육센터", "status": "full", "payType": "유료", "target": "성인", "url": "https://yeyak.seoul.go.kr", "rcptBgn": "2026-07-01 10:00", "rcptEnd": "2026-07-05 18:00"},
+    {"id": "sw-songpa-kid", "name": "어린이 수영 강습 (초급)", "category": "수영", "area": "송파구", "place": "송파구민종합체육관", "status": "full", "payType": "유료", "target": "유아·초등", "url": "https://yeyak.seoul.go.kr", "rcptBgn": "2026-07-01 10:00", "rcptEnd": "2026-07-06 18:00"},
+    {"id": "sw-nowon-noon", "name": "직장인 점심수영 (12:10)", "category": "수영", "area": "노원구", "place": "노원구민체육센터", "status": "open", "payType": "유료", "target": "성인", "url": "https://yeyak.seoul.go.kr", "rcptBgn": "2026-07-02 10:00", "rcptEnd": "2026-07-08 18:00"},
+    {"id": "sw-yangcheon-aqua", "name": "아쿠아로빅 오전반", "category": "수영", "area": "양천구", "place": "양천구민체육센터", "status": "closed", "payType": "유료", "target": "성인", "url": "https://yeyak.seoul.go.kr", "rcptBgn": "2026-06-25 10:00", "rcptEnd": "2026-06-30 18:00"},
+    {"id": "tn-naegok-a", "name": "내곡 테니스장 A코트 (주말 09:00)", "category": "테니스", "area": "서초구", "place": "내곡 공공테니스장", "status": "full", "payType": "유료", "target": "일반", "url": "https://yeyak.seoul.go.kr", "rcptBgn": "2026-07-03 09:00", "rcptEnd": "2026-07-04 09:00"},
+    {"id": "tn-jamsil-b", "name": "잠실 테니스장 B코트 (평일 저녁)", "category": "테니스", "area": "송파구", "place": "잠실종합운동장 테니스장", "status": "full", "payType": "유료", "target": "일반", "url": "https://yeyak.seoul.go.kr", "rcptBgn": "2026-07-01 10:00", "rcptEnd": "2026-07-07 18:00"},
+    {"id": "tn-mangwon-lesson", "name": "성인 테니스 강습 (입문)", "category": "테니스", "area": "마포구", "place": "망원 한강공원 코트", "status": "open", "payType": "유료", "target": "성인", "url": "https://yeyak.seoul.go.kr", "rcptBgn": "2026-07-02 10:00", "rcptEnd": "2026-07-09 18:00"},
+    {"id": "kid-gwanak-gym", "name": "유아체능단 (5~7세)", "category": "유아체능", "area": "관악구", "place": "관악구민종합체육관", "status": "full", "payType": "유료", "target": "유아", "url": "https://yeyak.seoul.go.kr", "rcptBgn": "2026-07-01 10:00", "rcptEnd": "2026-07-05 18:00"},
+    {"id": "kid-eunpyeong-ball", "name": "어린이 축구교실 (초등 저학년)", "category": "유아체능", "area": "은평구", "place": "은평구민체육센터", "status": "closed", "payType": "유료", "target": "초등", "url": "https://yeyak.seoul.go.kr", "rcptBgn": "2026-06-20 10:00", "rcptEnd": "2026-06-28 18:00"},
+    {"id": "kid-dongjak-skate", "name": "어린이 아이스스케이트 강습", "category": "유아체능", "area": "동작구", "place": "동작구 빙상장", "status": "full", "payType": "유료", "target": "유아·초등", "url": "https://yeyak.seoul.go.kr", "rcptBgn": "2026-07-01 10:00", "rcptEnd": "2026-07-06 18:00"},
+    {"id": "cul-jongno-calli", "name": "캘리그라피 클래스 (성인)", "category": "문화강좌", "area": "종로구", "place": "종로구립도서관", "status": "open", "payType": "무료", "target": "성인", "url": "https://yeyak.seoul.go.kr", "rcptBgn": "2026-07-02 10:00", "rcptEnd": "2026-07-10 18:00"},
+    {"id": "cul-seodaemun-yoga", "name": "생활요가 주2회 저녁반", "category": "문화강좌", "area": "서대문구", "place": "서대문구민회관", "status": "full", "payType": "유료", "target": "성인", "url": "https://yeyak.seoul.go.kr", "rcptBgn": "2026-07-01 10:00", "rcptEnd": "2026-07-05 18:00"},
+    {"id": "cul-gangdong-uku", "name": "우쿨렐레 입문 (주말)", "category": "문화강좌", "area": "강동구", "place": "강동아트센터", "status": "closed", "payType": "유료", "target": "일반", "url": "https://yeyak.seoul.go.kr", "rcptBgn": "2026-06-22 10:00", "rcptEnd": "2026-06-29 18:00"},
+    {"id": "sw-seongdong-swim", "name": "성인 자유수영 야간 (20:00)", "category": "수영", "area": "성동구", "place": "성동구민종합체육관", "status": "full", "payType": "유료", "target": "성인", "url": "https://yeyak.seoul.go.kr", "rcptBgn": "2026-07-01 10:00", "rcptEnd": "2026-07-07 18:00"},
+    {"id": "tn-guro-court", "name": "구로 테니스장 C코트 (평일 오전)", "category": "테니스", "area": "구로구", "place": "구로구민운동장 테니스장", "status": "open", "payType": "유료", "target": "일반", "url": "https://yeyak.seoul.go.kr", "rcptBgn": "2026-07-02 10:00", "rcptEnd": "2026-07-08 18:00"},
+    {"id": "kid-mapo-swim", "name": "유아 수영 강습 (6세)", "category": "유아체능", "area": "마포구", "place": "마포구민체육센터", "status": "full", "payType": "유료", "target": "유아", "url": "https://yeyak.seoul.go.kr", "rcptBgn": "2026-07-01 10:00", "rcptEnd": "2026-07-05 18:00"}
+  ]
+}

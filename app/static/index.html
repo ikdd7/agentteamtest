@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>빈자리 레이더 · 공공 강습·시설 취소표 알림</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%A1%3C/text%3E%3C/svg%3E" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">📡</span>
+      <div>
+        <h1>빈자리 레이더</h1>
+        <p class="tagline">공공 수영·테니스·유아체능·문화강좌 <b>취소표 알림</b></p>
+      </div>
+    </div>
+    <div class="status">
+      <span id="modeBadge" class="badge">…</span>
+      <span id="pollInfo" class="poll-info">연결 중…</span>
+      <button id="notifBtn" class="notif-btn" title="브라우저 알림 켜기">🔔 알림 켜기</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="panel filters">
+      <div class="chip-row" id="catChips"></div>
+      <div class="controls">
+        <select id="areaSel"><option value="전체">전체 지역</option></select>
+        <input id="searchInp" type="search" placeholder="강습·시설명 검색" />
+        <label class="toggle"><input type="checkbox" id="watchOnly" /> 관심만</label>
+        <label class="toggle"><input type="checkbox" id="openOnly" /> 접수중만</label>
+      </div>
+      <div class="stat-row">
+        <span class="stat"><b id="statOpen">0</b> 접수중</span>
+        <span class="stat"><b id="statTotal">0</b> 전체</span>
+        <span class="stat"><b id="statWatch">0</b> 관심</span>
+      </div>
+    </section>
+
+    <div class="grid">
+      <section class="panel list-panel">
+        <div class="panel-head"><h2>강습·시설</h2><span id="listCount" class="muted"></span></div>
+        <div id="list" class="list"></div>
+      </section>
+
+      <aside class="panel alerts-panel">
+        <div class="panel-head"><h2>🚨 취소표 알림</h2><span id="alertCount" class="muted"></span></div>
+        <p class="muted small">마감된 자리가 <b>다시 접수중</b>으로 바뀌는 순간 여기에 뜹니다. 관심(★) 등록한 항목은 브라우저 알림도 받습니다.</p>
+        <div id="alerts" class="alerts"></div>
+      </aside>
+    </div>
+  </main>
+
+  <footer class="foot">
+    <span>데이터: 서울 열린데이터광장 공개 API · 데모 모드에선 샘플 데이터로 취소표를 시뮬레이션합니다.</span>
+  </footer>
+
+  <script src="/app.js"></script>
+</body>
+</html>
